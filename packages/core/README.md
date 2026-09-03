@@ -11,7 +11,7 @@ npm install @rjvr/buzzsaw
 # or: pnpm add / yarn add / bun add
 ```
 
-The package has no runtime dependencies. Its published types declare only the slice of the Web Audio API it uses, so it typechecks under a Node-only `tsconfig` (`"lib": ["es2023"]`) against a polyfill such as [`node-web-audio-api`](https://github.com/ircam-ismm/node-web-audio-api).
+The package has no runtime dependencies. Its published types declare only the slice of the Web Audio API it uses, so it typechecks under a Node-only `tsconfig` (`"lib": ["es2023"]`). Running outside the browser needs a polyfill such as [`node-web-audio-api`](https://github.com/ircam-ismm/node-web-audio-api).
 
 The 113 built-in presets live in a separate subpath (`@rjvr/buzzsaw/sounds`). Import them individually to bundle only what you use: five presets cost ~0.3 kB gzip on top of the library, all 113 cost ~5.4 kB.
 
@@ -152,7 +152,7 @@ Both `frequency` and `gain` accept automation envelopes:
 interface EnvelopeDefinition {
   /** Initial value at time 0 */
   start: number
-  /** Automation targets ordered by offset in seconds from sound start */
+  /** Automation targets, in any order. `time` is an offset in seconds from sound start */
   steps: { value: number, time: number }[]
   /** Defaults to 'linear' for frequency, 'step' for gain */
   interpolation?: 'linear' | 'step'
@@ -195,7 +195,7 @@ Calling `play()` on a `Sound` or `SoundManager` schedules the voice immediately 
 
 ```ts
 interface PlaybackHandle {
-  /** Immediately stops playback with an exponential fade to prevent clicks */
+  /** Immediately stops playback with a 5 ms linear fade to prevent clicks */
   stop: () => void
 
   /** True while the voice is actively scheduled or rendering */
@@ -254,7 +254,7 @@ const sounds = new SoundManager({ onMissing: () => {} }).registerAll(DEFAULT_SOU
 - `dispose()`: clears the registry and disconnects the master audio bus.
 - `list()`: returns an array of registered sound names.
 - `getAll()`: returns an array of registered `Sound` instances.
-- `keys()`, `values()`, `entries()`, `forEach`, `find`, `filter`: standard collection iteration methods.
+- `keys()`, `values()`, `entries()`, `forEach()`, `find()`, `filter()`: standard collection iteration methods.
 - `masterVolume`: get or set the master output volume (`0..2`). Adjusts running voices with an anti-zipper glide.
 - `outputLevel`: peak amplitude (`0..1`) leaving the master fader over the last analysis window. Reads `0` until the first `play()` call builds the bus, and on contexts with no analyser node.
 - `size`: count of registered sounds.
@@ -289,7 +289,7 @@ import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 
 ### Validation
 
-Validate untrusted JSON payloads or user-authored sound definitions before registering them:
+`register` and the `Sound` constructor validate for you and throw `SoundValidationError`. Validate explicitly when you would rather collect the problems than catch an exception, as with untrusted JSON or user-authored definitions:
 
 ```ts
 import { isValidSoundDefinition, validateSoundDefinition } from '@rjvr/buzzsaw'
@@ -302,7 +302,7 @@ else {
 }
 ```
 
-`validateSoundDefinition` returns an array of messages (empty when valid), checking property types, ranges, and step structures. `register` and the `Sound` constructor run it themselves and throw `SoundValidationError` on failure, so validate first only when you want to report errors instead of catching them.
+`validateSoundDefinition` returns an array of messages, empty when valid, checking property types, ranges, and step structures.
 
 ### Inspection
 
@@ -339,7 +339,13 @@ Also exported: `isEnvelope`, `freezeSoundDefinition`, `clamp`, `round`, `WAVE_TY
 
 ### Audio context
 
-The shared `AudioContext` is created lazily on first playback. `ensureAudioContextReady()` creates or resumes it, `getAudioContextInstance()` returns it (or `null` where Web Audio is unavailable), `isAudioContextSupported()` reports availability, `closeAudioContext()` closes and clears it, and `setAudioContextInstance(ctx)` replaces it with one you own, without closing whatever it displaces.
+The shared `AudioContext` is created lazily on first playback.
+
+- `ensureAudioContextReady()`: creates or resumes it.
+- `getAudioContextInstance()`: returns it, or `null` where Web Audio is unavailable.
+- `isAudioContextSupported()`: reports availability.
+- `closeAudioContext()`: closes and clears it.
+- `setAudioContextInstance(ctx)`: replaces it with one you own, without closing whatever it displaces.
 
 ## License
 

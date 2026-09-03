@@ -109,7 +109,7 @@ The rendered buffer spans the definition's effective duration, so the decay tail
 
 ### Options
 
-`WavExportOptions` extends `WavEncodingOptions`:
+`WavExportOptions` extends `WavEncodingOptions`. Both are flattened here for reference:
 
 ```ts
 interface WavExportOptions {

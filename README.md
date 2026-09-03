@@ -1,18 +1,18 @@
 # Buzzsaw
 
-Sound effects described as data and synthesized in the browser. No audio files, no runtime dependencies.
+Sound effects described as data and synthesized in the browser. No audio files, and the synthesizer has no dependencies.
 
-Instead of shipping megabytes of `.wav` or `.mp3` assets, Buzzsaw describes sounds as small JSON objects and synthesizes them in real time using the Web Audio API. Nothing to download, nothing to wait for, and pitch and volume scale at playback time.
+Instead of shipping megabytes of `.wav` or `.mp3` assets, Buzzsaw describes sounds as small JSON objects and synthesizes them in real time using the Web Audio API. Nothing to download and nothing to wait for. Pitch and volume scale at playback time.
 
 Audition the presets and inspect their waveforms in the **[Studio](https://ruandre.github.io/buzzsaw/)**.
 
 ## Packages
 
-| Package                                                                                 | Description                                                       |
-| :-------------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
-| [`@rjvr/buzzsaw`](https://github.com/ruandre/buzzsaw/tree/main/packages/core#readme)    | Web Audio synthesizer, sound registry, and parameter envelopes.   |
-| [`@rjvr/buzzsaw-wav`](https://github.com/ruandre/buzzsaw/tree/main/packages/wav#readme) | RIFF/WAVE encoder, offline renderer, and file exporter.           |
-| [`@rjvr/buzzsaw-app`](https://github.com/ruandre/buzzsaw/tree/main/app)                 | Web studio with an oscilloscope, synthesizer, and preset library. |
+| Package                                                                                 | Description                                                     |
+| :-------------------------------------------------------------------------------------- | :-------------------------------------------------------------- |
+| [`@rjvr/buzzsaw`](https://github.com/ruandre/buzzsaw/tree/main/packages/core#readme)    | Web Audio synthesizer, sound registry, and parameter envelopes. |
+| [`@rjvr/buzzsaw-wav`](https://github.com/ruandre/buzzsaw/tree/main/packages/wav#readme) | RIFF/WAVE encoder, offline renderer, and file exporter.         |
+| [`@rjvr/buzzsaw-app`](https://github.com/ruandre/buzzsaw/tree/main/app#readme)          | Studio with an oscilloscope, synthesizer, and preset library.   |
 
 ## Quick start
 
@@ -25,14 +25,17 @@ npm install @rjvr/buzzsaw
 # or: pnpm add / yarn add / bun add
 ```
 
-A `SoundManager` starts empty. The 113 presets live in a separate entrypoint (`@rjvr/buzzsaw/sounds`). Import them one at a time to bundle only the sounds you use:
+A `SoundManager` starts empty. The 113 presets live in a separate entrypoint (`@rjvr/buzzsaw/sounds`):
 
 ```ts
 import { SoundManager } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
+// Every preset is also a named export, so importing them one at a time bundles only those:
+// import { click, laserShot } from '@rjvr/buzzsaw/sounds'
 
 // register/registerAll return the manager, and teach play() the registered names
 const sounds = new SoundManager({ masterVolume: 0.8 }).registerAll(DEFAULT_SOUNDS)
+// const sounds = new SoundManager({ masterVolume: 0.8 }).registerAll({ click, laserShot })
 
 // Schedules playback immediately and returns a handle
 const handle = await sounds.play('laserShot', { volume: 0.9, pitchScale: 1.2 })
@@ -88,7 +91,7 @@ Export a sound definition directly to a browser `.wav` download:
 import { WavExporter } from '@rjvr/buzzsaw-wav'
 
 // Trigger a browser file download
-await WavExporter.downloadWav(definition, 'chime.wav')
+await WavExporter.downloadWav(definition, 'laser.wav')
 
 // Or render offline to a WAV Blob (8, 16, 24-bit PCM or 32-bit float)
 const wavBlob = await WavExporter.renderToWavBlob(definition, {

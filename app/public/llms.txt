@@ -1,249 +1,49 @@
 # Buzzsaw
 
-Sound effects described as data and synthesized in the browser with the Web Audio API. No audio files, no runtime dependencies. Two published packages plus a studio for designing sounds by hand or by description.
-
-- Studio: https://ruandre.github.io/buzzsaw/
-- Source: https://github.com/ruandre/buzzsaw
-- License: MIT
-
-## Packages and imports
-
-- `@rjvr/buzzsaw`: Web Audio synthesis engine, sound registry, and parameter envelopes. Zero dependencies.
-- `@rjvr/buzzsaw/sounds`: built-in sound pack containing 80+ presets. Kept in a separate entrypoint so custom sounds never bundle them.
-- `@rjvr/buzzsaw-wav`: RIFF/WAVE encoder, offline renderer, and file exporter. Depends on `@rjvr/buzzsaw`.
-
-```sh
-npm install @rjvr/buzzsaw # synthesis and playback
-npm install @rjvr/buzzsaw-wav # adds WAV export
-# or: pnpm add / yarn add / bun add
-```
-
-Both packages are ESM-only, side-effect free, and browser-targeted. `@rjvr/buzzsaw-wav` also runs headless in any JavaScript environment where `OfflineAudioContext` exists.
-
-## The core idea
+> Sound effects described as data and synthesized in the browser with the Web Audio API. Nothing to download at runtime, and the synthesis engine ships no dependencies. Two published packages plus a Studio for designing sounds by hand or by description.
 
 A sound is a plain JSON object, not an audio file. The same object plays in real time, renders offline to WAV, serializes to JSON, and round-trips through storage unchanged.
 
-### Core types
+- `@rjvr/buzzsaw`: synthesis engine, sound registry, parameter envelopes. Zero dependencies.
+- `@rjvr/buzzsaw/sounds`: 113 built-in presets, each a named export so you bundle only what you use.
+- `@rjvr/buzzsaw-wav`: RIFF/WAVE encoder, offline renderer, file exporter. `@rjvr/buzzsaw` is a peer dependency.
 
-```ts
-import type {
-  EnvelopeDefinition,
-  PlaybackHandle,
-  SoundDefinition,
-  SoundManagerOptions,
-  SoundPlaybackOptions,
-  SoundStep,
-} from '@rjvr/buzzsaw'
+Both packages are ESM-only and side-effect free. Their published types declare only the structural subset of Web Audio they use, so they typecheck under a Node-only `tsconfig` with no `lib.dom`.
 
-interface SoundDefinition {
-  waveType?: 'sine' | 'square' | 'sawtooth' | 'triangle' | 'custom' // default: 'sine'
-  partials?: number[] // harmonic amplitudes, required if waveType is 'custom' (up to 64)
-  frequency: number | EnvelopeDefinition // Hz or pitch envelope (required, must be > 0)
-  gain?: number | EnvelopeDefinition // peak amplitude 0..1 or volume envelope (default: 0.5)
-  duration?: number // total length in seconds (default: 0.5, minimum: 0.01)
-  attack?: number // linear ramp in, seconds (default: 0.005)
-  decay?: number // exponential ramp out to silence, seconds (default: 0.1)
-}
+## Documentation
 
-interface EnvelopeDefinition {
-  start: number // initial value at t = 0
-  steps: SoundStep[] // chronological automation targets
-}
+Fetch these for the authoritative API reference. GitHub serves them as plain text from `main`, so they describe the current source, which may be ahead of the published version.
 
-interface SoundStep {
-  value: number // target frequency (Hz) or gain (0..1)
-  time: number // time offset in seconds from sound start
-}
-```
+- [Project overview](https://raw.githubusercontent.com/ruandre/buzzsaw/main/README.md): what Buzzsaw is, install commands, the shortest working example of playback and WAV export.
+- [@rjvr/buzzsaw reference](https://raw.githubusercontent.com/ruandre/buzzsaw/main/packages/core/README.md): `SoundDefinition` fields and defaults, how `duration`/`attack`/`decay` interact, envelope interpolation, `Sound` and `SoundManager` APIs, playback handles, validation, inspection utilities, and the full preset list by category.
+- [@rjvr/buzzsaw-wav reference](https://raw.githubusercontent.com/ruandre/buzzsaw/main/packages/wav/README.md): `WavExporter` and `WavEncoder` APIs, export options, bit depths, the Node.js `offlineAudioContextClass` recipe, and RIFF header decoding.
+- [@rjvr/buzzsaw changelog](https://raw.githubusercontent.com/ruandre/buzzsaw/main/packages/core/CHANGELOG.md): breaking changes and migration notes per version.
+- [@rjvr/buzzsaw-wav changelog](https://raw.githubusercontent.com/ruandre/buzzsaw/main/packages/wav/CHANGELOG.md): the same, for the export package.
 
-Only `frequency` is required. The audible length extends automatically if envelope step timestamps exceed the nominal `duration`.
+## Links
 
-### Synthesis recipes
+- Studio: https://ruandre.github.io/buzzsaw/
+- Source: https://github.com/ruandre/buzzsaw
+- npm, core: https://www.npmjs.com/package/@rjvr/buzzsaw
+- npm, wav: https://www.npmjs.com/package/@rjvr/buzzsaw-wav
+- License: MIT
 
-```ts
-// Laser / zap: exponential downward frequency sweep with sawtooth
-const laser: SoundDefinition = {
-  waveType: 'sawtooth',
-  frequency: { start: 1800, steps: [{ value: 120, time: 0.12 }] },
-  gain: 0.4,
-  duration: 0.14,
-  attack: 0.002,
-  decay: 0.08,
-}
+## Behavior worth knowing before writing code
 
-// Coin pickup: rapid two-tone frequency jump with square wave
-const coin: SoundDefinition = {
-  waveType: 'square',
-  frequency: { start: 987, steps: [{ value: 1318, time: 0.08 }] },
-  gain: 0.3,
-  duration: 0.3,
-  attack: 0.005,
-  decay: 0.1,
-}
+The READMEs cover these in full. Repeated here because they are the details most often guessed wrong:
 
-// UI pop / click: short, high-frequency sine tone with minimal decay
-const uiPop: SoundDefinition = {
-  waveType: 'sine',
-  frequency: { start: 800, steps: [{ value: 1200, time: 0.02 }] },
-  gain: 0.25,
-  duration: 0.04,
-  attack: 0.001,
-  decay: 0.02,
-}
+- Annotate object literals as `SoundDefinition` (or use `satisfies`). Without it TypeScript widens `waveType: 'sawtooth'` to `string` and the object stops matching.
+- `attack` and `decay` are carved out of `duration`; neither extends it. Only an envelope step scheduled past `duration` extends a sound, and then only to that step plus a 10 ms tail.
+- Frequency envelopes ramp linearly between steps; gain envelopes hold each value until the next. Set `interpolation` to `'linear'` or `'step'` to override either default.
+- `register` and `registerAll` return the manager, widened over the names just added, so `play` rejects typos at compile time. Chain them rather than calling them as separate statements. Use `new SoundManager<string>()` for dynamic names.
+- `play()` resolves when the voice is scheduled, not when it ends. Await `handle.promise` for completion.
+- Invalid definitions throw `SoundValidationError` at registration. Out-of-range option values throw `RangeError` rather than clamping.
+- There is no noise source. Every voice is one oscillator, so approximate noisy textures with `waveType: 'custom'` and dense `partials`.
+- Rendering WAV needs an `OfflineAudioContext`. Node has no global one, so pass `offlineAudioContextClass`.
 
-// Jump: upward frequency sweep with square wave
-const jump: SoundDefinition = {
-  waveType: 'square',
-  frequency: { start: 150, steps: [{ value: 600, time: 0.15 }] },
-  gain: 0.35,
-  duration: 0.18,
-  attack: 0.005,
-  decay: 0.08,
-}
-```
+## Sound pack format
 
-## Playing sounds
-
-### SoundManager
-
-`SoundManager` manages multiple sounds with a single AudioContext, a shared master bus, and an optional brickwall limiter.
-
-```ts
-import { SoundManager } from '@rjvr/buzzsaw'
-import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
-
-const sounds = new SoundManager({ masterVolume: 0.8, limiter: true })
-
-// Bulk register built-in presets
-sounds.registerAll(DEFAULT_SOUNDS)
-
-// Register a single custom definition
-sounds.register('laser', laser)
-
-// Play by name
-const handle = await sounds.play('laser', { volume: 0.9, pitchScale: 1.5 })
-
-// handle is null if the name is not registered
-if (handle) {
-  // Stop early with a click-free 5ms fade-out
-  handle.stop()
-
-  // Or await playback completion (including decay tail)
-  await handle.promise
-}
-```
-
-Important execution semantics:
-- `play()` resolves once the voice is *scheduled*, not when playback ends. Await `handle.promise` to wait for completion.
-- `play()` returns `null` if the sound name is unregistered. Always handle or optional-chain `null`.
-- `handle.stop()` executes an exponential fade to silence over 5 milliseconds to prevent speaker pops.
-
-#### SoundManager API summary
-
-- Registry: `register(name, definitionOrSound)`, `registerAll(record)` (chainable), `unregister(name)`, `get(name)`, `has(name)`, `list()`, `getAll()`, `clear()`, `size`.
-- Iteration: `keys()`, `values()`, `entries()`, `forEach`, `find`, `filter`.
-- Playback: `play(name, options?)`, `stopAll()`.
-- Audio controls: `masterVolume` (getter/setter, clamped `0..2`), `outputLevel` (live peak `0..1`), `audioContext`, `dispose()`.
-- `SoundPlaybackOptions`: `volume` (number), `pitchScale` (multiplier), `audioContext` (BaseAudioContext), `destination` (AudioNode).
-
-### Standalone Sound
-
-For an isolated sound effect without a registry:
-
-```ts
-import { Sound } from '@rjvr/buzzsaw'
-
-const chime = new Sound('chime', { frequency: 880, duration: 0.25 })
-const handle = await chime.play()
-chime.stop()
-const copy = chime.clone('chime2')
-```
-
-### Browser autoplay policy
-
-Browsers block Web Audio until the user interacts with the document. Call `ensureAudioContextReady()` inside a user gesture event listener:
-
-```ts
-import { ensureAudioContextReady } from '@rjvr/buzzsaw'
-
-window.addEventListener('pointerdown', () => ensureAudioContextReady(), { once: true })
-```
-
-## Exporting WAV
-
-`@rjvr/buzzsaw-wav` renders sound definitions or raw audio buffers to standard RIFF/WAVE containers:
-
-```ts
-import { WavEncoder, WavExporter } from '@rjvr/buzzsaw-wav'
-
-// Trigger browser download (requires DOM document)
-await WavExporter.downloadWav(laser, 'laser.wav')
-
-// Render to an audio/wav Blob (suitable for uploads or Object URLs)
-const blob = await WavExporter.renderToWavBlob(laser, { sampleRate: 44100, bitDepth: 16 })
-
-// Render to ArrayBuffer containing the canonical 44-byte RIFF header and PCM samples
-const buffer = await WavExporter.renderToWavArrayBuffer(laser, { bitDepth: 24 })
-
-// Render directly to a Web Audio AudioBuffer
-const audioBuffer = await WavExporter.renderToAudioBuffer(laser)
-```
-
-Export options:
-- `bitDepth`: `8 | 16 | 24` (integer PCM) or `32` (IEEE float). Default `16`.
-- `sampleRate`: target frequency in Hz. Default `44100`.
-- `numChannels`: channel count. Default `1` (mono).
-- `filename`: download filename for `downloadWav`. Default `'sound.wav'`.
-- `pitchScale`: pitch multiplier applied during offline render.
-- `volume`: amplitude multiplier applied during offline render.
-
-Rendering uses `OfflineAudioContext`, so it runs faster than real time and needs no user interaction.
-
-### Low-level WavEncoder
-
-To encode existing `AudioBuffer` instances or `Float32Array[]` channel arrays directly:
-
-```ts
-const arrayBuffer = WavEncoder.encode(audioBuffer, { bitDepth: 16, sampleRate: 44100 })
-const wavBlob = WavEncoder.encodeToBlob(audioBuffer, { bitDepth: 16 })
-const headerInfo = WavEncoder.decodeHeader(arrayBuffer)
-```
-
-`decodeHeader` returns `{ audioFormat, numChannels, sampleRate, byteRate, blockAlign, bitDepth, dataSize, duration }` or `null` if invalid.
-
-## Validating untrusted definitions
-
-Validate definitions loaded from JSON, network requests, or user inputs before registering:
-
-```ts
-import { isValidSoundDefinition, validateSoundDefinition } from '@rjvr/buzzsaw'
-
-if (isValidSoundDefinition(incoming)) {
-  sounds.register('imported', incoming)
-}
-else {
-  const errors = validateSoundDefinition(incoming) // returns string[] of reasons
-  console.error(errors)
-}
-```
-
-The validator confirms property types, positive frequencies, non-negative gains, envelope structures, and protects against prototype pollution.
-
-## Inspecting sounds without playing them
-
-Compute values, timing, and layout without initializing audio nodes:
-
-- `calculateEffectiveDuration(definition)`: total audible length in seconds, including envelope extensions.
-- `sampleFrequencyAtTime(definition, t)`: pitch in Hz at offset `t`.
-- `sampleGainAtTime(definition, t, duration?)`: amplitude from 0 to 1 at offset `t`.
-- `evaluateWaveShape(definition, phase)`: oscillator amplitude at a phase from 0 to 2*PI.
-- `cloneSoundDefinition(definition)`: deep clone safe for mutation.
-- `isEnvelope(value)`, `orderedSteps(envelope)`, `sampleEnvelope(envelope, t)`, `latestStepTime(envelope)`.
-
-## Sound packs
-
-Standard JSON schema for import, export, and storage:
+The Studio's import/export schema, matching the exported `SoundPack` type:
 
 ```json
 {
@@ -255,11 +55,11 @@ Standard JSON schema for import, export, and storage:
 }
 ```
 
-The studio also accepts a flat `{ [name: string]: SoundDefinition }` map on import.
+A flat `{ [name: string]: SoundDefinition }` map is also accepted on import.
 
 ## Studio tools for in-browser agents
 
-In a WebMCP-capable browser, the studio registers tools on `document.modelContext` and `navigator.modelContext`:
+In a WebMCP-capable browser, the Studio registers tools on `document.modelContext` and `navigator.modelContext`:
 
 - `list_sound_presets`: lists built-in presets. Arguments: `{ category?: string, search?: string }`.
 - `get_sound_definition`: returns the JSON definition of a sound. Arguments: `{ name: string }`.
@@ -269,8 +69,8 @@ In a WebMCP-capable browser, the studio registers tools on `document.modelContex
 - `edit_sound_definition`: modifies an existing definition from natural language. Arguments: `{ name: string, instruction: string, definition?: object, saveToLibrary?: boolean }`.
 - `get_studio_state`: returns active view, voice count, output meter, and library counts.
 
-Sound design from text uses the browser built-in Prompt API when available, and falls back to a deterministic local heuristic engine with no model and no network required.
+Sound design from text uses the browser built-in Prompt API when available. Without it, a deterministic local heuristic takes over, needing neither a model nor a network.
 
 ## Privacy and storage
 
-All synthesis and export operations run entirely on-device. No telemetry, no third-party tracking scripts, and no external audio network requests. User-saved sounds are stored in the browser's `localStorage` and can be cleared from the Library interface.
+All synthesis and export runs on-device. No telemetry, no third-party tracking scripts, and no external audio network requests. User-saved sounds are stored in the browser's `localStorage` and can be cleared from the Library view.
