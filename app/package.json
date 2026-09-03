@@ -1,0 +1,43 @@
+{
+  "name": "@rjvr/buzzsaw-app",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Buzzsaw Studio: the web front end for the Buzzsaw synthesis packages.",
+  "author": "Ruandré Janse van Rensburg <ruandrejvr@gmail.com> (https://github.com/ruandre)",
+  "homepage": "https://ruandre.github.io/buzzsaw/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruandre/buzzsaw.git",
+    "directory": "app"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@rjvr/buzzsaw": "workspace:*",
+    "@rjvr/buzzsaw-wav": "workspace:*",
+    "@vueuse/core": "^12.8.2",
+    "microlighter": "^2.1.0",
+    "pinia": "^3.0.1",
+    "reka-ui": "^2.10.3",
+    "vue": "^3.5.13",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@iconify-json/ph": "^1.2.2",
+    "@unocss/preset-icons": "^66.8.1",
+    "@unocss/preset-uno": "^66.8.1",
+    "@unocss/reset": "^66.8.1",
+    "@unocss/vite": "^66.8.1",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "^5.7.3",
+    "unocss": "^66.8.1",
+    "vite": "^6.2.0",
+    "vitest": "^3.2.7",
+    "vue-tsc": "^2.2.8"
+  }
+}

@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  pack:
+    name: Pack library tarballs
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Check the tag matches both manifests
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          for pkg in packages/core packages/wav; do
+            version=$(node -p "require('./$pkg/package.json').version")
+            if [ "$version" != "$tag" ]; then
+              echo "::error::$pkg is $version but the tag says $tag"
+              exit 1
+            fi
+          done
+
+      - run: pnpm --filter './packages/*' run build
+
+      # pnpm pack rewrites workspace:^ to semver; npm publishes literal protocol
+      - name: Pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/tarballs"
+          pnpm --filter @rjvr/buzzsaw pack --out "$RUNNER_TEMP/tarballs/core.tgz"
+          pnpm --filter @rjvr/buzzsaw-wav pack --out "$RUNNER_TEMP/tarballs/wav.tgz"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tarballs
+          path: ${{ runner.temp }}/tarballs/
+          retention-days: 1
+
+  stage:
+    name: Stage on npm
+    needs: pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Isolated job: no checkout or install to limit npm token exposure
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: tarballs
+          path: tarballs
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # Node 26 provides npm >= 11.15 required for npm stage
+          node-version: 26
+          package-manager-cache: false
+
+      # Approve core before wav on npmjs.com; wav depends on core
+      - name: Stage
+        run: |
+          npm stage publish ./tarballs/core.tgz --provenance --ignore-scripts
+          npm stage publish ./tarballs/wav.tgz --provenance --ignore-scripts

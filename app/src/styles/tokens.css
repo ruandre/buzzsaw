@@ -1,0 +1,182 @@
+/* RGB channel triplets for UnoCSS alpha composition: rgb(var(--token) / <alpha-value>). */
+
+:root {
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-bay: 1rem;
+  --radius-pill: 999px;
+
+  /* Sticky header height offset for pinned columns. */
+  --studio-header-block-size: 3.5rem;
+
+  --bs-bevel-top: inset 0 1px 0 rgb(255 255 255 / 0.85);
+  --bs-bevel-bottom: inset 0 -1px 0 rgb(0 0 0 / 0.06);
+
+  --bs-base: 247 246 244;
+  --bs-chrome: 240 238 234;
+  --bs-surface: 255 255 255;
+  --bs-surface-raised: 255 255 255;
+  --bs-surface-sunken: 232 228 222;
+  --bs-surface-muted: 244 242 238;
+  --bs-control: 255 255 255;
+  --bs-control-hover: 246 244 240;
+  --bs-control-active: 232 228 222;
+  --bs-overlay: 255 255 255;
+  --bs-scrim: 20 22 24;
+  --bs-inverse: 24 26 28;
+  --bs-inverse-ink: 255 255 255;
+
+  --bs-taupe: 164 143 129;
+  --bs-taupe-muted: 188 171 159;
+  --bs-taupe-subtle: 218 208 200;
+
+  --bs-ink: 24 26 28;
+  --bs-ink-muted: 90 86 82;
+  --bs-ink-subtle: 136 130 124;
+  --bs-ink-badge: 90 86 82;
+
+  --bs-line: 189 186 181;
+  --bs-line-subtle: 222 219 214;
+  --bs-line-strong: 164 143 129;
+  --bs-line-control: 189 186 181;
+
+  --bs-accent: 212 32 24;
+  --bs-accent-bright: 232 42 34;
+  --bs-accent-lift: 248 64 56;
+  --bs-accent-press: 184 24 18;
+  --bs-accent-deep: 156 18 14;
+  --bs-accent-ink: 184 24 18;
+  --bs-accent-ink-strong: 156 18 14;
+
+  --bs-accent-solid: 212 32 24;
+  --bs-accent-solid-hover: 192 24 18;
+  --bs-accent-solid-deep: 168 18 14;
+  --bs-accent-solid-press: 142 14 10;
+
+  --bs-success: 22 163 74;
+  --bs-warning: 217 119 6;
+  --bs-danger: 212 32 24;
+  --bs-danger-ink: 212 32 24;
+  --bs-danger-line: 231 160 160;
+  --bs-danger-wash: 254 242 242;
+
+  --bs-lcd-bg: 22 28 20;
+  --bs-lcd-frame: 34 40 36;
+  --bs-lcd-text: 163 230 53;
+  --bs-lcd-text-dim: 74 105 24;
+  --bs-lcd-glow: rgba(163, 230, 53, 0.45);
+
+  --bs-trace: 44 46 48;
+  --bs-trace-soft: 124 120 114;
+  --bs-trace-live: 212 32 24;
+
+  --bs-scope-bg: 244 242 238;
+  --bs-scope-grid: 224 220 212;
+  --bs-scope-axis: 198 194 186;
+  --bs-scope-label: 90 86 82;
+  --bs-scope-glow-strength: 0;
+  --bs-scope-trace-alpha: 0.12;
+
+  --bs-shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 3px 8px rgb(0 0 0 / 0.03), var(--bs-bevel-top);
+  --bs-shadow-card-hover: 0 4px 16px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.04), var(--bs-bevel-top);
+  --bs-shadow-control: 0 1px 2px rgb(0 0 0 / 0.05), var(--bs-bevel-top);
+  --bs-shadow-popover: 0 12px 32px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.05);
+  --bs-shadow-bezel: inset 0 1.5px 3px rgb(0 0 0 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.85);
+  --bs-shadow-inset: inset 0 1.5px 3px rgb(0 0 0 / 0.08);
+  --bs-shadow-raised: 0 1px 3px rgb(0 0 0 / 0.08), 0 1px 1px rgb(0 0 0 / 0.04), var(--bs-bevel-top);
+  --bs-shadow-primary:
+    0 1px 2px rgb(0 0 0 / 0.15), 0 1.5px 3px rgb(0 0 0 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.25);
+  --bs-shadow-primary-hover:
+    0 2px 5px rgb(0 0 0 / 0.18), 0 2px 4px rgb(0 0 0 / 0.1), inset 0 1px 0 rgb(255 255 255 / 0.35);
+  --bs-shadow-primary-active: inset 0 1.5px 3px rgb(0 0 0 / 0.35);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-modal: 220ms;
+}
+
+.dark {
+  --bs-bevel-top: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  --bs-bevel-bottom: inset 0 -1px 0 rgb(0 0 0 / 0.55);
+
+  --bs-base: 21 24 27;
+  --bs-chrome: 25 27 31;
+  --bs-surface: 39 44 50;
+  --bs-surface-raised: 53 59 67;
+  --bs-surface-sunken: 13 15 17;
+  --bs-surface-muted: 29 32 37;
+  --bs-control: 39 44 50;
+  --bs-control-hover: 53 59 67;
+  --bs-control-active: 25 27 31;
+  --bs-overlay: 39 44 50;
+  --bs-scrim: 7 7 9;
+  --bs-inverse: 39 44 50;
+  --bs-inverse-ink: 255 255 255;
+
+  --bs-taupe: 180 162 144;
+  --bs-taupe-muted: 146 130 114;
+  --bs-taupe-subtle: 104 92 80;
+
+  --bs-ink: 255 255 255;
+  --bs-ink-muted: 181 185 191;
+  --bs-ink-subtle: 127 134 144;
+  --bs-ink-badge: 181 185 191;
+
+  --bs-line: 53 59 67;
+  --bs-line-subtle: 34 37 43;
+  --bs-line-strong: 85 95 109;
+  --bs-line-control: 58 65 74;
+
+  --bs-accent: 206 32 36;
+  --bs-accent-bright: 228 44 48;
+  --bs-accent-lift: 248 70 74;
+  --bs-accent-press: 176 24 28;
+  --bs-accent-deep: 148 18 22;
+  --bs-accent-ink: 248 70 74;
+  --bs-accent-ink-strong: 255 110 114;
+
+  --bs-accent-solid: 206 32 36;
+  --bs-accent-solid-hover: 182 26 30;
+  --bs-accent-solid-deep: 158 20 24;
+  --bs-accent-solid-press: 134 16 18;
+
+  --bs-success: 34 197 94;
+  --bs-warning: 245 158 11;
+  --bs-danger: 239 68 68;
+  --bs-danger-ink: 248 113 113;
+  --bs-danger-line: 88 32 32;
+  --bs-danger-wash: 48 20 20;
+
+  --bs-lcd-bg: 10 16 10;
+  --bs-lcd-frame: 25 27 31;
+  --bs-lcd-text: 163 230 53;
+  --bs-lcd-text-dim: 60 90 20;
+  --bs-lcd-glow: rgba(163, 230, 53, 0.55);
+
+  --bs-trace: 240 242 245;
+  --bs-trace-soft: 154 160 167;
+  --bs-trace-live: 198 39 43;
+
+  --bs-scope-bg: 17 19 21;
+  --bs-scope-grid: 29 32 37;
+  --bs-scope-axis: 45 50 57;
+  --bs-scope-label: 181 185 191;
+  --bs-scope-glow-strength: 6;
+  --bs-scope-trace-alpha: 0.45;
+
+  --bs-shadow-card: 0 1px 3px rgb(0 0 0 / 0.45), 0 4px 14px rgb(0 0 0 / 0.28), var(--bs-bevel-top);
+  --bs-shadow-card-hover: 0 6px 22px rgb(0 0 0 / 0.58), 0 2px 6px rgb(0 0 0 / 0.35), var(--bs-bevel-top);
+  --bs-shadow-control: 0 1px 2px rgb(0 0 0 / 0.38), var(--bs-bevel-top);
+  --bs-shadow-popover: 0 16px 40px rgb(0 0 0 / 0.7), 0 4px 12px rgb(0 0 0 / 0.45);
+  --bs-shadow-bezel: inset 0 2px 5px rgb(0 0 0 / 0.65), inset 0 -0.5px 0.5px rgb(255 255 255 / 0.06);
+  --bs-shadow-inset: inset 0 1.5px 3px rgb(0 0 0 / 0.55);
+  --bs-shadow-raised: 0 1px 3px rgb(0 0 0 / 0.45), var(--bs-bevel-top);
+  --bs-shadow-primary: 0 2px 6px rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.25);
+  --bs-shadow-primary-hover: 0 3px 10px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.35);
+  --bs-shadow-primary-active: inset 0 2px 4px rgb(0 0 0 / 0.55);
+}

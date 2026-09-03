@@ -1,0 +1,17 @@
+allowBuilds:
+  esbuild: true
+  lefthook: true
+  vue-demi: true
+
+# Three days of quarantine before any newly published version is installable
+minimumReleaseAge: 4320
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - undici-types@6.21.0
+
+packages:
+  - 'packages/*'
+  - app

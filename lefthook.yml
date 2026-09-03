@@ -1,0 +1,28 @@
+min_version: 2.1.12
+
+pre-commit:
+  # Sequential pipeline so lint fixes apply before typecheck and test run
+  piped: true
+  jobs:
+    - name: lint
+      glob: '*.{js,ts,vue,json,jsonc,yaml,yml,md,css,html}'
+      # Prevents staged ignored files (dist, generated) from failing the hook on warnings
+      run: pnpm exec eslint --fix --no-warn-ignored {staged_files}
+      stage_fixed: true
+
+    - name: verify
+      glob: '*.{ts,vue}'
+      group:
+        parallel: true
+        jobs:
+          # Checks entire workspace because edits can break cross-file types or tests
+          - name: typecheck
+            run: pnpm typecheck
+          - name: test
+            run: pnpm test
+
+pre-push:
+  jobs:
+    # Deferred to pre-push to keep local commits fast
+    - name: build
+      run: pnpm build

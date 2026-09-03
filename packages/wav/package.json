@@ -1,0 +1,59 @@
+{
+  "name": "@rjvr/buzzsaw-wav",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "High-performance RIFF/WAVE encoder, offline sound renderer, and audio file exporter for Web Audio",
+  "author": "Ruandré Janse van Rensburg <ruandrejvr@gmail.com> (https://github.com/ruandre)",
+  "license": "MIT",
+  "homepage": "https://github.com/ruandre/buzzsaw/tree/main/packages/wav#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruandre/buzzsaw.git",
+    "directory": "packages/wav"
+  },
+  "bugs": {
+    "url": "https://github.com/ruandre/buzzsaw/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "wav",
+    "riff",
+    "audio-encoder",
+    "pcm",
+    "offline-audio",
+    "sound-export",
+    "typescript"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md",
+    "dist"
+  ],
+  "scripts": {
+    "build": "rolldown -c && tsc --emitDeclarationOnly",
+    "dev": "rolldown -c -w",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rjvr/buzzsaw": "workspace:^"
+  },
+  "devDependencies": {
+    "rolldown": "^1.2.6",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.6"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "name": "@rjvr/buzzsaw",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Lightweight, zero-dependency Web Audio API sound synthesizer and sound management library",
+  "author": "Ruandré Janse van Rensburg <ruandrejvr@gmail.com> (https://github.com/ruandre)",
+  "license": "MIT",
+  "homepage": "https://github.com/ruandre/buzzsaw/tree/main/packages/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruandre/buzzsaw.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/ruandre/buzzsaw/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "audio",
+    "web-audio",
+    "sound-effects",
+    "synthesizer",
+    "sound-manager",
+    "sfx",
+    "typescript"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./sounds": {
+      "types": "./dist/sounds.d.ts",
+      "import": "./dist/sounds.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md",
+    "dist"
+  ],
+  "scripts": {
+    "build": "rolldown -c && tsc --emitDeclarationOnly",
+    "dev": "rolldown -c -w",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "rolldown": "^1.2.6",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.6"
+  }
+}

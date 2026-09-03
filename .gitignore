@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Production & Build outputs
+dist/
+app/dist/
+packages/*/dist/
+.vite/
+node_modules/.vite/
+
+# Release tarballs built by `just pack`
+tarballs/
+
+# Testing & Coverage
+coverage/
+*.lcov
+
+# Environment & Local overrides
+.env
+.env.*
+!.env.example
+*.local
+
+# System & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Agents
+skills-lock.json
+.agents/
+AGENTS.md
+.claude/
+CLAUDE.md

@@ -1,0 +1,343 @@
+:root {
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-variant-ligatures: common-ligatures;
+  color-scheme: light dark;
+  accent-color: rgb(var(--bs-accent));
+}
+
+body {
+  /* Dynamic viewport units prevent mobile browser chrome resize gaps. */
+  min-block-size: 100dvh;
+  background-color: rgb(var(--bs-base));
+  color: rgb(var(--bs-ink));
+  font-family:
+    'Instrument Sans Variable',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  font-size-adjust: from-font;
+}
+
+@supports not (font-size-adjust: from-font) {
+  body {
+    line-height: 1.6;
+  }
+}
+
+::selection {
+  background-color: rgb(var(--bs-accent));
+  color: #fff;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+.font-mono {
+  font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Ligatures disabled to prevent -> and != altering audio readouts. */
+  font-variant-ligatures: none;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+code,
+.inline-code {
+  font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  background-color: rgb(var(--bs-surface-sunken));
+  border: 1px solid rgb(var(--bs-line));
+  color: rgb(var(--bs-ink));
+  font-weight: 500;
+}
+
+pre code {
+  font-size: inherit;
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
+  border: 0;
+  color: inherit;
+  font-weight: inherit;
+}
+
+.rail-ribbed {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(var(--bs-line-subtle)) 0px,
+    rgb(var(--bs-line-subtle)) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+.rail-ribbed-h {
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgb(var(--bs-line-subtle)) 0px,
+    rgb(var(--bs-line-subtle)) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+}
+
+.grille-perforated {
+  background-image: radial-gradient(circle, rgb(var(--bs-line-strong) / 0.35) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+.gauge-ticks {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(var(--bs-line-strong) / 0.4) 0px,
+    rgb(var(--bs-line-strong) / 0.4) 1px,
+    transparent 1px,
+    transparent 12px
+  );
+}
+
+@media (forced-colors: active), (prefers-contrast: more) {
+  .rail-ribbed,
+  .rail-ribbed-h,
+  .grille-perforated,
+  .gauge-ticks {
+    background-image: none !important;
+  }
+}
+
+* {
+  --scrollbar-thumb: rgb(var(--bs-line-strong));
+  --scrollbar-track: rgb(var(--bs-surface-sunken));
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Reserve gutter to prevent layout shift on scrollbar toggle. */
+html {
+  scrollbar-gutter: stable;
+}
+
+@media (prefers-contrast: more) {
+  * {
+    --scrollbar-thumb: rgb(var(--bs-ink));
+    --scrollbar-track: rgb(var(--bs-surface));
+  }
+}
+
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    box-shadow: var(--bs-shadow-inset);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    /* Padding-box keeps transparent border as breathing room around thumb. */
+    background: var(--scrollbar-thumb) padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--bs-ink-subtle)) padding-box;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+  }
+}
+
+:where(a:any-link, button, input, select, textarea, summary, [tabindex='0']):focus-visible {
+  outline: 2px solid rgb(var(--bs-accent));
+  outline-offset: 2px;
+}
+
+/* Restores visible outline in Forced Colors Mode where box-shadow is stripped. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+
+  [aria-current='page'],
+  [aria-pressed='true'],
+  [data-state='active'],
+  [data-state='on'],
+  [data-state='checked'] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: 1rem;
+  top: -100px;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  background: rgb(var(--bs-accent-solid-deep));
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+  transition: top var(--duration-base) var(--ease-out);
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+::view-transition-old(root) {
+  animation: view-out var(--duration-base) var(--ease-out) both;
+}
+
+::view-transition-new(root) {
+  animation: view-in var(--duration-base) var(--ease-out) both;
+}
+
+@keyframes view-out {
+  to {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.995);
+  }
+}
+
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+}
+
+.view-enter-active,
+.view-leave-active {
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.view-enter-from {
+  opacity: 0;
+  transform: translateY(4px) scale(0.99);
+}
+
+.view-leave-to {
+  opacity: 0;
+  transform: translateY(-2px) scale(0.995);
+}
+
+.stagger-card {
+  animation: card-in var(--duration-modal) var(--ease-out) both;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* WCAG 2.5.8 24px touch target extension for slider thumbs. */
+.slider-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  translate: -50% -50%;
+  block-size: 24px;
+  inline-size: 24px;
+}
+
+/* Minimum 44px touch targets on coarse pointer devices. */
+@media (pointer: coarse) {
+  .btn-icon,
+  [role='button'] {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  * {
+    backdrop-filter: none !important;
+  }
+}
+
+/* Prefers-reduced-motion overrides. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .view-enter-from,
+  .view-leave-to,
+  .stagger-card {
+    transform: none !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+
+  .stagger-card {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Sticky workbench column pinned below header with internal scroll when exceeding viewport. */
+@media (min-width: 1024px) {
+  .workbench-rail {
+    position: sticky;
+    inset-block-start: calc(var(--studio-header-block-size) + 1.5rem);
+    max-block-size: calc(100dvh - var(--studio-header-block-size) - 3rem);
+    overflow-y: auto;
+    /* Padding prevents focus rings clipping at scroll boundary. */
+    padding: 2px;
+    margin: -2px;
+  }
+}

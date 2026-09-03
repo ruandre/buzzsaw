@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "jsx": "preserve",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@rjvr/buzzsaw": [
+        "../packages/core/src/index.ts"
+      ],
+      "@rjvr/buzzsaw/sounds": [
+        "../packages/core/src/sounds.ts"
+      ],
+      "@rjvr/buzzsaw-wav": [
+        "../packages/wav/src/index.ts"
+      ]
+    },
+    "resolveJsonModule": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "build/**/*.ts",
+    "vite.config.ts",
+    "uno.config.ts"
+  ]
+}

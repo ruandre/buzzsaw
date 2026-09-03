@@ -1,0 +1,45 @@
+{
+  "name": "buzzsaw-monorepo",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.24.0",
+  "description": "Sound effects described as data and synthesized in the browser.",
+  "author": "Ruandré Janse van Rensburg <ruandrejvr@gmail.com> (https://github.com/ruandre)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruandre/buzzsaw.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ruandre/buzzsaw/issues"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @rjvr/buzzsaw-app dev",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:status": "changeset status --since=origin/main"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource-variable/instrument-sans": "^5.3.0"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^9.3.0",
+    "@changesets/cli": "3.0.1",
+    "@iconify-json/ph": "^1.2.2",
+    "@types/node": "^22.20.1",
+    "@unocss/eslint-plugin": "^66.8.1",
+    "eslint": "^10.9.1",
+    "eslint-plugin-format": "^2.0.1",
+    "lefthook": "2.1.12",
+    "rolldown": "^1.2.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
