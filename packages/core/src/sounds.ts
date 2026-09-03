@@ -1,2 +1,2 @@
-// Standalone export to keep core bundle lean
-export { DEFAULT_SOUNDS } from './defaultSounds'
+// Separate entrypoint so core stays lean; importing a preset by name bundles only it
+export * from './defaultSounds'

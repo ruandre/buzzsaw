@@ -1,8 +1,6 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 import { resolvePartials } from '@rjvr/buzzsaw'
 
-// Code export snippets for packages, vanilla Web Audio, and JSON
-
 export type SnippetId = 'core' | 'wav' | 'vanilla' | 'json' | 'register'
 
 export interface Snippet {
@@ -19,7 +17,6 @@ function toIdentifier(name: string): string {
   return /^\d/.test(cleaned) ? `_${cleaned}` : cleaned || 'customSound'
 }
 
-/** Generates snippet registering all sounds in SoundManager */
 export function buildRegisterAllSnippet(sounds: Record<string, SoundDefinition>): Snippet {
   const names = Object.keys(sounds)
   const [firstName] = names
@@ -33,19 +30,16 @@ export function buildRegisterAllSnippet(sounds: Record<string, SoundDefinition>)
 
 // A manager starts empty; these are the sounds saved in your Buzzsaw library
 export const sounds = new SoundManager()
-
-sounds.registerAll(${JSON.stringify(sounds, null, 2)})
+  .registerAll(${JSON.stringify(sounds, null, 2)})
 
 await sounds.play('${firstName ?? 'customSound'}')`,
   }
 }
 
-/** Builds code export snippets for a sound definition */
 export function buildSnippets(name: string, definition: SoundDefinition): Snippet[] {
   const soundName = name || 'customSound'
   const identifier = toIdentifier(soundName)
   const json = JSON.stringify(definition, null, 2)
-  // PeriodicWave required for custom wave type
   const waveSetup = resolvePartials(definition)
     ? `osc.setPeriodicWave(ctx.createPeriodicWave(
     new Float32Array(def.partials.length + 1),
@@ -65,8 +59,7 @@ export function buildSnippets(name: string, definition: SoundDefinition): Snippe
 } from '@rjvr/buzzsaw'
 
 // Registry: name once, play anywhere
-const sounds = new SoundManager()
-sounds.register('${soundName}', ${json})
+const sounds = new SoundManager().register('${soundName}', ${json})
 await sounds.play('${soundName}')
 
 // Or hold a single sound directly

@@ -40,7 +40,8 @@
     "CHANGELOG.md",
     "LICENSE",
     "README.md",
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "build": "rolldown -c && tsc --emitDeclarationOnly",
@@ -48,10 +49,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "dependencies": {
-    "@rjvr/buzzsaw": "workspace:^"
+  "peerDependencies": {
+    "@rjvr/buzzsaw": "^1.0.0"
   },
   "devDependencies": {
+    "@rjvr/buzzsaw": "workspace:^",
     "rolldown": "^1.2.6",
     "typescript": "^5.7.3",
     "vitest": "^3.0.6"

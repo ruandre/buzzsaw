@@ -1,3 +1,4 @@
+import type { AudioBufferLike } from '@rjvr/buzzsaw'
 import type { WavBitDepth, WavEncodingOptions, WavHeaderInfo } from './types'
 
 const HEADER_BYTES = 44
@@ -33,11 +34,10 @@ const SAMPLE_WRITERS: Record<WavBitDepth, SampleWriter> = {
   },
 }
 
-/** Encodes audio samples to RIFF/WAVE ArrayBuffer */
 export class WavEncoder {
   /** Encodes samples to RIFF/WAVE ArrayBuffer; throws on unsupported bit depth */
   static encode(
-    audioBufferOrChannels: AudioBuffer | Float32Array[],
+    audioBufferOrChannels: AudioBufferLike | Float32Array[],
     options: WavEncodingOptions = {},
   ): ArrayBuffer {
     const source = readSource(audioBufferOrChannels, options.sampleRate)
@@ -74,7 +74,7 @@ export class WavEncoder {
   }
 
   static encodeToBlob(
-    audioBufferOrChannels: AudioBuffer | Float32Array[],
+    audioBufferOrChannels: AudioBufferLike | Float32Array[],
     options: WavEncodingOptions = {},
   ): Blob {
     return new Blob([this.encode(audioBufferOrChannels, options)], { type: 'audio/wav' })
@@ -114,7 +114,7 @@ interface SampleSource {
 }
 
 function readSource(
-  input: AudioBuffer | Float32Array[],
+  input: AudioBufferLike | Float32Array[],
   sampleRateOverride?: number,
 ): SampleSource {
   if (isAudioBuffer(input)) {
@@ -136,7 +136,7 @@ function readSource(
   }
 }
 
-function isAudioBuffer(input: AudioBuffer | Float32Array[]): input is AudioBuffer {
+function isAudioBuffer(input: AudioBufferLike | Float32Array[]): input is AudioBufferLike {
   return 'numberOfChannels' in input && typeof input.getChannelData === 'function'
 }
 

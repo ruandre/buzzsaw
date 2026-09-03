@@ -5,12 +5,15 @@ import {
   DEFAULT_DURATION_S,
   DEFAULT_ENVELOPE_GAIN,
   DEFAULT_FREQUENCY_HZ,
+  DEFAULT_FREQUENCY_INTERPOLATION,
   DEFAULT_GAIN,
+  DEFAULT_GAIN_INTERPOLATION,
+  ENVELOPE_TAIL_PAD_S,
   MIN_DECAY_WINDOW_S,
   MIN_DURATION_S,
   MIN_FREQUENCY_HZ,
 } from './constants'
-import { cloneEnvelope, isEnvelope, latestStepTime, sampleEnvelope, sampleSteppedEnvelope } from './envelope'
+import { cloneEnvelope, isEnvelope, latestStepTime, sampleEnvelopeValue } from './envelope'
 import { clamp, finiteOr } from './numeric'
 import { validateSoundDefinition } from './validation'
 
@@ -31,7 +34,21 @@ export function cloneSoundDefinition(def: SoundDefinition): SoundDefinition {
   }
 }
 
-/** Playback duration in seconds, extended if envelope steps exceed nominal duration */
+/** Recursively freezes a definition and its envelopes, making `Readonly` hold at runtime */
+export function freezeSoundDefinition(def: SoundDefinition): Readonly<SoundDefinition> {
+  if (isEnvelope(def.frequency)) {
+    freezeEnvelope(def.frequency)
+  }
+  if (isEnvelope(def.gain)) {
+    freezeEnvelope(def.gain)
+  }
+  if (def.partials) {
+    Object.freeze(def.partials)
+  }
+  return Object.freeze(def)
+}
+
+/** Seconds; `duration` unless envelope steps run past it, then last step plus a short tail wins */
 export function calculateEffectiveDuration(def: SoundDefinition): number {
   if (!def || typeof def !== 'object') {
     return DEFAULT_DURATION_S
@@ -46,7 +63,7 @@ export function calculateEffectiveDuration(def: SoundDefinition): number {
   return Math.max(
     MIN_DURATION_S,
     nominalDuration,
-    lastStepTime > 0 ? lastStepTime + MIN_DURATION_S : 0,
+    lastStepTime > 0 ? lastStepTime + ENVELOPE_TAIL_PAD_S : 0,
   )
 }
 
@@ -62,7 +79,10 @@ export function sampleFrequencyAtTime(def: SoundDefinition, time: number): numbe
     return Math.max(MIN_FREQUENCY_HZ, finiteOr(frequency, DEFAULT_FREQUENCY_HZ))
   }
   if (isEnvelope(frequency)) {
-    return Math.max(MIN_FREQUENCY_HZ, sampleEnvelope(withFrequencyFallback(frequency), time))
+    return Math.max(
+      MIN_FREQUENCY_HZ,
+      sampleEnvelopeValue(withFrequencyFallback(frequency), time, DEFAULT_FREQUENCY_INTERPOLATION),
+    )
   }
   return DEFAULT_FREQUENCY_HZ
 }
@@ -94,7 +114,10 @@ export function sampleGainAtTime(def: SoundDefinition, time: number, totalDurati
 
   if (isEnvelope(gain)) {
     const lastStepTime = latestStepTime(gain)
-    const level = Math.max(0, sampleSteppedEnvelope(withGainFallback(gain), time))
+    const level = Math.max(
+      0,
+      sampleEnvelopeValue(withGainFallback(gain), time, DEFAULT_GAIN_INTERPOLATION),
+    )
     // Decay tail applies only after authored envelope steps complete
     if (lastStepTime > 0 && time > lastStepTime && time >= decayStartTime) {
       return Math.max(0, level * (1 - decayProgress(time, decayStartTime, duration)))
@@ -109,6 +132,7 @@ export function isValidSoundDefinition(def: unknown): def is SoundDefinition {
   return validateSoundDefinition(def).length === 0
 }
 
+/** Attack and decay are carved out of `duration`; neither extends it */
 export function resolveEnvelopeTiming(def: SoundDefinition, duration: number): {
   attack: number
   decay: number
@@ -121,6 +145,14 @@ export function resolveEnvelopeTiming(def: SoundDefinition, duration: number): {
     Math.max(MIN_DECAY_WINDOW_S, duration - attack),
   )
   return { attack, decay, decayStartTime: Math.max(attack, duration - decay) }
+}
+
+function freezeEnvelope(envelope: EnvelopeDefinition): void {
+  if (Array.isArray(envelope.steps)) {
+    envelope.steps.forEach(step => Object.freeze(step))
+    Object.freeze(envelope.steps)
+  }
+  Object.freeze(envelope)
 }
 
 function decayProgress(time: number, decayStartTime: number, duration: number): number {

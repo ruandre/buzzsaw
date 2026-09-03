@@ -1,4 +1,4 @@
-import type { EnvelopeDefinition, SoundStep } from './types'
+import type { EnvelopeDefinition, EnvelopeInterpolation, SoundStep } from './types'
 
 export function isEnvelope(value: unknown): value is EnvelopeDefinition {
   return typeof value === 'object'
@@ -24,6 +24,24 @@ export function orderedSteps(envelope: EnvelopeDefinition): SoundStep[] {
 export function latestStepTime(envelope: EnvelopeDefinition): number {
   const steps = orderedSteps(envelope)
   return steps.length > 0 ? steps[steps.length - 1].time : 0
+}
+
+export function resolveInterpolation(
+  envelope: EnvelopeDefinition,
+  fallback: EnvelopeInterpolation,
+): EnvelopeInterpolation {
+  return envelope.interpolation ?? fallback
+}
+
+/** Uses the envelope's interpolation mode, or `fallback` when it declares none */
+export function sampleEnvelopeValue(
+  envelope: EnvelopeDefinition,
+  time: number,
+  fallback: EnvelopeInterpolation,
+): number {
+  return resolveInterpolation(envelope, fallback) === 'step'
+    ? sampleSteppedEnvelope(envelope, time)
+    : sampleEnvelope(envelope, time)
 }
 
 /** Linearly interpolates envelope value at time */
@@ -75,5 +93,6 @@ export function cloneEnvelope(envelope: EnvelopeDefinition): EnvelopeDefinition 
     steps: Array.isArray(envelope.steps)
       ? envelope.steps.map(step => ({ value: step.value, time: step.time }))
       : [],
+    interpolation: envelope.interpolation,
   }
 }

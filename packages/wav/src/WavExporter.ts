@@ -1,4 +1,4 @@
-import type { SoundDefinition } from '@rjvr/buzzsaw'
+import type { AudioBufferLike, SoundDefinition } from '@rjvr/buzzsaw'
 import type { WavExportOptions } from './types'
 import { OfflineSoundRenderer } from './OfflineSoundRenderer'
 import { WavEncoder } from './WavEncoder'
@@ -10,7 +10,7 @@ export class WavExporter {
   static async renderToAudioBuffer(
     definition: SoundDefinition,
     options: WavExportOptions = {},
-  ): Promise<AudioBuffer> {
+  ): Promise<AudioBufferLike> {
     return OfflineSoundRenderer.render(definition, options)
   }
 
@@ -28,7 +28,7 @@ export class WavExporter {
     return WavEncoder.encodeToBlob(await this.renderToAudioBuffer(definition, options), options)
   }
 
-  /** Renders SoundDefinition or saves Blob as WAV download; no-op without DOM */
+  /** Renders SoundDefinition or saves Blob as a WAV download; throws without a DOM document */
   static async downloadWav(
     soundOrBlob: SoundDefinition | Blob,
     optionsOrFilename?: string | WavExportOptions,
@@ -53,8 +53,10 @@ function toWavFilename(filename?: string): string {
 function saveBlob(blob: Blob, filename: string): void {
   const doc = resolveDocument()
   if (!doc?.createElement || !doc.body) {
-    console.warn('downloadWav is only supported in browser environments with a DOM document.')
-    return
+    throw new Error(
+      'downloadWav requires a DOM document. Outside the browser, use renderToWavArrayBuffer '
+      + 'or renderToWavBlob and write the result yourself.',
+    )
   }
 
   const url = URL.createObjectURL(blob)

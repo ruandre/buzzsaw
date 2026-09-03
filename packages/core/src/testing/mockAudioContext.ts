@@ -1,3 +1,4 @@
+import type { AudioContextState, BaseAudioContextLike } from '../webAudio'
 import { vi } from 'vitest'
 
 export function createMockAudioContext(options: MockAudioContextOptions = {}): MockAudioContext {
@@ -32,7 +33,7 @@ export interface MockAudioContextOptions {
   currentTime?: number
 }
 
-export type MockAudioContext = BaseAudioContext & {
+export type MockAudioContext = BaseAudioContextLike & {
   gainNodes: MockGainNode[]
   oscillators: MockOscillatorNode[]
 }

@@ -64,7 +64,7 @@ describe('audioManager getAudioContextInstance', () => {
     const ctx = getAudioContextInstance()
 
     expect(ctx).toBeNull()
-    expect(console.error).toHaveBeenCalledWith('Web Audio API is not supported in this browser.')
+    expect(console.error).toHaveBeenCalledWith('Web Audio API is not supported in this environment.')
   })
 
   it('creates and returns a new AudioContext if supported', () => {

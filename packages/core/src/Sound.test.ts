@@ -92,4 +92,22 @@ describe('sound class', () => {
     expect(() => Sound.fromJSON(null as any)).toThrow(TypeError)
     expect(() => Sound.fromJSON({} as any)).toThrow(TypeError)
   })
+
+  it('rejects a malformed definition at construction', () => {
+    expect(() => new Sound('bogus', { frequency: 'nope' } as never))
+      .toThrow(/Invalid sound definition for "bogus"/)
+  })
+
+  it('freezes the exposed definition so callers cannot mutate a registered sound', () => {
+    const sound = new Sound('swipe', {
+      frequency: { start: 400, steps: [{ time: 0.1, value: 900 }] },
+      duration: 0.2,
+    })
+
+    expect(Object.isFrozen(sound.definition)).toBe(true)
+    expect(() => {
+      ;(sound.definition as { duration?: number }).duration = 99
+    }).toThrow(TypeError)
+    expect(sound.definition.duration).toBe(0.2)
+  })
 })

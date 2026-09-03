@@ -1,75 +1,80 @@
-import type { PlaybackHandle, SoundDefinition, SoundPlaybackOptions } from './types'
+import type { PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types'
 import { ensureAudioContextReady } from './audioManager'
 import { playSoundFromDefinition } from './soundPlayer'
-import { calculateEffectiveDuration, cloneSoundDefinition } from './utils'
+import { SoundValidationError } from './SoundValidationError'
+import { calculateEffectiveDuration, cloneSoundDefinition, freezeSoundDefinition } from './utils'
+import { validateSoundDefinition } from './validation'
 
 export class Sound {
-  private _name: string
-  private _definition: SoundDefinition
-  private _activeHandles: PlaybackHandle[] = []
+  readonly #name: string
+  #definition: Readonly<SoundDefinition>
+  #activeHandles: PlaybackHandle[] = []
 
+  /** Throws SoundValidationError if the definition is malformed */
   constructor(name: string, definition: SoundDefinition) {
     if (!name || typeof name !== 'string') {
       throw new TypeError('Sound name must be a non-empty string.')
     }
-    this._name = name
-    this._definition = cloneSoundDefinition(definition)
+    this.#name = name
+    this.#definition = adopt(name, definition)
   }
 
   get name(): string {
-    return this._name
+    return this.#name
   }
 
+  /** Deeply frozen; use `cloneSoundDefinition` to obtain an editable copy */
   get definition(): Readonly<SoundDefinition> {
-    return this._definition
+    return this.#definition
   }
 
-  /** Duration in seconds, including envelope release */
+  /** Total playback length in seconds, matching `calculateEffectiveDuration` */
   get duration(): number {
-    return calculateEffectiveDuration(this._definition)
+    return calculateEffectiveDuration(this.#definition)
   }
 
   get isPlaying(): boolean {
-    return this._activeHandles.some(h => h.isPlaying)
+    return this.#activeHandles.some(h => h.isPlaying)
   }
 
+  /** Throws SoundValidationError if the definition is malformed */
   setDefinition(definition: SoundDefinition): this {
-    this._definition = cloneSoundDefinition(definition)
+    this.#definition = adopt(this.#name, definition)
     return this
   }
 
-  /** Plays sound; initializes shared AudioContext if omitted from options */
-  async play(options?: SoundPlaybackOptions): Promise<PlaybackHandle> {
+  /** Initializes and resumes the shared AudioContext when options omit one */
+  async play(options?: StandaloneSoundOptions): Promise<PlaybackHandle> {
     const ctx = options?.audioContext ?? await ensureAudioContextReady()
-    const handle = playSoundFromDefinition(ctx, this._definition, options)
-    this._activeHandles.push(handle)
+    const handle = playSoundFromDefinition(ctx, this.#definition, options)
+    this.#activeHandles.push(handle)
 
     handle.promise.finally(() => {
-      this._activeHandles = this._activeHandles.filter(h => h !== handle)
+      this.#activeHandles = this.#activeHandles.filter(h => h !== handle)
     })
 
     return handle
   }
 
   stop(): void {
-    for (const handle of this._activeHandles) {
+    for (const handle of this.#activeHandles) {
       handle.stop()
     }
-    this._activeHandles = []
+    this.#activeHandles = []
   }
 
-  /** Clones sound; default name `${name}_copy` */
+  /** Default name is `${name}_copy` */
   clone(newName?: string): Sound {
     return new Sound(
-      newName ?? `${this._name}_copy`,
-      cloneSoundDefinition(this._definition),
+      newName ?? `${this.#name}_copy`,
+      cloneSoundDefinition(this.#definition),
     )
   }
 
   toJSON(): { name: string, definition: SoundDefinition } {
     return {
-      name: this._name,
-      definition: cloneSoundDefinition(this._definition),
+      name: this.#name,
+      definition: cloneSoundDefinition(this.#definition),
     }
   }
 
@@ -79,4 +84,12 @@ export class Sound {
     }
     return new Sound(json.name, json.definition)
   }
+}
+
+function adopt(name: string, definition: SoundDefinition): Readonly<SoundDefinition> {
+  const errors = validateSoundDefinition(definition)
+  if (errors.length > 0) {
+    throw new SoundValidationError(name, errors)
+  }
+  return freezeSoundDefinition(cloneSoundDefinition(definition))
 }

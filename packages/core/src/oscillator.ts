@@ -1,4 +1,5 @@
 import type { SoundDefinition } from './types'
+import type { BaseAudioContextLike, OscillatorNodeLike } from './webAudio'
 import { DEFAULT_WAVE_TYPE, MAX_PARTIALS } from './constants'
 
 /** Harmonic amplitudes for custom wave; null if invalid or unspecified */
@@ -16,8 +17,8 @@ export function resolvePartials(def: SoundDefinition): number[] | null {
 
 /** Sets waveform, falling back to default shape if PeriodicWave fails */
 export function applyWaveShape(
-  audioContext: BaseAudioContext,
-  oscillator: OscillatorNode,
+  audioContext: BaseAudioContextLike,
+  oscillator: OscillatorNodeLike,
   def: SoundDefinition,
 ): void {
   const partials = resolvePartials(def)

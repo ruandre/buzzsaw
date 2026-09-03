@@ -23,12 +23,16 @@ function scrollToTop(): void {
         <span>for shortcuts</span>
       </button>
 
-      <p class="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-xs text-ink-subtle sm:flex-1">
-        <span class="whitespace-nowrap">Zero dependencies</span>
-        <span aria-hidden="true">·</span>
-        <span class="whitespace-nowrap">Web Audio API</span>
-        <span aria-hidden="true">·</span>
-        <span class="whitespace-nowrap">Runs entirely on-device</span>
+      <p class="flex items-center justify-center text-xs text-ink-subtle sm:flex-1">
+        <a
+          href="https://github.com/ruandre/buzzsaw"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 whitespace-nowrap transition-colors duration-fast hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        >
+          <span class="i-ph-github-logo-bold text-sm" aria-hidden="true" />
+          <span>ruandre/buzzsaw</span>
+        </a>
       </p>
 
       <button type="button" class="btn-secondary px-2.5 py-1.5 text-xs" aria-label="Scroll to top" @click="scrollToTop">

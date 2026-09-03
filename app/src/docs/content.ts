@@ -1,13 +1,10 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 
-// Documentation topics and content blocks
-
 export type DocTopicId = 'quickstart' | 'synthesis' | 'envelopes' | 'wav' | 'types'
 
 export type DocBlock
   = | { kind: 'prose', text: string }
     | { kind: 'code', language: string, code: string }
-  /** Term/definition table */
     | { kind: 'terms', terms: readonly { term: string, description: string }[] }
   /** Package manager switcher and install command */
     | { kind: 'install' }
@@ -29,7 +26,6 @@ export interface DocExample {
   definition: SoundDefinition
 }
 
-/** Interactive sound examples for synthesis topic */
 export const DOC_EXAMPLES: readonly DocExample[] = [
   {
     name: 'laserShot',
@@ -87,7 +83,6 @@ export const DOC_EXAMPLES: readonly DocExample[] = [
   },
 ]
 
-/** Package manager options for install command snippet */
 export const PACKAGE_MANAGERS = ['pnpm', 'npm', 'yarn', 'bun', 'nub'] as const
 export type PackageManager = (typeof PACKAGE_MANAGERS)[number]
 
@@ -114,7 +109,7 @@ export const DOC_TOPICS: readonly DocTopic[] = [
       { kind: 'install' },
       {
         kind: 'prose',
-        text: '`@rjvr/buzzsaw` synthesizes and plays. `@rjvr/buzzsaw-wav` renders the same definitions to `.wav` files offline. Install only what you use. They ship separately.',
+        text: '`@rjvr/buzzsaw` synthesizes and plays. `@rjvr/buzzsaw-wav` renders the same definitions to `.wav` files offline. They ship separately, so install only what you use.',
       },
       {
         kind: 'code',
@@ -122,7 +117,7 @@ export const DOC_TOPICS: readonly DocTopic[] = [
         code: `import { SoundManager } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 
-// A manager starts empty; the 80+ presets are a separate import
+// A manager starts empty; the 113 presets are a separate import
 const sounds = new SoundManager().registerAll(DEFAULT_SOUNDS)
 
 // Browsers block audio until the user interacts, so play from a handler
@@ -135,7 +130,8 @@ button.addEventListener('click', () => sounds.play('ding'))`,
       {
         kind: 'code',
         language: 'typescript',
-        code: `sounds.register('confirm', {
+        code: `// register() returns the manager, widened so play() accepts the new name
+const sounds = new SoundManager().register('confirm', {
   waveType: 'triangle',
   frequency: { start: 659.25, steps: [{ value: 880, time: 0.07 }] },
   gain: 0.38,
@@ -169,7 +165,7 @@ handle?.stop() // fades out over 5ms rather than cutting`,
       { kind: 'examples' },
       {
         kind: 'prose',
-        text: 'A `custom` waveType takes a `partials` array: entry *n* is the relative amplitude of harmonic *n + 1*. The series is normalised to unit peak, so only the ratios matter.',
+        text: 'A `custom` waveType takes a `partials` array: entry *n* is the relative amplitude of harmonic *n + 1*. The series is normalized to unit peak, so only the ratios matter.',
       },
       {
         kind: 'code',
@@ -227,14 +223,14 @@ await handle.promise // resolves when the sound finishes`,
       {
         kind: 'terms',
         terms: [
-          { term: 'attack', description: 'Rise time to peak. Under 4ms reads as percussive; over 40ms reads as a swell.' },
+          { term: 'attack', description: 'Rise time to peak. Under 4 ms reads as percussive; over 40 ms reads as a swell.' },
           { term: 'decay', description: 'Release tail. Long decays give bells and sub-drops their resonance.' },
           { term: 'duration', description: 'Total length. Envelope steps past it extend the sound rather than being cut.' },
         ],
       },
       {
         kind: 'prose',
-        text: 'Frequency steps ramp linearly between points. Gain steps hold their value until the next one, which is what makes stepped gain useful for pulsing and stutter effects.',
+        text: 'Frequency steps ramp linearly between points. Gain steps hold their value until the next one, which makes stepped gain useful for pulsing and stutter effects. Set `interpolation` on either envelope to override its default.',
       },
       {
         kind: 'code',
@@ -341,7 +337,7 @@ for (const [name, definition] of Object.entries(DEFAULT_SOUNDS)) {
         kind: 'code',
         language: 'typescript',
         code: `interface SoundDefinition {
-  waveType?: OscillatorType              // default 'sine'
+  waveType?: WaveType                    // default 'sine'
   partials?: number[]                    // harmonic amplitudes, for waveType 'custom'
   frequency: number | EnvelopeDefinition
   gain?: number | EnvelopeDefinition     // default 0.5
@@ -353,6 +349,7 @@ for (const [name, definition] of Object.entries(DEFAULT_SOUNDS)) {
 interface EnvelopeDefinition {
   start: number
   steps: { value: number, time: number }[]
+  interpolation?: 'linear' | 'step'      // default 'linear' for frequency, 'step' for gain
 }
 
 interface PlaybackHandle {

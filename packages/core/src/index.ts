@@ -1,4 +1,3 @@
-export { AudioBus } from './audioBus'
 export {
   closeAudioContext,
   ensureAudioContextReady,
@@ -12,36 +11,29 @@ export {
   DEFAULT_DECAY_S,
   DEFAULT_DURATION_S,
   DEFAULT_FREQUENCY_HZ,
+  DEFAULT_FREQUENCY_INTERPOLATION,
   DEFAULT_GAIN,
+  DEFAULT_GAIN_INTERPOLATION,
   DEFAULT_WAVE_TYPE,
-  LIMITER_THRESHOLD_DB,
   MASTER_VOLUME_MAX,
   MASTER_VOLUME_MIN,
   MAX_PARTIALS,
-  MIN_DURATION_S,
-  MIN_FREQUENCY_HZ,
-  SILENT_GAIN,
   WAVE_TYPES,
 } from './constants'
-export {
-  cloneEnvelope,
-  isEnvelope,
-  latestStepTime,
-  orderedSteps,
-  sampleEnvelope,
-  sampleSteppedEnvelope,
-} from './envelope'
-export { atLeast, clamp, clampFinite, finiteOr, round } from './numeric'
-export { applyWaveShape, evaluateWaveShape, resolvePartials } from './oscillator'
+export { isEnvelope } from './envelope'
+export { clamp, round } from './numeric'
+export { evaluateWaveShape, resolvePartials } from './oscillator'
 export { Sound } from './Sound'
 export { SoundManager } from './SoundManager'
+export type { SoundRegistrations } from './SoundManager'
 export { playSoundFromDefinition } from './soundPlayer'
+export { SoundValidationError } from './SoundValidationError'
 export * from './types'
 export {
   calculateEffectiveDuration,
   cloneSoundDefinition,
+  freezeSoundDefinition,
   isValidSoundDefinition,
-  resolveEnvelopeTiming,
   sampleFrequencyAtTime,
   sampleGainAtTime,
 } from './utils'

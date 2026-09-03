@@ -1,6 +1,8 @@
-export const WAVE_TYPES: readonly OscillatorType[] = ['sine', 'square', 'sawtooth', 'triangle', 'custom']
+import type { EnvelopeInterpolation, WaveType } from './types'
 
-export const DEFAULT_WAVE_TYPE: OscillatorType = 'sine'
+export const WAVE_TYPES: readonly WaveType[] = ['sine', 'square', 'sawtooth', 'triangle', 'custom']
+
+export const DEFAULT_WAVE_TYPE: WaveType = 'sine'
 export const DEFAULT_FREQUENCY_HZ = 440
 export const DEFAULT_GAIN = 0.5
 export const DEFAULT_ENVELOPE_GAIN = 0.4
@@ -8,9 +10,16 @@ export const DEFAULT_DURATION_S = 0.5
 export const DEFAULT_ATTACK_S = 0.005
 export const DEFAULT_DECAY_S = 0.1
 
+// Frequency reads as pitch glide, gain as discrete level changes
+export const DEFAULT_FREQUENCY_INTERPOLATION: EnvelopeInterpolation = 'linear'
+export const DEFAULT_GAIN_INTERPOLATION: EnvelopeInterpolation = 'step'
+
 export const MIN_FREQUENCY_HZ = 1
 export const MIN_DURATION_S = 0.01
 export const MIN_DECAY_WINDOW_S = 0.001
+
+// Headroom after the last envelope step so its target is reached before the voice ends
+export const ENVELOPE_TAIL_PAD_S = 0.01
 
 // Web Audio exponentialRampToValueAtTime rejects 0; practical silence floor
 export const SILENT_GAIN = 0.0001

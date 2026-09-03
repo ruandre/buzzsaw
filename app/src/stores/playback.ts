@@ -7,7 +7,7 @@ import { computed, ref, watch } from 'vue'
 import { UI_SOUNDS } from '../audio/uiSounds'
 import { useNotificationsStore } from './notifications'
 
-/** Maximum master volume ceiling with headroom */
+// Deliberately below the library's MASTER_VOLUME_MAX of 2, leaving headroom
 export const MAX_MASTER_VOLUME = 1.5
 
 /** SoundManager key for creator preview playback */
@@ -19,7 +19,8 @@ const METER_DECAY_PER_FRAME = 0.06
 export const usePlaybackStore = defineStore('playback', () => {
   const notifications = useNotificationsStore()
 
-  const soundManager = new SoundManager().registerAll(DEFAULT_SOUNDS)
+  // Names are dynamic: the studio registers user-authored sounds at runtime
+  const soundManager = new SoundManager<string>().registerAll(DEFAULT_SOUNDS)
   const masterVolume = ref(1)
   const isMuted = ref(false)
   const activeVoices = ref(0)
@@ -38,7 +39,6 @@ export const usePlaybackStore = defineStore('playback', () => {
     window.addEventListener('keydown', unlock, { capture: true, passive: true })
   }
 
-  // Meter reads master bus; decays smoothly until all voices end
   let meterFrame: number | null = null
 
   function sampleOutputLevel(): void {
@@ -60,7 +60,7 @@ export const usePlaybackStore = defineStore('playback', () => {
     }
   }
 
-  /** Level reaching the engine, which is silent while muted */
+  /** Level actually sent to the engine; 0 while muted */
   const outputVolume = computed(() => (isMuted.value ? MASTER_VOLUME_MIN : masterVolume.value))
   const isPlaying = computed(() => activeVoices.value > 0)
 
@@ -88,7 +88,6 @@ export const usePlaybackStore = defineStore('playback', () => {
     )
   }
 
-  // Schedules voice tracking and master meter sampling
   async function schedule(name: string, definition?: SoundDefinition): Promise<void> {
     if (definition) {
       soundManager.register(name, definition)
@@ -118,7 +117,7 @@ export const usePlaybackStore = defineStore('playback', () => {
     }
   }
 
-  /** Plays sound by name, optionally registering definition first */
+  /** Registers `definition` first when given; records the name in `recentlyPlayed` */
   async function play(name: string, definition?: SoundDefinition): Promise<void> {
     if (name !== PREVIEW_SOUND) {
       recentlyPlayed.value = [name, ...recentlyPlayed.value.filter(n => n !== name)].slice(0, RECENT_LIMIT)
@@ -135,7 +134,7 @@ export const usePlaybackStore = defineStore('playback', () => {
     void schedule(name)
   }
 
-  /** Auditions unsaved definition under preview key */
+  /** Auditions an unsaved definition under `PREVIEW_SOUND`, keeping it out of `recentlyPlayed` */
   async function preview(definition: SoundDefinition): Promise<void> {
     await play(PREVIEW_SOUND, definition)
   }

@@ -1,3 +1,4 @@
+import type { SoundDefinition } from './types'
 import { describe, expect, it } from 'vitest'
 import {
   calculateEffectiveDuration,
@@ -144,7 +145,6 @@ describe('sounds utils', () => {
       expect(sampleGainAtTime(def, 0.25)).toBe(0)
     })
 
-    // Gain envelopes use zero-order hold (setValueAtTime staircase)
     it('holds each gain step until the next one', () => {
       const def = {
         duration: 0.3,
@@ -199,6 +199,44 @@ describe('sounds utils', () => {
       expect(isValidSoundDefinition({})).toBe(false)
       expect(isValidSoundDefinition({ frequency: -10 })).toBe(false)
       expect(isValidSoundDefinition({ frequency: 440, waveType: 'invalid' })).toBe(false)
+    })
+  })
+
+  describe('envelope interpolation', () => {
+    it('holds gain between steps but glides frequency, by default', () => {
+      const def: SoundDefinition = {
+        duration: 1,
+        frequency: { start: 100, steps: [{ time: 1, value: 200 }] },
+        gain: { start: 0.2, steps: [{ time: 1, value: 0.8 }] },
+      }
+
+      expect(sampleFrequencyAtTime(def, 0.5)).toBeCloseTo(150)
+      expect(sampleGainAtTime(def, 0.5, 1)).toBeCloseTo(0.2)
+    })
+
+    it('lets a definition override either default', () => {
+      const def: SoundDefinition = {
+        duration: 1,
+        frequency: { start: 100, steps: [{ time: 1, value: 200 }], interpolation: 'step' },
+        gain: { start: 0.2, steps: [{ time: 1, value: 0.8 }], interpolation: 'linear' },
+      }
+
+      expect(sampleFrequencyAtTime(def, 0.5)).toBeCloseTo(100)
+      expect(sampleGainAtTime(def, 0.5, 1)).toBeCloseTo(0.5)
+    })
+  })
+
+  describe('duration arithmetic', () => {
+    it('carves attack and decay out of duration rather than adding to it', () => {
+      expect(calculateEffectiveDuration({ frequency: 440, duration: 0.2, decay: 0.5 })).toBe(0.2)
+      expect(calculateEffectiveDuration({ frequency: 440, duration: 0.2, attack: 0.4 })).toBe(0.2)
+    })
+
+    it('extends duration to cover envelope steps that run past it', () => {
+      expect(calculateEffectiveDuration({
+        frequency: { start: 440, steps: [{ time: 2, value: 880 }] },
+        duration: 0.2,
+      })).toBeCloseTo(2.01)
     })
   })
 })

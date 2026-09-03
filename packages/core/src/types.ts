@@ -1,3 +1,14 @@
+import type { AudioContextLike, AudioNodeLike, BaseAudioContextLike, WaveType } from './webAudio'
+
+export type {
+  AudioBufferLike,
+  AudioContextLike,
+  AudioNodeLike,
+  BaseAudioContextLike,
+  OfflineAudioContextLike,
+  WaveType,
+} from './webAudio'
+
 export interface SoundStep {
   /** Target value at this point (Hz or gain [0..1]) */
   value: number
@@ -5,11 +16,15 @@ export interface SoundStep {
   time: number
 }
 
+/** How values move between steps: ramped linearly, or held until the next step */
+export type EnvelopeInterpolation = 'linear' | 'step'
+
 export interface EnvelopeDefinition {
   /** Value at t=0 */
   start: number
-  /** Chronological automation points */
   steps: SoundStep[]
+  /** Defaults to 'linear' for frequency envelopes, 'step' for gain envelopes */
+  interpolation?: EnvelopeInterpolation
 }
 
 export type FrequencyDefinition = number | EnvelopeDefinition
@@ -17,29 +32,34 @@ export type FrequencyDefinition = number | EnvelopeDefinition
 export type GainDefinition = number | EnvelopeDefinition
 
 export interface SoundDefinition {
-  /** Defaults to 'sine' */
-  waveType?: OscillatorType
+  /** Defaults to 'sine'. Noise sources are not supported */
+  waveType?: WaveType
   /** Relative harmonic amplitudes for 'custom' waveType; normalized on playback */
   partials?: number[]
   frequency: FrequencyDefinition
   /** Peak gain [0..1] or envelope. Defaults to 0.5 */
   gain?: GainDefinition
-  /** Duration in seconds. Defaults to 0.5 */
+  /** Total seconds, inclusive of attack and decay; envelope steps past it extend it, attack and decay never do. Defaults to 0.5 */
   duration?: number
-  /** Linear ramp-in in seconds. Defaults to 0.005 */
+  /** Linear ramp-in in seconds, carved out of `duration`. Defaults to 0.005 */
   attack?: number
-  /** Exponential ramp-out in seconds. Defaults to 0.1 */
+  /** Exponential ramp-out in seconds, carved out of `duration`. Defaults to 0.1 */
   decay?: number
 }
 
 export interface SoundPlaybackOptions {
-  /** Volume multiplier. Defaults to 1.0 */
+  /** Volume multiplier, non-negative. Defaults to 1.0 */
   volume?: number
-  /** Pitch multiplier (e.g. 2.0 = octave up) */
+  /** Pitch multiplier, positive (e.g. 2.0 = octave up). Defaults to 1.0 */
   pitchScale?: number
-  audioContext?: BaseAudioContext
-  /** Target node overriding context destination */
-  destination?: AudioNode
+}
+
+/** Playback options for a `Sound` used outside a `SoundManager` */
+export interface StandaloneSoundOptions extends SoundPlaybackOptions {
+  /** Context to schedule on. Defaults to the shared singleton */
+  audioContext?: BaseAudioContextLike
+  /** Target node overriding the context destination */
+  destination?: AudioNodeLike
 }
 
 export interface PlaybackHandle {
@@ -53,11 +73,14 @@ export interface PlaybackHandle {
 export interface SoundManagerOptions {
   /** Volume multiplier in [0..2]. Defaults to 1.0 */
   masterVolume?: number
-  audioContext?: AudioContext
-  /** Inserts brickwall limiter on master bus; off by default */
+  audioContext?: AudioContextLike
+  /** Inserts brickwall limiter on master bus. Defaults to true */
   limiter?: boolean
+  /** Called when `play` is given an unregistered name. Defaults to logging an error */
+  onMissing?: (name: string) => void
 }
 
+/** Serializable bundle of named sound definitions, for import and export */
 export interface SoundPack {
   version: number
   exportedAt?: string

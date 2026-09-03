@@ -44,7 +44,8 @@
     "CHANGELOG.md",
     "LICENSE",
     "README.md",
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "build": "rolldown -c && tsc --emitDeclarationOnly",

@@ -11,7 +11,9 @@ npm install @rjvr/buzzsaw
 # or: pnpm add / yarn add / bun add
 ```
 
-The core package has no dependencies and tree-shakes cleanly. The built-in library of 80+ presets is exported from a separate subpath (`@rjvr/buzzsaw/sounds`), so applications with custom sounds never bundle them.
+The package has no runtime dependencies. Its published types declare only the slice of the Web Audio API it uses, so it typechecks under a Node-only `tsconfig` (`"lib": ["es2023"]`) against a polyfill such as [`node-web-audio-api`](https://github.com/ircam-ismm/node-web-audio-api).
+
+The 113 built-in presets live in a separate subpath (`@rjvr/buzzsaw/sounds`). Import them individually to bundle only what you use: five presets cost ~0.3 kB gzip on top of the library, all 113 cost ~5.4 kB.
 
 ## Quick start
 
@@ -20,9 +22,10 @@ The core package has no dependencies and tree-shakes cleanly. The built-in libra
 Use `Sound` to define and play an isolated sound effect:
 
 ```ts
+import type { SoundDefinition } from '@rjvr/buzzsaw'
 import { Sound } from '@rjvr/buzzsaw'
 
-const laser = new Sound('laser', {
+const laserDefinition: SoundDefinition = {
   waveType: 'sawtooth',
   frequency: {
     start: 1200,
@@ -30,7 +33,9 @@ const laser = new Sound('laser', {
   },
   gain: 0.4,
   duration: 0.2,
-})
+}
+
+const laser = new Sound('laser', laserDefinition)
 
 // Play immediately using the shared AudioContext
 const handle = await laser.play()
@@ -42,33 +47,36 @@ handle.stop()
 await handle.promise
 ```
 
+Annotate definitions with `SoundDefinition` (or use `satisfies SoundDefinition`). Without it, TypeScript widens `waveType: 'sawtooth'` to `string` and the object no longer matches.
+
 ### Manage sound collections
 
-Use `SoundManager` to group sounds under a shared master volume, optional limiter, and single audio context:
+`SoundManager` groups sounds under a shared master volume, limiter, and audio context. `register` and `registerAll` return the manager, so chaining both registers the sounds and teaches `play` their names:
 
 ```ts
 import { SoundManager } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 
-const sounds = new SoundManager({ masterVolume: 0.8, limiter: true })
+const sounds = new SoundManager({ masterVolume: 0.8 })
+  .registerAll(DEFAULT_SOUNDS)
+  .register('coin', {
+    waveType: 'square',
+    frequency: {
+      start: 987,
+      steps: [{ value: 1318, time: 0.08 }],
+    },
+    duration: 0.3,
+    gain: 0.3,
+  })
 
-// Register the preset pack
-sounds.registerAll(DEFAULT_SOUNDS)
-
-// Register your own sound definitions
-sounds.register('coin', {
-  waveType: 'square',
-  frequency: {
-    start: 987,
-    steps: [{ value: 1318, time: 0.08 }],
-  },
-  duration: 0.3,
-  gain: 0.3,
-})
-
-// Play by name with volume or pitch scaling
+// Autocompletes over every registered name; a typo fails to compile
 const handle = await sounds.play('coin', { volume: 0.9, pitchScale: 1.2 })
+
+// Retrieve the stored Sound instance by name
+const coin = sounds.get('coin')
 ```
+
+Where names are only known at runtime, opt out with `new SoundManager<string>()`.
 
 ### Browser autoplay
 
@@ -98,16 +106,43 @@ interface SoundDefinition {
   /** Peak amplitude from 0 to 1, or an envelope contour. Defaults to 0.5 */
   gain?: number | EnvelopeDefinition
 
-  /** Playback duration in seconds. Defaults to 0.5 */
+  /** Total playback length in seconds, inclusive of attack and decay. Defaults to 0.5 */
   duration?: number
 
-  /** Attack ramp-in duration in seconds. Defaults to 0.005 */
+  /** Attack ramp-in in seconds, carved out of duration. Defaults to 0.005 */
   attack?: number
 
-  /** Decay ramp-out duration in seconds. Defaults to 0.1 */
+  /** Decay ramp-out in seconds, carved out of duration. Defaults to 0.1 */
   decay?: number
 }
 ```
+
+There is no noise source. Every voice is a single oscillator, so you approximate noisy textures with harmonics (`waveType: 'custom'` with dense `partials`). Presets like `rustle` and `staticBurst` do exactly that.
+
+Definitions are validated when a `Sound` is constructed or registered. A malformed one throws `SoundValidationError`, whose `errors` array lists every problem found.
+
+### How duration, attack, and decay interact
+
+`duration` is the total length of the voice. `attack` and `decay` are windows **carved out of** it, not added to it:
+
+```ts
+// Plays for 0.2s total: ~0.005s attack, steady, then a decay that starts at 0.1s
+calculateEffectiveDuration({ frequency: 440, duration: 0.2, decay: 0.1 }) // 0.2
+
+// A decay longer than the duration is clamped, not accommodated
+calculateEffectiveDuration({ frequency: 440, duration: 0.2, decay: 0.5 }) // 0.2
+```
+
+Only one thing extends a sound: an envelope step scheduled past `duration`. The voice then runs to that step plus a 10 ms tail:
+
+```ts
+calculateEffectiveDuration({
+  frequency: { start: 440, steps: [{ value: 880, time: 2 }] },
+  duration: 0.2,
+}) // 2.01
+```
+
+`Sound.duration` and the offline renderer both report this effective length.
 
 ### Envelopes
 
@@ -119,16 +154,20 @@ interface EnvelopeDefinition {
   start: number
   /** Automation targets ordered by offset in seconds from sound start */
   steps: { value: number, time: number }[]
+  /** Defaults to 'linear' for frequency, 'step' for gain */
+  interpolation?: 'linear' | 'step'
 }
 ```
 
-- Frequency envelopes interpolate smoothly using linear ramps between steps.
-- Gain envelopes apply stepped values at each target time, followed by an exponential ramp down to silence during the decay window.
+The two fields have **different defaults**, which is easy to miss:
 
-Example with frequency and gain contours:
+- A frequency envelope **glides** between steps (linear ramps), so it reads as a pitch slide.
+- A gain envelope **holds** each value until the next step (a staircase), then ramps exponentially to silence during the decay window.
+
+Set `interpolation` explicitly to override either default: `interpolation: 'linear'` on a gain envelope gives a smooth fade, `interpolation: 'step'` on a frequency envelope gives discrete pitch jumps.
 
 ```ts
-const powerDown = new Sound('powerDown', {
+const powerDown: SoundDefinition = {
   waveType: 'sawtooth',
   frequency: {
     start: 800,
@@ -139,6 +178,7 @@ const powerDown = new Sound('powerDown', {
   },
   gain: {
     start: 0.5,
+    interpolation: 'linear',
     steps: [
       { value: 0.3, time: 0.3 },
       { value: 0.1, time: 0.5 },
@@ -146,7 +186,7 @@ const powerDown = new Sound('powerDown', {
   },
   duration: 0.6,
   decay: 0.15,
-})
+}
 ```
 
 ## Playback handles
@@ -166,7 +206,12 @@ interface PlaybackHandle {
 }
 ```
 
-`play()` resolves when the oscillator is scheduled, not when audio ends. To wait for sound completion, await `handle.promise`.
+`play()` resolves when the oscillator is scheduled, not when audio ends. To wait for the sound itself, await `handle.promise`:
+
+```ts
+const handle = await sounds.play('coin')
+await handle?.promise
+```
 
 ## SoundManager API
 
@@ -178,21 +223,32 @@ interface SoundManagerOptions {
   masterVolume?: number
 
   /** Custom AudioContext. When omitted, uses the shared singleton context */
-  audioContext?: AudioContext
+  audioContext?: AudioContextLike
 
-  /** Inserts a brickwall limiter (-3 dBFS threshold) on the master bus. Defaults to false */
+  /** Inserts a brickwall limiter (-3 dBFS threshold) on the master bus. Defaults to true */
   limiter?: boolean
+
+  /** Called when play() is given an unregistered name. Defaults to logging an error */
+  onMissing?: (name: string) => void
 }
+```
+
+Out-of-range values throw rather than clamp: `masterVolume` outside `0..2`, a negative `volume`, or a `pitchScale` of zero or less all raise a `RangeError` naming the offending value.
+
+Pass your own `onMissing` to silence the default log for unregistered names, which is worth doing if you play sounds on hover:
+
+```ts
+const sounds = new SoundManager({ onMissing: () => {} }).registerAll(DEFAULT_SOUNDS)
 ```
 
 ### Methods and properties
 
-- `register(name, definitionOrSound)`: adds or updates a sound in the registry.
-- `registerAll(record)`: registers multiple sounds from an object map. Chainable.
+- `register(name, definitionOrSound)`: adds or updates one sound. Returns the manager, widened so `play` accepts `name`. Throws `SoundValidationError` on a malformed definition.
+- `registerAll(record)`: same, for an object map of sounds.
 - `unregister(name)`: stops any active playback of the sound and removes it. Returns `true` if removed.
 - `get(name)`: returns the `Sound` instance, or `undefined`.
 - `has(name)`: returns `true` if registered.
-- `play(name, options?)`: plays a registered sound. Returns `Promise<PlaybackHandle | null>` (`null` if unregistered).
+- `play(name, options?)`: plays through the master bus. Returns `Promise<PlaybackHandle | null>` (`null` if unregistered). Options are `volume` and `pitchScale`; routing belongs to the manager, so use `Sound.play` if you need a custom `destination`.
 - `stopAll()`: immediately stops all playing voices across the registry.
 - `clear()`: stops all sounds and empties the registry.
 - `dispose()`: clears the registry and disconnects the master audio bus.
@@ -200,14 +256,40 @@ interface SoundManagerOptions {
 - `getAll()`: returns an array of registered `Sound` instances.
 - `keys()`, `values()`, `entries()`, `forEach`, `find`, `filter`: standard collection iteration methods.
 - `masterVolume`: get or set the master output volume (`0..2`). Adjusts running voices with an anti-zipper glide.
-- `outputLevel`: live peak amplitude (`0..1`) exiting the master fader.
+- `outputLevel`: peak amplitude (`0..1`) leaving the master fader over the last analysis window. Reads `0` until the first `play()` call builds the bus, and on contexts with no analyser node.
 - `size`: count of registered sounds.
+
+## Preset library
+
+113 presets ship in `@rjvr/buzzsaw/sounds`, each exported both individually and through the `DEFAULT_SOUNDS` map. Audition them in the [Studio](https://ruandre.github.io/buzzsaw/).
+
+```ts
+// Bundles only these two
+import { click, coinCollect } from '@rjvr/buzzsaw/sounds'
+```
+
+```ts
+// Bundles all 113
+import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
+```
+
+`DefaultSoundName` is exported as a union of every preset name.
+
+| Category         | Count | Presets                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| :--------------- | ----: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UI & Clicks      |    16 | `backSwipe`, `bubblePop`, `click`, `collapse`, `confirmationTick`, `delicatePluck`, `drop`, `expand`, `knockTap`, `mechanicalClick`, `metallicClink`, `pop`, `quickSwipe`, `tap`, `toggle`, `waterDrop`                                                                                                                                                                                                                                                          |
+| Notifications    |    16 | `chime`, `confirm`, `ding`, `flourish`, `gentleLoading`, `infoBlip`, `jingle`, `messageReceived`, `messageSent`, `mysticChime`, `notification`, `ping`, `shimmerBell`, `successArpeggio`, `successChime`, `zapBlip`                                                                                                                                                                                                                                              |
+| Alerts & Alarms  |    32 | `airRaidSiren`, `airyPulse`, `alarm`, `broadcastAlert`, `buzz`, `criticalError`, `deny`, `digitalError`, `dispatchTone`, `distortedAlert`, `electronicAlarm`, `errorBuzz`, `evacuationT3`, `failArpeggio`, `flatlineTone`, `highPriorityPulse`, `horn`, `hornBlast`, `intenseWarning`, `klaxon`, `monitorPulse`, `pulse`, `sharpWarning`, `siren`, `sirenHiLo`, `sirenWail`, `sirenYelp`, `subtleError`, `systemFailure`, `tonalAlert`, `urgentAlert`, `warning` |
+| Sci-Fi & FX      |    12 | `cosmicHum`, `cosmicSweep`, `engineHum`, `glitchZap`, `laserShot`, `pixelJump`, `powerDown`, `powerUp`, `roboticBeep`, `spaceAmbience`, `teleportBeam`, `warpJump`                                                                                                                                                                                                                                                                                               |
+| Game             |     8 | `arcadeLevelUp`, `bossStomp`, `coinCollect`, `gameOverFall`, `heavyStrike`, `questComplete`, `question`, `shieldRecharge`                                                                                                                                                                                                                                                                                                                                        |
+| Musical          |     4 | `arpeggioMajorSeventh`, `bassGroove`, `chordStabMinor`, `melodyMotif`                                                                                                                                                                                                                                                                                                                                                                                            |
+| Tones & Textures |    25 | `airySweep`, `digitalChirp`, `faintShimmer`, `fallingTone`, `focusShift`, `gentleRise`, `gentleSweep`, `grind`, `heavyThump`, `impact`, `ripple`, `risingTone`, `rustle`, `scanner`, `simpleBeep`, `smoothWhoosh`, `softFlutter`, `staticBurst`, `subtleHover`, `subtleHum`, `taskComplete`, `thud`, `thunk`, `twinkleTrail`, `undoAction`                                                                                                                       |
 
 ## Utilities
 
 ### Validation
 
-Validate untrusted JSON payloads or user-authored sound definitions:
+Validate untrusted JSON payloads or user-authored sound definitions before registering them:
 
 ```ts
 import { isValidSoundDefinition, validateSoundDefinition } from '@rjvr/buzzsaw'
@@ -216,35 +298,48 @@ if (isValidSoundDefinition(input)) {
   sounds.register('custom', input)
 }
 else {
-  const errors = validateSoundDefinition(input)
-  console.error('Invalid sound definition:', errors)
+  console.error('Invalid sound definition:', validateSoundDefinition(input))
 }
 ```
 
-`validateSoundDefinition` checks property types, ranges, step structures, and protects against prototype pollution.
+`validateSoundDefinition` returns an array of messages (empty when valid), checking property types, ranges, and step structures. `register` and the `Sound` constructor run it themselves and throw `SoundValidationError` on failure, so validate first only when you want to report errors instead of catching them.
 
-### Audio inspection
+### Inspection
 
-Inspect sound timing and curves without initializing Web Audio nodes:
+Inspect sound timing and curves without creating Web Audio nodes. These functions drive the waveform previews:
 
 ```ts
 import {
   calculateEffectiveDuration,
   cloneSoundDefinition,
+  evaluateWaveShape,
+  resolvePartials,
   sampleFrequencyAtTime,
   sampleGainAtTime,
 } from '@rjvr/buzzsaw'
 
-// Total duration in seconds, including envelope extensions
+// Total duration in seconds, including any envelope extension
 const totalSeconds = calculateEffectiveDuration(definition)
 
-// Value inspection at specific offsets
+// Parameter values at a given offset
 const hzAtHalfSecond = sampleFrequencyAtTime(definition, 0.5)
 const gainAtHalfSecond = sampleGainAtTime(definition, 0.5, totalSeconds)
 
-// Safe deep copy
-const definitionCopy = cloneSoundDefinition(definition)
+// Normalized amplitude [-1, 1] at a phase in radians
+const amplitude = evaluateWaveShape(definition, Math.PI / 2)
+
+// Harmonic amplitudes for a 'custom' waveType, or null
+const partials = resolvePartials(definition)
+
+// Editable deep copy; Sound.definition itself is deeply frozen
+const editable = cloneSoundDefinition(sound.definition)
 ```
+
+Also exported: `isEnvelope`, `freezeSoundDefinition`, `clamp`, `round`, `WAVE_TYPES`, and the `DEFAULT_*` constants backing each default listed above.
+
+### Audio context
+
+The shared `AudioContext` is created lazily on first playback. `ensureAudioContextReady()` creates or resumes it, `getAudioContextInstance()` returns it (or `null` where Web Audio is unavailable), `isAudioContextSupported()` reports availability, `closeAudioContext()` closes and clears it, and `setAudioContextInstance(ctx)` replaces it with one you own, without closing whatever it displaces.
 
 ## License
 

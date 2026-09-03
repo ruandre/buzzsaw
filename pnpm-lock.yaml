@@ -123,11 +123,10 @@ importers:
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jiti@2.7.0)(yaml@2.9.0)
 
   packages/wav:
-    dependencies:
+    devDependencies:
       '@rjvr/buzzsaw':
         specifier: workspace:^
         version: link:../core
-    devDependencies:
       rolldown:
         specifier: ^1.2.6
         version: 1.2.6

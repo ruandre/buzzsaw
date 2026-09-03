@@ -1,50 +1,71 @@
-import type { PlaybackHandle, SoundDefinition, SoundManagerOptions, SoundPlaybackOptions } from './types'
+import type {
+  AudioContextLike,
+  BaseAudioContextLike,
+  PlaybackHandle,
+  SoundDefinition,
+  SoundManagerOptions,
+  SoundPlaybackOptions,
+} from './types'
 import { AudioBus } from './audioBus'
 import { ensureAudioContextReady, getAudioContextInstance } from './audioManager'
 import { MASTER_VOLUME_MAX, MASTER_VOLUME_MIN } from './constants'
-import { clamp, finiteOr } from './numeric'
 import { Sound } from './Sound'
 
-export class SoundManager {
-  private _sounds: Map<string, Sound> = new Map()
-  private _audioContext: AudioContext | null = null
-  private _masterVolume: number = 1.0
-  private readonly _useLimiter: boolean
-  private _bus: AudioBus | null = null
-  private _busContext: BaseAudioContext | null = null
+/** Sounds a manager can be given, keyed by the names `play` will accept */
+export type SoundRegistrations = Record<string, SoundDefinition | Sound>
+
+type NamesOf<T extends SoundRegistrations> = Extract<keyof T, string>
+
+/**
+ * Registry of named sounds sharing a master bus, volume, and audio context.
+ *
+ * `Name` is the set of keys `play` accepts, and widens as sounds are registered:
+ * `new SoundManager().registerAll(DEFAULT_SOUNDS)` is typed over the preset names,
+ * so typos fail to compile. Use `new SoundManager<string>()` where names are dynamic.
+ */
+export class SoundManager<Name extends string = never> {
+  #sounds: Map<string, Sound> = new Map()
+  #audioContext: AudioContextLike | null = null
+  #masterVolume: number = 1.0
+  readonly #useLimiter: boolean
+  readonly #onMissing: (name: string) => void
+  #bus: AudioBus | null = null
+  #busContext: BaseAudioContextLike | null = null
 
   constructor(options: SoundManagerOptions = {}) {
-    this._masterVolume = clampMasterVolume(options.masterVolume ?? 1.0)
-    this._audioContext = options.audioContext ?? null
-    this._useLimiter = options.limiter ?? false
+    this.#masterVolume = requireMasterVolume(options.masterVolume)
+    this.#audioContext = options.audioContext ?? null
+    this.#useLimiter = options.limiter ?? true
+    this.#onMissing = options.onMissing ?? logMissingSound
   }
 
   get masterVolume(): number {
-    return this._masterVolume
+    return this.#masterVolume
   }
 
   /** Master volume multiplier [0..2]; affects active playback immediately */
   set masterVolume(value: number) {
-    this._masterVolume = clampMasterVolume(value)
-    if (this._bus && this._busContext) {
-      this._bus.setVolume(this._masterVolume, this._busContext.currentTime)
+    this.#masterVolume = requireMasterVolume(value)
+    if (this.#bus && this.#busContext) {
+      this.#bus.setVolume(this.#masterVolume, this.#busContext.currentTime)
     }
   }
 
-  /** Peak amplitude [0..1] leaving master bus; 0 if unmetered */
+  /** Peak amplitude [0..1] on the master bus; 0 before the first `play` or without an analyser node */
   get outputLevel(): number {
-    return this._bus?.readPeakLevel() ?? 0
+    return this.#bus?.readPeakLevel() ?? 0
   }
 
-  get audioContext(): AudioContext | null {
-    return this._audioContext ?? getAudioContextInstance()
+  get audioContext(): AudioContextLike | null {
+    return this.#audioContext ?? getAudioContextInstance()
   }
 
   get size(): number {
-    return this._sounds.size
+    return this.#sounds.size
   }
 
-  register(name: string, definitionOrSound: SoundDefinition | Sound): Sound {
+  /** Adds or replaces one sound, widening this manager to accept `name`; throws SoundValidationError if malformed */
+  register<N extends string>(name: N, definitionOrSound: SoundDefinition | Sound): SoundManager<Name | N> {
     if (!name || typeof name !== 'string') {
       throw new TypeError('Invalid sound name provided.')
     }
@@ -53,67 +74,68 @@ export class SoundManager {
       ? (definitionOrSound.name === name ? definitionOrSound : definitionOrSound.clone(name))
       : new Sound(name, definitionOrSound)
 
-    this._sounds.set(name, sound)
-    return sound
+    this.#sounds.set(name, sound)
+    return this as SoundManager<Name | N>
   }
 
-  registerAll(sounds: Record<string, SoundDefinition | Sound>): this {
+  /** Adds or replaces a map of sounds, returning this manager widened to accept their names */
+  registerAll<T extends SoundRegistrations>(sounds: T): SoundManager<Name | NamesOf<T>> {
     for (const [name, def] of Object.entries(sounds)) {
       this.register(name, def)
     }
-    return this
+    return this as SoundManager<Name | NamesOf<T>>
   }
 
-  /** Stops and unregisters sound by name */
+  /** Stops the sound before unregistering it */
   unregister(name: string): boolean {
-    const sound = this._sounds.get(name)
+    const sound = this.#sounds.get(name)
     if (sound) {
       sound.stop()
-      return this._sounds.delete(name)
+      return this.#sounds.delete(name)
     }
     return false
   }
 
   get(name: string): Sound | undefined {
-    return this._sounds.get(name)
+    return this.#sounds.get(name)
   }
 
   has(name: string): boolean {
-    return this._sounds.has(name)
+    return this.#sounds.has(name)
   }
 
   keys(): IterableIterator<string> {
-    return this._sounds.keys()
+    return this.#sounds.keys()
   }
 
   values(): IterableIterator<Sound> {
-    return this._sounds.values()
+    return this.#sounds.values()
   }
 
   entries(): IterableIterator<[string, Sound]> {
-    return this._sounds.entries()
+    return this.#sounds.entries()
   }
 
   [Symbol.iterator](): IterableIterator<[string, Sound]> {
-    return this._sounds.entries()
+    return this.#sounds.entries()
   }
 
   list(): string[] {
-    return Array.from(this._sounds.keys())
+    return Array.from(this.#sounds.keys())
   }
 
   getAll(): Sound[] {
-    return Array.from(this._sounds.values())
+    return Array.from(this.#sounds.values())
   }
 
-  forEach(callback: (sound: Sound, name: string, manager: SoundManager) => void): void {
-    for (const [name, sound] of this._sounds.entries()) {
+  forEach(callback: (sound: Sound, name: string, manager: this) => void): void {
+    for (const [name, sound] of this.#sounds.entries()) {
       callback(sound, name, this)
     }
   }
 
   find(predicate: (sound: Sound, name: string) => boolean): Sound | undefined {
-    for (const [name, sound] of this._sounds.entries()) {
+    for (const [name, sound] of this.#sounds.entries()) {
       if (predicate(sound, name)) {
         return sound
       }
@@ -123,7 +145,7 @@ export class SoundManager {
 
   filter(predicate: (sound: Sound, name: string) => boolean): Sound[] {
     const results: Sound[] = []
-    for (const [name, sound] of this._sounds.entries()) {
+    for (const [name, sound] of this.#sounds.entries()) {
       if (predicate(sound, name)) {
         results.push(sound)
       }
@@ -131,56 +153,68 @@ export class SoundManager {
     return results
   }
 
-  /** Plays via master bus unless destination provided; null if not found */
-  async play(name: string, options?: SoundPlaybackOptions): Promise<PlaybackHandle | null> {
-    const sound = this._sounds.get(name)
+  /** Plays through the master bus. Resolves to null, via `onMissing`, if the name is unregistered */
+  async play(name: Name, options?: SoundPlaybackOptions): Promise<PlaybackHandle | null> {
+    const sound = this.#sounds.get(name)
     if (!sound) {
-      console.error(`Sound "${name}" not found in SoundManager registry.`)
+      this.#onMissing(name)
       return null
     }
 
-    const audioContext = options?.audioContext ?? this._audioContext ?? await ensureAudioContextReady()
+    const audioContext = this.#audioContext ?? await ensureAudioContextReady()
 
     return sound.play({
       ...options,
       audioContext,
-      destination: options?.destination ?? this.resolveBus(audioContext).input,
+      destination: this.#resolveBus(audioContext).input,
     })
   }
 
   // Master bus is scoped to audioContext and recreated when context changes
-  private resolveBus(audioContext: BaseAudioContext): AudioBus {
-    if (this._bus && this._busContext === audioContext) {
-      return this._bus
+  #resolveBus(audioContext: BaseAudioContextLike): AudioBus {
+    if (this.#bus && this.#busContext === audioContext) {
+      return this.#bus
     }
 
-    this._bus?.dispose()
-    this._bus = new AudioBus(audioContext, this._useLimiter)
-    this._busContext = audioContext
-    this._bus.setVolume(this._masterVolume, audioContext.currentTime)
-    return this._bus
+    this.#bus?.dispose()
+    this.#bus = new AudioBus(audioContext, this.#useLimiter)
+    this.#busContext = audioContext
+    this.#bus.setVolume(this.#masterVolume, audioContext.currentTime)
+    return this.#bus
   }
 
   stopAll(): void {
-    for (const sound of this._sounds.values()) {
+    for (const sound of this.#sounds.values()) {
       sound.stop()
     }
   }
 
   clear(): void {
     this.stopAll()
-    this._sounds.clear()
+    this.#sounds.clear()
   }
 
   /** Stops playback, clears registry, and disconnects master bus */
   dispose(): void {
     this.clear()
-    this._bus?.dispose()
-    this._bus = null
-    this._busContext = null
+    this.#bus?.dispose()
+    this.#bus = null
+    this.#busContext = null
   }
 }
 
-function clampMasterVolume(value: number): number {
-  return clamp(finiteOr(value, 1.0), MASTER_VOLUME_MIN, MASTER_VOLUME_MAX)
+function requireMasterVolume(value: number | undefined): number {
+  if (value === undefined) {
+    return 1.0
+  }
+  if (!Number.isFinite(value) || value < MASTER_VOLUME_MIN || value > MASTER_VOLUME_MAX) {
+    throw new RangeError(
+      `Invalid masterVolume: ${value}. Must be a finite number between ${MASTER_VOLUME_MIN} and ${MASTER_VOLUME_MAX}.`,
+    )
+  }
+  return value
+}
+
+function logMissingSound(name: string): void {
+  console.error(`Sound "${name}" is not registered in this SoundManager.`)
 }

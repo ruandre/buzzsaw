@@ -1,14 +1,16 @@
+import type { AudioContextConstructor, AudioContextLike } from './webAudio'
+
 interface AudioContextGlobals {
-  AudioContext?: typeof AudioContext
-  webkitAudioContext?: typeof AudioContext
+  AudioContext?: AudioContextConstructor
+  webkitAudioContext?: AudioContextConstructor
 }
 
-let sharedAudioContext: AudioContext | null = null
+let sharedAudioContext: AudioContextLike | null = null
 let hasLoggedSuspendedWarning = false
-const pendingResumes = new WeakMap<AudioContext, Promise<AudioContext>>()
+const pendingResumes = new WeakMap<AudioContextLike, Promise<AudioContextLike>>()
 
-/** Returns AudioContext constructor with webkit prefix fallback */
-export function getAudioContextClass(): typeof AudioContext | null {
+/** Returns AudioContext constructor with webkit prefix fallback; null if Web Audio is absent */
+export function getAudioContextClass(): AudioContextConstructor | null {
   const scope = globalThis as AudioContextGlobals
   return scope.AudioContext ?? scope.webkitAudioContext ?? null
 }
@@ -17,15 +19,15 @@ export function isAudioContextSupported(): boolean {
   return getAudioContextClass() !== null
 }
 
-/** Shared AudioContext singleton; null if Web Audio unsupported */
-export function getAudioContextInstance(): AudioContext | null {
+/** Shared AudioContext singleton, created on first use; null if Web Audio unsupported */
+export function getAudioContextInstance(): AudioContextLike | null {
   if (sharedAudioContext) {
     return sharedAudioContext
   }
 
   const AudioContextClass = getAudioContextClass()
   if (!AudioContextClass) {
-    console.error('Web Audio API is not supported in this browser.')
+    console.error('Web Audio API is not supported in this environment.')
     return null
   }
 
@@ -40,11 +42,13 @@ export function getAudioContextInstance(): AudioContext | null {
   }
 }
 
-export function setAudioContextInstance(ctx: AudioContext | null): void {
+/** Replaces the shared singleton without closing it; caller disposes what it displaces */
+export function setAudioContextInstance(ctx: AudioContextLike | null): void {
   sharedAudioContext = ctx
   hasLoggedSuspendedWarning = false
 }
 
+/** Closes and clears the shared singleton; the next play call creates a fresh one */
 export async function closeAudioContext(): Promise<void> {
   if (sharedAudioContext && sharedAudioContext.state !== 'closed') {
     try {
@@ -59,7 +63,7 @@ export async function closeAudioContext(): Promise<void> {
 }
 
 /** Resumes suspended AudioContext; concurrent calls share pending attempt */
-export function ensureAudioContextReady(customCtx?: AudioContext): Promise<AudioContext> {
+export function ensureAudioContextReady(customCtx?: AudioContextLike): Promise<AudioContextLike> {
   const ctx = customCtx ?? getAudioContextInstance()
 
   if (!ctx) {
@@ -85,7 +89,7 @@ export function ensureAudioContextReady(customCtx?: AudioContext): Promise<Audio
   // Timeout prevents hanging if browser blocks resume without user gesture
   const resume = Promise.race([
     ctx.resume().then(() => ctx),
-    new Promise<AudioContext>((resolve) => {
+    new Promise<AudioContextLike>((resolve) => {
       setTimeout(resolve, 500, ctx)
     }),
   ])

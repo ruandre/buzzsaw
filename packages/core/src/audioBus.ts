@@ -1,18 +1,26 @@
+import type {
+  AnalyserNodeLike,
+  AudioNodeLike,
+  BaseAudioContextLike,
+  DynamicsCompressorNodeLike,
+  GainNodeLike,
+} from './webAudio'
 import { LIMITER_THRESHOLD_DB, MASTER_VOLUME_GLIDE_S, SILENT_GAIN } from './constants'
 
 /** Master output stage: fader, optional brickwall limiter, and peak meter tap */
 export class AudioBus {
-  private readonly gainNode: GainNode
-  private readonly analyserNode: AnalyserNode | null
-  private readonly nodes: AudioNode[]
+  private readonly gainNode: GainNodeLike
+  private readonly analyserNode: AnalyserNodeLike | null
+  private readonly nodes: AudioNodeLike[]
   private readonly samples: Float32Array<ArrayBuffer> | null
 
-  constructor(audioContext: BaseAudioContext, limiter = false) {
+  constructor(audioContext: BaseAudioContextLike, limiter = false) {
     this.gainNode = audioContext.createGain()
     this.nodes = [this.gainNode]
 
-    if (limiter) {
-      this.nodes.push(createLimiter(audioContext))
+    const limiterNode = limiter ? createLimiter(audioContext) : null
+    if (limiterNode) {
+      this.nodes.push(limiterNode)
     }
 
     this.analyserNode = createAnalyser(audioContext)
@@ -28,7 +36,7 @@ export class AudioBus {
     this.nodes[this.nodes.length - 1].connect(audioContext.destination)
   }
 
-  get input(): AudioNode {
+  get input(): AudioNodeLike {
     return this.gainNode
   }
 
@@ -73,7 +81,10 @@ export class AudioBus {
   }
 }
 
-function createLimiter(audioContext: BaseAudioContext): DynamicsCompressorNode {
+function createLimiter(audioContext: BaseAudioContextLike): DynamicsCompressorNodeLike | null {
+  if (typeof audioContext.createDynamicsCompressor !== 'function') {
+    return null
+  }
   const limiter = audioContext.createDynamicsCompressor()
   limiter.threshold.value = LIMITER_THRESHOLD_DB
   limiter.knee.value = 0
@@ -83,7 +94,7 @@ function createLimiter(audioContext: BaseAudioContext): DynamicsCompressorNode {
   return limiter
 }
 
-function createAnalyser(audioContext: BaseAudioContext): AnalyserNode | null {
+function createAnalyser(audioContext: BaseAudioContextLike): AnalyserNodeLike | null {
   if (typeof audioContext.createAnalyser !== 'function') {
     return null
   }

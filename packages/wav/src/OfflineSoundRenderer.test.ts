@@ -94,7 +94,24 @@ describe('offlineSoundRenderer', () => {
   it('throws error when OfflineAudioContext is unsupported', async () => {
     globalThis.OfflineAudioContext = undefined as any
     await expect(OfflineSoundRenderer.render({ frequency: 440 })).rejects.toThrow(
-      'OfflineAudioContext is not supported in this environment.',
+      /OfflineAudioContext is not available/,
     )
+  })
+
+  it('renders with an injected context class when no global exists', async () => {
+    globalThis.OfflineAudioContext = undefined as any
+
+    const audioBuffer = await OfflineSoundRenderer.render(
+      { duration: 0.1, frequency: 440 },
+      { offlineAudioContextClass: MockOfflineAudioContext },
+    )
+
+    expect(audioBuffer.length).toBe(Math.ceil(0.1 * 44100))
+  })
+
+  it('rejects a sample rate below the 8000 Hz floor instead of clamping', async () => {
+    await expect(OfflineSoundRenderer.render({ frequency: 440 }, { sampleRate: 10 }))
+      .rejects
+      .toThrow(RangeError)
   })
 })

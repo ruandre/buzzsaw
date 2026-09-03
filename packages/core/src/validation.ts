@@ -1,4 +1,7 @@
+import type { WaveType } from './types'
 import { MAX_PARTIALS, WAVE_TYPES } from './constants'
+
+const INTERPOLATIONS = ['linear', 'step']
 
 /** Returns validation errors, or empty array if valid */
 export function validateSoundDefinition(def: unknown): string[] {
@@ -18,7 +21,7 @@ export function validateSoundDefinition(def: unknown): string[] {
 }
 
 function validateWaveType(waveType: unknown): string[] {
-  if (waveType === undefined || WAVE_TYPES.includes(waveType as OscillatorType)) {
+  if (waveType === undefined || WAVE_TYPES.includes(waveType as WaveType)) {
     return []
   }
   return [`Invalid waveType "${waveType}". Expected one of: ${WAVE_TYPES.join(', ')}`]
@@ -68,6 +71,7 @@ function validateFrequency(frequency: unknown): string[] {
     errors.push('Frequency steps must be an array.')
     return errors
   }
+  errors.push(...validateInterpolation(envelope.interpolation, 'Frequency'))
   envelope.steps.forEach((step, index) => {
     if (!isWellFormedStep(step)) {
       errors.push(`Frequency step at index ${index} is malformed. Expected { value: number, time: number }.`)
@@ -99,6 +103,7 @@ function validateGain(gain: unknown): string[] {
     errors.push('Gain steps must be an array.')
     return errors
   }
+  errors.push(...validateInterpolation(envelope.interpolation, 'Gain'))
   envelope.steps.forEach((step, index) => {
     if (!isWellFormedStep(step)) {
       errors.push(`Gain step at index ${index} is malformed. Expected { value: number, time: number }.`)
@@ -120,6 +125,13 @@ function validateTiming(def: Record<string, unknown>): string[] {
     errors.push(`Invalid decay: ${def.decay}. Must be a non-negative number.`)
   }
   return errors
+}
+
+function validateInterpolation(interpolation: unknown, label: string): string[] {
+  if (interpolation === undefined || INTERPOLATIONS.includes(interpolation as string)) {
+    return []
+  }
+  return [`Invalid ${label.toLowerCase()} interpolation "${interpolation}". Expected one of: ${INTERPOLATIONS.join(', ')}`]
 }
 
 function isWellFormedStep(step: unknown): boolean {

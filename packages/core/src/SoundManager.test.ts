@@ -27,14 +27,13 @@ describe('soundManager', () => {
   })
 
   it('registers and retrieves custom sounds', () => {
-    const manager = new SoundManager()
-    const sound = manager.register('laser', {
+    const manager = new SoundManager().register('laser', {
       duration: 0.1,
       frequency: 1500,
       waveType: 'sawtooth',
     })
 
-    expect(sound).toBeInstanceOf(Sound)
+    expect(manager.get('laser')).toBeInstanceOf(Sound)
     expect(manager.has('laser')).toBe(true)
     expect(manager.get('laser')?.definition.frequency).toBe(1500)
     expect(manager.getAll()).toHaveLength(1)
@@ -61,15 +60,33 @@ describe('soundManager', () => {
     expect(manager.unregister('nonexistent')).toBe(false)
   })
 
-  it('clamps master volume between 0 and 2', () => {
+  it('rejects a master volume outside 0 to 2 instead of silently clamping', () => {
     const manager = new SoundManager({ masterVolume: 1.5 })
     expect(manager.masterVolume).toBe(1.5)
 
-    manager.masterVolume = 3.5
-    expect(manager.masterVolume).toBe(2.0)
+    expect(() => {
+      manager.masterVolume = 3.5
+    }).toThrow(RangeError)
+    expect(() => {
+      manager.masterVolume = -1.0
+    }).toThrow(RangeError)
+    expect(() => new SoundManager({ masterVolume: Number.NaN })).toThrow(RangeError)
+    expect(manager.masterVolume).toBe(1.5)
+  })
 
-    manager.masterVolume = -1.0
-    expect(manager.masterVolume).toBe(0)
+  it('reports an unregistered name through onMissing instead of the console', async () => {
+    const onMissing = vi.fn()
+    const manager = new SoundManager<'pop'>({ audioContext: mockCtx, onMissing })
+
+    expect(await manager.play('pop')).toBeNull()
+    expect(onMissing).toHaveBeenCalledWith('pop')
+  })
+
+  it('rejects an invalid definition at registration rather than at playback', () => {
+    const manager = new SoundManager()
+    expect(() => manager.register('bogus', { frequency: 'nope' } as never))
+      .toThrow(/Invalid sound definition for "bogus"/)
+    expect(manager.has('bogus')).toBe(false)
   })
 
   it('routes a voice through the master bus rather than straight to the speakers', async () => {
@@ -107,12 +124,11 @@ describe('soundManager', () => {
     expect(busFader.gain.setTargetAtTime).toHaveBeenLastCalledWith(0.25, expect.any(Number), expect.any(Number))
   })
 
-  it('lets a caller take over routing with an explicit destination', async () => {
-    const manager = new SoundManager({ audioContext: mockCtx })
-    manager.register('pop', { duration: 0.1, frequency: 600 })
+  it('keeps voices on the master bus, leaving custom routing to Sound.play', async () => {
+    const sound = new Sound('pop', { duration: 0.1, frequency: 600 })
     const capture = mockCtx.createGain()
 
-    await manager.play('pop', { destination: capture as unknown as AudioNode })
+    await sound.play({ audioContext: mockCtx, destination: capture })
 
     const voiceGain = mockCtx.gainNodes[mockCtx.gainNodes.length - 1]
     expect(voiceGain.connect).toHaveBeenCalledWith(capture)

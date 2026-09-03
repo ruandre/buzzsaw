@@ -39,7 +39,7 @@ export const useLibraryStore = defineStore('library', () => {
   const customSoundCount = computed(() => Object.keys(customSounds.value).length)
   const hasCustomSounds = computed(() => customSoundCount.value > 0)
 
-  // Registers persisted custom sounds before any playback calls
+  // Persisted sounds must be registered before any playback call
   registerAll(customSounds.value)
 
   function isFavorite(name: string): boolean {
@@ -90,7 +90,7 @@ export const useLibraryStore = defineStore('library', () => {
     notifications.announce('Cleared your saved sounds', 'info', 'polite')
   }
 
-  /** Exports custom sounds as downloadable SoundPack JSON */
+  /** Also triggers a JSON file download */
   function exportPack(): SoundPack {
     const pack: SoundPack = {
       version: SOUND_PACK_VERSION,
@@ -103,10 +103,7 @@ export const useLibraryStore = defineStore('library', () => {
     return pack
   }
 
-  /**
-   * Imports sound pack or definition record, validating definitions and yielding to main thread
-   * @throws Error if file is not valid JSON or contains no valid definitions
-   */
+  /** Accepts a SoundPack or a bare definition record; throws if the JSON is invalid or holds no valid definition */
   async function importPack(json: string): Promise<ImportResult> {
     let parsed: unknown
     try {
@@ -154,7 +151,7 @@ export const useLibraryStore = defineStore('library', () => {
   }
 
   return {
-    presets: DEFAULT_SOUNDS,
+    presets: DEFAULT_SOUNDS as Record<string, SoundDefinition>,
     customSounds,
     customSoundCount,
     hasCustomSounds,
@@ -169,7 +166,7 @@ export const useLibraryStore = defineStore('library', () => {
   }
 })
 
-// Drops unsafe keys or invalid definitions from persisted storage
+// Persisted data is untrusted: drops prototype-polluting keys and invalid definitions
 function sanitizeSoundMap(raw: unknown): Record<string, SoundDefinition> {
   const sounds: Record<string, SoundDefinition> = {}
   for (const [name, definition] of safeRecordEntries(raw)) {

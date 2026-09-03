@@ -1,13 +1,15 @@
-import type { PlaybackHandle, SoundDefinition, SoundPlaybackOptions } from './types'
+import type { PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types'
+import type { AudioParamLike, BaseAudioContextLike, GainNodeLike, OscillatorNodeLike } from './webAudio'
 import {
   DEFAULT_FREQUENCY_HZ,
+  DEFAULT_FREQUENCY_INTERPOLATION,
   DEFAULT_GAIN,
+  DEFAULT_GAIN_INTERPOLATION,
   MIN_FREQUENCY_HZ,
   SILENT_GAIN,
   STOP_FADE_S,
 } from './constants'
-import { isEnvelope, orderedSteps } from './envelope'
-import { finiteOr } from './numeric'
+import { isEnvelope, orderedSteps, resolveInterpolation } from './envelope'
 import { applyWaveShape } from './oscillator'
 import { calculateEffectiveDuration, resolveEnvelopeTiming } from './utils'
 
@@ -21,15 +23,17 @@ interface PlaybackSchedule {
   end: number
 }
 
-/** Synthesizes and plays SoundDefinition immediately on BaseAudioContext */
+/**
+ * Synthesizes and plays SoundDefinition immediately on the given context.
+ * Throws RangeError if `volume` is negative or `pitchScale` is not positive.
+ */
 export function playSoundFromDefinition(
-  audioContext: BaseAudioContext,
+  audioContext: BaseAudioContextLike,
   soundDefinition: SoundDefinition,
-  options: SoundPlaybackOptions = {},
+  options: StandaloneSoundOptions = {},
 ): PlaybackHandle {
-  const volume = Math.max(0, finiteOr(options.volume, 1))
-  const rawPitch = finiteOr(options.pitchScale, 1)
-  const pitchScale = Math.max(0.01, rawPitch > 0 ? rawPitch : 1)
+  const volume = requireNonNegative(options.volume, 1, 'volume')
+  const pitchScale = requirePositive(options.pitchScale, 1, 'pitchScale')
 
   const schedule = resolveSchedule(soundDefinition, audioContext.currentTime)
 
@@ -45,6 +49,26 @@ export function playSoundFromDefinition(
   return startPlayback(audioContext, oscillator, gainNode, schedule)
 }
 
+function requireNonNegative(value: number | undefined, fallback: number, label: string): number {
+  if (value === undefined) {
+    return fallback
+  }
+  if (!Number.isFinite(value) || value < 0) {
+    throw new RangeError(`Invalid ${label}: ${value}. Must be a finite number of at least 0.`)
+  }
+  return value
+}
+
+function requirePositive(value: number | undefined, fallback: number, label: string): number {
+  if (value === undefined) {
+    return fallback
+  }
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new RangeError(`Invalid ${label}: ${value}. Must be a finite number greater than 0.`)
+  }
+  return value
+}
+
 function resolveSchedule(def: SoundDefinition, now: number): PlaybackSchedule {
   const duration = calculateEffectiveDuration(def)
   const { attack, decayStartTime } = resolveEnvelopeTiming(def, duration)
@@ -58,7 +82,7 @@ function resolveSchedule(def: SoundDefinition, now: number): PlaybackSchedule {
 }
 
 function scheduleFrequency(
-  param: AudioParam,
+  param: AudioParamLike,
   frequency: SoundDefinition['frequency'],
   pitchScale: number,
   schedule: PlaybackSchedule,
@@ -71,19 +95,26 @@ function scheduleFrequency(
   }
 
   if (!isEnvelope(frequency)) {
-    console.error('Invalid frequency definition provided to soundPlayer:', frequency)
+    console.error('Invalid frequency definition provided to Buzzsaw:', frequency)
     param.setValueAtTime(toHz(DEFAULT_FREQUENCY_HZ), schedule.start)
     return
   }
 
+  const isStepped = resolveInterpolation(frequency, DEFAULT_FREQUENCY_INTERPOLATION) === 'step'
   param.setValueAtTime(toHz(frequency.start), schedule.start)
   for (const step of orderedSteps(frequency)) {
-    param.linearRampToValueAtTime(toHz(step.value), stepTime(step.time, schedule))
+    const at = stepTime(step.time, schedule)
+    if (isStepped) {
+      param.setValueAtTime(toHz(step.value), at)
+    }
+    else {
+      param.linearRampToValueAtTime(toHz(step.value), at)
+    }
   }
 }
 
 function scheduleGain(
-  param: AudioParam,
+  param: AudioParamLike,
   gain: NonNullable<SoundDefinition['gain']>,
   volume: number,
   schedule: PlaybackSchedule,
@@ -96,16 +127,23 @@ function scheduleGain(
   }
 
   if (!isEnvelope(gain)) {
-    console.error('Invalid gain definition provided to soundPlayer:', gain)
+    console.error('Invalid gain definition provided to Buzzsaw:', gain)
     scheduleFixedGain(param, toLevel(DEFAULT_GAIN), volume, schedule)
     return
   }
 
+  const isStepped = resolveInterpolation(gain, DEFAULT_GAIN_INTERPOLATION) === 'step'
   param.setValueAtTime(toLevel(gain.start), schedule.start)
 
   const steps = orderedSteps(gain)
   for (const step of steps) {
-    param.setValueAtTime(toLevel(step.value), stepTime(step.time, schedule))
+    const at = stepTime(step.time, schedule)
+    if (isStepped) {
+      param.setValueAtTime(toLevel(step.value), at)
+    }
+    else {
+      param.linearRampToValueAtTime(toLevel(step.value), at)
+    }
   }
 
   const lastStep = steps[steps.length - 1]
@@ -124,7 +162,7 @@ function scheduleGain(
 }
 
 function scheduleFixedGain(
-  param: AudioParam,
+  param: AudioParamLike,
   peak: number,
   volume: number,
   schedule: PlaybackSchedule,
@@ -148,9 +186,9 @@ function stepTime(offsetSeconds: number, schedule: PlaybackSchedule): number {
 }
 
 function startPlayback(
-  audioContext: BaseAudioContext,
-  oscillator: OscillatorNode,
-  gainNode: GainNode,
+  audioContext: BaseAudioContextLike,
+  oscillator: OscillatorNodeLike,
+  gainNode: GainNodeLike,
   schedule: PlaybackSchedule,
 ): PlaybackHandle {
   let isPlaying = true
@@ -196,7 +234,7 @@ function startPlayback(
     oscillator.stop(schedule.end)
   }
   catch (e) {
-    console.error('Failed to start oscillator in soundPlayer:', e)
+    console.error('Failed to start oscillator in Buzzsaw:', e)
     finish()
   }
 
@@ -207,12 +245,11 @@ function startPlayback(
     clearTimeout(safetyTimeout)
     isPlaying = false
     try {
-      // Linear fade-out prevents audible click when stopping playback
       const now = audioContext.currentTime
       gainNode.gain.cancelScheduledValues?.(now)
-      gainNode.gain.setValueAtTime?.(gainNode.gain.value ?? SILENT_GAIN, now)
-      gainNode.gain.linearRampToValueAtTime?.(SILENT_GAIN, now + STOP_FADE_S)
-      oscillator.stop?.(now + STOP_FADE_S + 0.001)
+      gainNode.gain.setValueAtTime(gainNode.gain.value ?? SILENT_GAIN, now)
+      gainNode.gain.linearRampToValueAtTime(SILENT_GAIN, now + STOP_FADE_S)
+      oscillator.stop(now + STOP_FADE_S + 0.001)
     }
     catch {
       // Context closed or node already stopped
