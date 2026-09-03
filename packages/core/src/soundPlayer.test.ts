@@ -1,7 +1,7 @@
-import type { MockAudioContext } from './testing/mockAudioContext'
+import type { MockAudioContext } from './testing/mockAudioContext.js'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { playSoundFromDefinition, validateSoundDefinition } from './soundPlayer'
-import { createMockAudioContext } from './testing/mockAudioContext'
+import { playSoundFromDefinition, validateSoundDefinition } from './soundPlayer.js'
+import { createMockAudioContext } from './testing/mockAudioContext.js'
 
 describe('soundPlayer validateSoundDefinition', () => {
   it('returns errors for non-objects or null', () => {
@@ -17,14 +17,58 @@ describe('soundPlayer validateSoundDefinition', () => {
   })
 
   it('validates frequency numbers and envelopes', () => {
-    expect(validateSoundDefinition({ frequency: -10 })).toContain('Invalid frequency number: -10. Must be a positive finite number.')
-    expect(validateSoundDefinition({ frequency: { start: 0, steps: [] } })).toContain('Invalid frequency start: 0. Must be a positive finite number.')
+    const range = 'Must be a finite number greater than 0 and at most 20000.'
+    expect(validateSoundDefinition({ frequency: -10 })).toContain(`Invalid frequency number: -10. ${range}`)
+    expect(validateSoundDefinition({ frequency: { start: 0, steps: [] } })).toContain(`Invalid frequency start: 0. ${range}`)
     expect(validateSoundDefinition({ frequency: { start: 440, steps: 'invalid' as any } })).toContain('Frequency steps must be an array.')
   })
 
+  it('rejects frequencies above the audible range instead of rendering silence', () => {
+    const range = 'Must be a finite number greater than 0 and at most 20000.'
+    expect(validateSoundDefinition({ frequency: 5e9 })).toContain(`Invalid frequency number: 5000000000. ${range}`)
+    expect(validateSoundDefinition({ frequency: { start: 440, steps: [{ value: 30000, time: 0.1 }] } }))
+      .toContain(`Invalid frequency step at index 0: 30000. ${range}`)
+    expect(validateSoundDefinition({ frequency: 20000 })).toEqual([])
+  })
+
+  it('rejects gain above unity instead of clipping it', () => {
+    const range = 'Must be a finite number between 0 and 1.'
+    expect(validateSoundDefinition({ frequency: 440, gain: 5 })).toContain(`Invalid gain number: 5. ${range}`)
+    expect(validateSoundDefinition({ frequency: 440, gain: { start: 2, steps: [] } })).toContain(`Invalid gain start: 2. ${range}`)
+    expect(validateSoundDefinition({ frequency: 440, gain: { start: 0.5, steps: [{ value: 1.5, time: 0.1 }] } }))
+      .toContain(`Invalid gain step at index 0: 1.5. ${range}`)
+    expect(validateSoundDefinition({ frequency: 440, gain: 1 })).toEqual([])
+  })
+
+  it('rejects a step scheduled before the sound starts', () => {
+    expect(validateSoundDefinition({ frequency: { start: 440, steps: [{ value: 880, time: -1 }] } }))
+      .toContain(`Invalid frequency step time at index 0: -1. Must be an offset of at least 0 seconds from the sound's start.`)
+    expect(validateSoundDefinition({ frequency: 440, gain: { start: 0.5, steps: [{ value: 0.1, time: -0.5 }] } }))
+      .toContain(`Invalid gain step time at index 0: -0.5. Must be an offset of at least 0 seconds from the sound's start.`)
+  })
+
+  it('rejects a gain that is neither a number nor an envelope', () => {
+    expect(validateSoundDefinition({ frequency: 440, gain: '0.5' as any }))
+      .toEqual(['Gain must be either a number or an object with start and steps.'])
+  })
+
+  it('rejects an array as a definition', () => {
+    expect(validateSoundDefinition([])).toEqual(['Sound definition must be a non-null object.'])
+  })
+
+  it('rejects unknown properties so a misspelled key is not silently dropped', () => {
+    expect(validateSoundDefinition({ frequency: 440, waveform: 'square' } as any))
+      .toContain('Unknown property "waveform". Expected one of: waveType, partials, frequency, gain, duration, attack, decay')
+    expect(validateSoundDefinition({ frequency: 440, name: 'blip', volume: 1 } as any))
+      .toContain('Unknown properties "name", "volume". Expected one of: waveType, partials, frequency, gain, duration, attack, decay')
+    expect(validateSoundDefinition({ frequency: { start: 440, steps: [], interpolate: 'linear' } } as any))
+      .toContain('Unknown frequency envelope property "interpolate". Expected one of: start, steps, interpolation')
+  })
+
   it('validates gain and timing parameters', () => {
-    expect(validateSoundDefinition({ frequency: 440, gain: -0.5 })).toContain('Invalid gain number: -0.5. Must be a non-negative finite number.')
-    expect(validateSoundDefinition({ frequency: 440, duration: -1 })).toContain('Invalid duration: -1. Must be a positive number.')
+    expect(validateSoundDefinition({ frequency: 440, gain: -0.5 })).toContain('Invalid gain number: -0.5. Must be a finite number between 0 and 1.')
+    expect(validateSoundDefinition({ frequency: 440, duration: -1 })).toContain('Invalid duration: -1. Must be a finite number of at least 0.01.')
+    expect(validateSoundDefinition({ frequency: 440, duration: 0.001 })).toContain('Invalid duration: 0.001. Must be a finite number of at least 0.01.')
     expect(validateSoundDefinition({ frequency: 440, attack: -0.1 })).toContain('Invalid attack: -0.1. Must be a non-negative number.')
     expect(validateSoundDefinition({ frequency: 440, decay: -0.1 })).toContain('Invalid decay: -0.1. Must be a non-negative number.')
   })

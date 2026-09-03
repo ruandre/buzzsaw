@@ -1,9 +1,7 @@
 import type { AudioBufferLike, SoundDefinition } from '@rjvr/buzzsaw'
-import type { OfflineAudioContextConstructor, WavExportOptions } from './types'
+import type { OfflineAudioContextConstructor, WavExportOptions } from './types.js'
 import { calculateEffectiveDuration, playSoundFromDefinition } from '@rjvr/buzzsaw'
-import { MIN_SAMPLE_RATE } from './types'
-
-const DEFAULT_SAMPLE_RATE = 44100
+import { requireChannelCount, requireSampleRate } from './options.js'
 
 const UNSUPPORTED_MESSAGE = 'OfflineAudioContext is not available in this environment. '
   + 'In Node, install node-web-audio-api and pass its OfflineAudioContext as '
@@ -53,26 +51,4 @@ export class OfflineSoundRenderer {
 
     return offlineCtx.startRendering()
   }
-}
-
-function requireSampleRate(sampleRate: number | undefined): number {
-  if (sampleRate === undefined) {
-    return DEFAULT_SAMPLE_RATE
-  }
-  if (!Number.isFinite(sampleRate) || sampleRate < MIN_SAMPLE_RATE) {
-    throw new RangeError(
-      `Invalid sampleRate: ${sampleRate}. Must be a finite number of at least ${MIN_SAMPLE_RATE}.`,
-    )
-  }
-  return sampleRate
-}
-
-function requireChannelCount(numChannels: number | undefined): number {
-  if (numChannels === undefined) {
-    return 1
-  }
-  if (!Number.isInteger(numChannels) || numChannels < 1) {
-    throw new RangeError(`Invalid numChannels: ${numChannels}. Must be an integer of at least 1.`)
-  }
-  return numChannels
 }

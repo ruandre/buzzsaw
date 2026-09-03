@@ -1,5 +1,7 @@
 import type { OfflineAudioContextLike } from '@rjvr/buzzsaw'
 
+export type { BlobLike, MinimalBlob } from './blob.js'
+
 export type WavBitDepth = 8 | 16 | 24 | 32
 
 /** Lowest sample rate the encoder and offline renderer accept */

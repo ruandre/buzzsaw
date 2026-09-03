@@ -9,8 +9,6 @@ packages/*/dist/
 .vite/
 node_modules/.vite/
 
-# Release tarballs built by `just pack`
-tarballs/
 
 # Testing & Coverage
 coverage/

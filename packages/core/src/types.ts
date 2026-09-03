@@ -1,4 +1,4 @@
-import type { AudioContextLike, AudioNodeLike, BaseAudioContextLike, WaveType } from './webAudio'
+import type { AudioContextLike, AudioNodeLike, BaseAudioContextLike, WaveType } from './webAudio.js'
 
 export type {
   AudioBufferLike,
@@ -7,10 +7,10 @@ export type {
   BaseAudioContextLike,
   OfflineAudioContextLike,
   WaveType,
-} from './webAudio'
+} from './webAudio.js'
 
 export interface SoundStep {
-  /** Target value at this point (Hz or gain [0..1]) */
+  /** Target value at this point (Hz in (0..20000], or gain [0..1]) */
   value: number
   /** Time offset in seconds from sound start */
   time: number
@@ -37,7 +37,7 @@ export interface SoundDefinition {
   /** Relative harmonic amplitudes for 'custom' waveType; normalized on playback */
   partials?: number[]
   frequency: FrequencyDefinition
-  /** Peak gain [0..1] or envelope. Defaults to 0.5 */
+  /** Peak gain [0..1] or envelope; values above 1 are rejected, not clipped. Defaults to 0.5 */
   gain?: GainDefinition
   /** Total seconds, inclusive of attack and decay; envelope steps past it extend it, attack and decay never do. Defaults to 0.5 */
   duration?: number

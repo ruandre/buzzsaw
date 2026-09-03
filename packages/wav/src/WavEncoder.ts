@@ -1,9 +1,8 @@
 import type { AudioBufferLike } from '@rjvr/buzzsaw'
-import type { WavBitDepth, WavEncodingOptions, WavHeaderInfo } from './types'
+import type { BlobLike, WavBitDepth, WavEncodingOptions, WavHeaderInfo } from './types.js'
+import { DEFAULT_SAMPLE_RATE, requireBitDepth, requireChannelCount, requireSampleRate } from './options.js'
 
 const HEADER_BYTES = 44
-const DEFAULT_SAMPLE_RATE = 44100
-const DEFAULT_BIT_DEPTH: WavBitDepth = 16
 
 const FORMAT_PCM = 1
 const FORMAT_IEEE_FLOAT = 3
@@ -35,19 +34,15 @@ const SAMPLE_WRITERS: Record<WavBitDepth, SampleWriter> = {
 }
 
 export class WavEncoder {
-  /** Encodes samples to RIFF/WAVE ArrayBuffer; throws on unsupported bit depth */
+  /** Encodes samples to RIFF/WAVE ArrayBuffer; throws RangeError on an out-of-range option */
   static encode(
     audioBufferOrChannels: AudioBufferLike | Float32Array[],
     options: WavEncodingOptions = {},
   ): ArrayBuffer {
-    const source = readSource(audioBufferOrChannels, options.sampleRate)
-    const numChannels = Math.max(1, options.numChannels ?? source.channels.length)
-    const bitDepth = options.bitDepth ?? DEFAULT_BIT_DEPTH
-
+    const source = readSource(audioBufferOrChannels, requireSampleRate(options.sampleRate))
+    const numChannels = requireChannelCount(options.numChannels, source.channels.length || 1)
+    const bitDepth = requireBitDepth(options.bitDepth)
     const writeSample = SAMPLE_WRITERS[bitDepth]
-    if (!writeSample) {
-      throw new Error(`Unsupported bit depth: ${bitDepth}. Supported depths are 8, 16, 24, 32.`)
-    }
 
     const blockAlign = numChannels * (bitDepth / 8)
     const dataSize = source.numSamples * blockAlign
@@ -76,7 +71,7 @@ export class WavEncoder {
   static encodeToBlob(
     audioBufferOrChannels: AudioBufferLike | Float32Array[],
     options: WavEncodingOptions = {},
-  ): Blob {
+  ): BlobLike {
     return new Blob([this.encode(audioBufferOrChannels, options)], { type: 'audio/wav' })
   }
 

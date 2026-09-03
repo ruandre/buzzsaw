@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { OfflineSoundRenderer } from './OfflineSoundRenderer'
-import { WavExporter } from './WavExporter'
+import { OfflineSoundRenderer } from './OfflineSoundRenderer.js'
+import { WavExporter } from './WavExporter.js'
 
 describe('wavExporter', () => {
   const originalDocument = globalThis.document
@@ -86,5 +86,15 @@ describe('wavExporter', () => {
     expect(mockAnchor.download).toBe('laser.wav')
     expect(mockClick).toHaveBeenCalled()
     expect(globalThis.document.body.appendChild).toHaveBeenCalledWith(mockAnchor)
+  })
+
+  it('reports the missing document before attempting to render', async () => {
+    globalThis.document = undefined as unknown as Document
+    const render = vi.spyOn(OfflineSoundRenderer, 'render')
+
+    await expect(WavExporter.downloadWav({ frequency: 440 })).rejects.toThrow(/requires a DOM document/)
+    expect(render).not.toHaveBeenCalled()
+
+    render.mockRestore()
   })
 })

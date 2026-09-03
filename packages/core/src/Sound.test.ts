@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { Sound } from './Sound'
-import { createMockAudioContext } from './testing/mockAudioContext'
+import { Sound } from './Sound.js'
+import { createMockAudioContext } from './testing/mockAudioContext.js'
 
 describe('sound class', () => {
   let mockCtx: BaseAudioContext

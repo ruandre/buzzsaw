@@ -1,8 +1,8 @@
-import type { MockAudioContext } from './testing/mockAudioContext'
+import type { MockAudioContext } from './testing/mockAudioContext.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { Sound } from './Sound'
-import { SoundManager } from './SoundManager'
-import { createMockAudioContext } from './testing/mockAudioContext'
+import { Sound } from './Sound.js'
+import { SoundManager } from './SoundManager.js'
+import { createMockAudioContext } from './testing/mockAudioContext.js'
 
 describe('soundManager', () => {
   let mockCtx: MockAudioContext
@@ -18,7 +18,7 @@ describe('soundManager', () => {
   })
 
   it('takes the optional preset pack through registerAll', async () => {
-    const { DEFAULT_SOUNDS } = await import('./sounds')
+    const { DEFAULT_SOUNDS } = await import('./sounds.js')
     const manager = new SoundManager().registerAll(DEFAULT_SOUNDS)
 
     expect(manager.size).toBeGreaterThan(50)

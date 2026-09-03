@@ -2,7 +2,6 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 root := justfile_directory()
 app := "@rjvr/buzzsaw-app"
-libs := "./packages/*"
 
 # Show available commands
 [default]
@@ -35,7 +34,7 @@ preview: build
 
 # Run lint, typecheck, test and build the way CI does
 [group('qa')]
-ci: lint typecheck test build
+ci: lint typecheck test build verify-consumer
 
 alias check := ci
 
@@ -87,19 +86,20 @@ version:
     pnpm exec changeset version
     pnpm install --lockfile-only
 
-# Pack both libraries into ./tarballs and print what they contain
+# Build and pack both libraries in a throwaway container, printing what the tarballs contain
 [group('release')]
 pack:
-    pnpm --filter '{{ libs }}' run build
-    mkdir -p {{ root }}/tarballs
-    pnpm --filter @rjvr/buzzsaw pack --out {{ root }}/tarballs/core.tgz
-    pnpm --filter @rjvr/buzzsaw-wav pack --out {{ root }}/tarballs/wav.tgz
-    tar -tzf {{ root }}/tarballs/core.tgz
-    tar -tzf {{ root }}/tarballs/wav.tgz
+    docker compose -f {{ root }}/test/consumer/compose.yaml run --rm verify sh -c \
+        'sh /repo/scripts/container/pack-libs.sh && tar -tzf /work/tarballs/core.tgz && tar -tzf /work/tarballs/wav.tgz'
+
+# Install the packed tarballs into a scratch project and typecheck + run them as a Node ESM consumer
+[group('release')]
+verify-consumer:
+    pnpm verify:consumer
 
 # --- Maintenance ---
 
-# Remove build artifacts, caches and packed tarballs
+# Remove build artifacts and caches
 [group('maintenance')]
 clean:
-    rm -rf {{ root }}/app/dist {{ root }}/packages/*/dist {{ root }}/tarballs {{ root }}/node_modules/.vite
+    rm -rf {{ root }}/app/dist {{ root }}/packages/*/dist {{ root }}/node_modules/.vite

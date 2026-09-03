@@ -1,4 +1,4 @@
-import type { EnvelopeDefinition, EnvelopeInterpolation, SoundStep } from './types'
+import type { EnvelopeDefinition, EnvelopeInterpolation, SoundStep } from './types.js'
 
 export function isEnvelope(value: unknown): value is EnvelopeDefinition {
   return typeof value === 'object'

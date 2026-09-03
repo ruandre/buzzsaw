@@ -11,7 +11,7 @@ npm install @rjvr/buzzsaw
 # or: pnpm add / yarn add / bun add
 ```
 
-The package has no runtime dependencies. Its published types declare only the slice of the Web Audio API it uses, so it typechecks under a Node-only `tsconfig` (`"lib": ["es2023"]`). Running outside the browser needs a polyfill such as [`node-web-audio-api`](https://github.com/ircam-ismm/node-web-audio-api).
+The package is ESM-only and has no runtime dependencies. Its published types declare only the slice of the Web Audio API it uses, so it typechecks under a Node-only `tsconfig` (`"lib": ["es2023"]`). Set `moduleResolution` to `bundler`, `node16`, or `nodenext`; the legacy `node` setting cannot read the `exports` map and will not find the presets subpath. Running outside the browser needs a polyfill such as [`node-web-audio-api`](https://github.com/ircam-ismm/node-web-audio-api).
 
 The 113 built-in presets live in a separate subpath (`@rjvr/buzzsaw/sounds`). Import them individually to bundle only what you use: five presets cost ~0.3 kB gzip on top of the library, all 113 cost ~5.4 kB.
 
@@ -78,6 +78,23 @@ const coin = sounds.get('coin')
 
 Where names are only known at runtime, opt out with `new SoundManager<string>()`.
 
+### Node and other non-browser hosts
+
+There is no global `AudioContext` outside the browser. Install a polyfill and hand Buzzsaw its context once at startup; everything else works unchanged:
+
+```ts
+import { setAudioContextInstance, SoundManager } from '@rjvr/buzzsaw'
+import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
+import { AudioContext } from 'node-web-audio-api'
+
+setAudioContextInstance(new AudioContext())
+
+const sounds = new SoundManager().registerAll(DEFAULT_SOUNDS)
+await sounds.play('coinCollect')
+```
+
+To render to a file instead of a device, use [`@rjvr/buzzsaw-wav`](https://github.com/ruandre/buzzsaw/tree/main/packages/wav#readme), which needs no shared context.
+
 ### Browser autoplay
 
 Browsers suspend Web Audio until the user interacts with the page. Call `ensureAudioContextReady` inside a user interaction handler to initialize or resume the context:
@@ -97,16 +114,16 @@ interface SoundDefinition {
   /** Waveform shape. Defaults to 'sine' */
   waveType?: 'sine' | 'square' | 'sawtooth' | 'triangle' | 'custom'
 
-  /** Harmonic amplitudes. Required when waveType is 'custom'. Up to 64 partials */
+  /** Harmonic amplitudes. Required when waveType is 'custom', ignored otherwise. Up to 64 partials */
   partials?: number[]
 
-  /** Base pitch in Hz, or an envelope contour over time */
+  /** Base pitch in Hz, above 0 and at most 20000, or an envelope contour over time */
   frequency: number | EnvelopeDefinition
 
-  /** Peak amplitude from 0 to 1, or an envelope contour. Defaults to 0.5 */
+  /** Peak amplitude from 0 to 1, or an envelope contour; above 1 is an error, not clipping. Defaults to 0.5 */
   gain?: number | EnvelopeDefinition
 
-  /** Total playback length in seconds, inclusive of attack and decay. Defaults to 0.5 */
+  /** Total playback length in seconds, at least 0.01, inclusive of attack and decay. Defaults to 0.5 */
   duration?: number
 
   /** Attack ramp-in in seconds, carved out of duration. Defaults to 0.005 */
@@ -119,7 +136,7 @@ interface SoundDefinition {
 
 There is no noise source. Every voice is a single oscillator, so you approximate noisy textures with harmonics (`waveType: 'custom'` with dense `partials`). Presets like `rustle` and `staticBurst` do exactly that.
 
-Definitions are validated when a `Sound` is constructed or registered. A malformed one throws `SoundValidationError`, whose `errors` array lists every problem found.
+Definitions are validated when a `Sound` is constructed or registered. A malformed one throws `SoundValidationError`, whose `errors` array lists every problem found. Validation is strict in both directions: a value outside a documented range is rejected rather than clamped (`gain: 5` and `frequency: 30000` are errors, not quiet clipping and silence), and an unrecognized property is an error rather than being dropped, so `waveform` instead of `waveType` fails loudly. Definitions carry no metadata, so keep your own names and descriptions beside one, not inside it.
 
 ### How duration, attack, and decay interact
 
@@ -152,7 +169,7 @@ Both `frequency` and `gain` accept automation envelopes:
 interface EnvelopeDefinition {
   /** Initial value at time 0 */
   start: number
-  /** Automation targets, in any order. `time` is an offset in seconds from sound start */
+  /** Automation targets, in any order. `time` is an offset in seconds from sound start, never negative */
   steps: { value: number, time: number }[]
   /** Defaults to 'linear' for frequency, 'step' for gain */
   interpolation?: 'linear' | 'step'
@@ -252,9 +269,9 @@ const sounds = new SoundManager({ onMissing: () => {} }).registerAll(DEFAULT_SOU
 - `stopAll()`: immediately stops all playing voices across the registry.
 - `clear()`: stops all sounds and empties the registry.
 - `dispose()`: clears the registry and disconnects the master audio bus.
-- `list()`: returns an array of registered sound names.
+- `list()`: returns an array of registered sound names, typed as the names `play` accepts.
 - `getAll()`: returns an array of registered `Sound` instances.
-- `keys()`, `values()`, `entries()`, `forEach()`, `find()`, `filter()`: standard collection iteration methods.
+- `keys()`, `values()`, `entries()`, `forEach()`, `find()`, `filter()`: standard collection iteration methods. Every name they yield is typed as a `play` argument, so iterating the registry and playing what it hands back typechecks without a cast.
 - `masterVolume`: get or set the master output volume (`0..2`). Adjusts running voices with an anti-zipper glide.
 - `outputLevel`: peak amplitude (`0..1`) leaving the master fader over the last analysis window. Reads `0` until the first `play()` call builds the bus, and on contexts with no analyser node.
 - `size`: count of registered sounds.
@@ -302,7 +319,7 @@ else {
 }
 ```
 
-`validateSoundDefinition` returns an array of messages, empty when valid, checking property types, ranges, and step structures.
+`validateSoundDefinition` returns an array of messages, empty when valid, checking property names, types, ranges, and step structures.
 
 ### Inspection
 
@@ -335,7 +352,17 @@ const partials = resolvePartials(definition)
 const editable = cloneSoundDefinition(sound.definition)
 ```
 
-Also exported: `isEnvelope`, `freezeSoundDefinition`, `clamp`, `round`, `WAVE_TYPES`, and the `DEFAULT_*` constants backing each default listed above.
+### Playing without a Sound or a manager
+
+`playSoundFromDefinition(audioContext, definition, options?)` schedules a definition straight onto a context you own and returns a `PlaybackHandle`. `Sound.play` and `SoundManager.play` are built on it.
+
+It is the one entry point that does **not** validate: validation happens when a `Sound` is constructed or registered, so a definition reaching this function directly is trusted and missing or malformed fields fall back to defaults instead of throwing. Call `validateSoundDefinition` first for anything you did not write.
+
+### Errors
+
+- `SoundValidationError` (with an `errors` string array): a malformed definition, from the `Sound` constructor, `setDefinition`, `register`, or `registerAll`.
+- `TypeError`: an argument of the wrong shape, such as an empty sound name or a non-object definition.
+- `RangeError`: a well-typed option outside its documented range, such as `masterVolume`, `volume`, or `pitchScale`.
 
 ### Audio context
 
@@ -345,7 +372,8 @@ The shared `AudioContext` is created lazily on first playback.
 - `getAudioContextInstance()`: returns it, or `null` where Web Audio is unavailable.
 - `isAudioContextSupported()`: reports availability.
 - `closeAudioContext()`: closes and clears it.
-- `setAudioContextInstance(ctx)`: replaces it with one you own, without closing whatever it displaces.
+- `setAudioContextInstance(ctx)`: replaces it with one you own, without closing whatever it displaces. This is how a Node polyfill's context is supplied.
+- `getAudioContextClass()`: returns the constructor Buzzsaw would use, or `null` where Web Audio is unavailable.
 
 ## License
 

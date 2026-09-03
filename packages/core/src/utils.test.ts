@@ -1,4 +1,4 @@
-import type { SoundDefinition } from './types'
+import type { SoundDefinition } from './types.js'
 import { describe, expect, it } from 'vitest'
 import {
   calculateEffectiveDuration,
@@ -6,7 +6,7 @@ import {
   isValidSoundDefinition,
   sampleFrequencyAtTime,
   sampleGainAtTime,
-} from './utils'
+} from './utils.js'
 
 describe('sounds utils', () => {
   describe('cloneSoundDefinition', () => {

@@ -3,7 +3,7 @@
   "type": "module",
   "version": "2.0.0",
   "description": "High-performance RIFF/WAVE encoder, offline sound renderer, and audio file exporter for Web Audio",
-  "author": "Ruandré Janse van Rensburg <ruandrejvr@gmail.com> (https://github.com/ruandre)",
+  "author": "Ruandre Janse van Rensburg <ruandrejvr@gmail.com> (https://github.com/ruandre)",
   "license": "MIT",
   "homepage": "https://github.com/ruandre/buzzsaw/tree/main/packages/wav#readme",
   "repository": {
@@ -41,7 +41,9 @@
     "LICENSE",
     "README.md",
     "dist",
-    "src"
+    "src",
+    "!src/**/*.test.ts",
+    "!src/testing"
   ],
   "scripts": {
     "build": "rolldown -c && tsc --emitDeclarationOnly",

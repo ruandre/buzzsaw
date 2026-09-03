@@ -1,0 +1,22 @@
+name: buzzsaw-consumer
+
+# Builds, packs and consumes the libraries in a throwaway container; repo mounted read-only, writes stay inside
+services:
+  verify:
+    image: node@sha256:c0753125a3789977aefe869cbebccf70e3cfd7ea84ca48547458f02e4f1d7146 # node:26-slim; glibc, so the repo's own rolldown binding loads from the read-only mount
+    working_dir: /work
+    read_only: true
+    init: true
+    environment:
+      HOME: /tmp
+      NPM_CONFIG_CACHE: /tmp/npm
+      NPM_CONFIG_UPDATE_NOTIFIER: 'false'
+    volumes:
+      - ../..:/repo:ro
+      # Anonymous volume, not tmpfs: rolldown dlopens a native binding, which noexec forbids
+      - /work
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 268435456
+    command: [sh, /repo/scripts/container/verify-consumer.sh]

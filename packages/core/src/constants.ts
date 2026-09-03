@@ -1,4 +1,4 @@
-import type { EnvelopeInterpolation, WaveType } from './types'
+import type { EnvelopeInterpolation, WaveType } from './types.js'
 
 export const WAVE_TYPES: readonly WaveType[] = ['sine', 'square', 'sawtooth', 'triangle', 'custom']
 
@@ -15,6 +15,9 @@ export const DEFAULT_FREQUENCY_INTERPOLATION: EnvelopeInterpolation = 'linear'
 export const DEFAULT_GAIN_INTERPOLATION: EnvelopeInterpolation = 'step'
 
 export const MIN_FREQUENCY_HZ = 1
+// Above the audible range; higher pitches render as silence at every usual sample rate
+export const MAX_FREQUENCY_HZ = 20000
+export const MAX_GAIN = 1
 export const MIN_DURATION_S = 0.01
 export const MIN_DECAY_WINDOW_S = 0.001
 

@@ -1,7 +1,7 @@
-import type { MockAudioContext } from './testing/mockAudioContext'
+import type { MockAudioContext } from './testing/mockAudioContext.js'
 import { describe, expect, it, vi } from 'vitest'
-import { AudioBus } from './audioBus'
-import { createMockAudioContext } from './testing/mockAudioContext'
+import { AudioBus } from './audioBus.js'
+import { createMockAudioContext } from './testing/mockAudioContext.js'
 
 describe('audioBus', () => {
   it('runs fader into meter into destination by default', () => {
@@ -84,7 +84,6 @@ describe('audioBus', () => {
   })
 })
 
-// Mocks analyser time domain samples using fill callback
 function feedAnalyser(ctx: MockAudioContext, fill: (samples: Float32Array) => void): void {
   const analyser = vi.mocked(ctx.createAnalyser).mock.results[0].value
   vi.mocked(analyser.getFloatTimeDomainData).mockImplementation((samples: Float32Array) => {

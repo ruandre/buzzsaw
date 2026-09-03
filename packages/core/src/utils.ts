@@ -1,4 +1,4 @@
-import type { EnvelopeDefinition, SoundDefinition } from './types'
+import type { EnvelopeDefinition, SoundDefinition } from './types.js'
 import {
   DEFAULT_ATTACK_S,
   DEFAULT_DECAY_S,
@@ -12,10 +12,10 @@ import {
   MIN_DECAY_WINDOW_S,
   MIN_DURATION_S,
   MIN_FREQUENCY_HZ,
-} from './constants'
-import { cloneEnvelope, isEnvelope, latestStepTime, sampleEnvelopeValue } from './envelope'
-import { clamp, finiteOr } from './numeric'
-import { validateSoundDefinition } from './validation'
+} from './constants.js'
+import { cloneEnvelope, isEnvelope, latestStepTime, sampleEnvelopeValue } from './envelope.js'
+import { clamp, finiteOr } from './numeric.js'
+import { validateSoundDefinition } from './validation.js'
 
 /** Deep copies SoundDefinition; throws TypeError if not an object */
 export function cloneSoundDefinition(def: SoundDefinition): SoundDefinition {

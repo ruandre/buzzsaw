@@ -37,9 +37,10 @@ The READMEs cover these in full. Repeated here because they are the details most
 - Frequency envelopes ramp linearly between steps; gain envelopes hold each value until the next. Set `interpolation` to `'linear'` or `'step'` to override either default.
 - `register` and `registerAll` return the manager, widened over the names just added, so `play` rejects typos at compile time. Chain them rather than calling them as separate statements. Use `new SoundManager<string>()` for dynamic names.
 - `play()` resolves when the voice is scheduled, not when it ends. Await `handle.promise` for completion.
-- Invalid definitions throw `SoundValidationError` at registration. Out-of-range option values throw `RangeError` rather than clamping.
+- Invalid definitions throw `SoundValidationError` at registration. Out-of-range option values throw `RangeError` rather than clamping. Definition values are equally strict: `gain` above 1, `frequency` above 20000 Hz, `duration` below 0.01, and a negative step `time` are all errors, and so is any property outside the seven `SoundDefinition` fields, which catches `waveform` written for `waveType`.
 - There is no noise source. Every voice is one oscillator, so approximate noisy textures with `waveType: 'custom'` and dense `partials`.
-- Rendering WAV needs an `OfflineAudioContext`. Node has no global one, so pass `offlineAudioContextClass`.
+- Rendering WAV needs an `OfflineAudioContext`. Node has no global one, so pass `offlineAudioContextClass`. Real-time playback in Node needs the same treatment: `setAudioContextInstance(new AudioContext())` from a polyfill.
+- `SoundManager` limits its master bus by default; WAV export does not, so a hot definition exports louder than it plays.
 
 ## Sound pack format
 

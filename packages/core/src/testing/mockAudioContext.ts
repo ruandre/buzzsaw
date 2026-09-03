@@ -1,4 +1,4 @@
-import type { AudioContextState, BaseAudioContextLike } from '../webAudio'
+import type { AudioContextState, BaseAudioContextLike } from '../webAudio.js'
 import { vi } from 'vitest'
 
 export function createMockAudioContext(options: MockAudioContextOptions = {}): MockAudioContext {

@@ -1,5 +1,5 @@
-import type { PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types'
-import type { AudioParamLike, BaseAudioContextLike, GainNodeLike, OscillatorNodeLike } from './webAudio'
+import type { PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types.js'
+import type { AudioParamLike, BaseAudioContextLike, GainNodeLike, OscillatorNodeLike } from './webAudio.js'
 import {
   DEFAULT_FREQUENCY_HZ,
   DEFAULT_FREQUENCY_INTERPOLATION,
@@ -8,12 +8,12 @@ import {
   MIN_FREQUENCY_HZ,
   SILENT_GAIN,
   STOP_FADE_S,
-} from './constants'
-import { isEnvelope, orderedSteps, resolveInterpolation } from './envelope'
-import { applyWaveShape } from './oscillator'
-import { calculateEffectiveDuration, resolveEnvelopeTiming } from './utils'
+} from './constants.js'
+import { isEnvelope, orderedSteps, resolveInterpolation } from './envelope.js'
+import { applyWaveShape } from './oscillator.js'
+import { calculateEffectiveDuration, resolveEnvelopeTiming } from './utils.js'
 
-export { validateSoundDefinition } from './validation'
+export { validateSoundDefinition } from './validation.js'
 
 // Absolute AudioContext timestamps for playback phases
 interface PlaybackSchedule {

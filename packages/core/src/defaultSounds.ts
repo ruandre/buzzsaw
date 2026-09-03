@@ -1,4 +1,4 @@
-import type { SoundDefinition } from './types'
+import type { SoundDefinition } from './types.js'
 
 export const airRaidSiren: SoundDefinition = {
   waveType: 'sawtooth',

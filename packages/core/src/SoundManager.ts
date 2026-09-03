@@ -5,11 +5,11 @@ import type {
   SoundDefinition,
   SoundManagerOptions,
   SoundPlaybackOptions,
-} from './types'
-import { AudioBus } from './audioBus'
-import { ensureAudioContextReady, getAudioContextInstance } from './audioManager'
-import { MASTER_VOLUME_MAX, MASTER_VOLUME_MIN } from './constants'
-import { Sound } from './Sound'
+} from './types.js'
+import { AudioBus } from './audioBus.js'
+import { ensureAudioContextReady, getAudioContextInstance } from './audioManager.js'
+import { MASTER_VOLUME_MAX, MASTER_VOLUME_MIN } from './constants.js'
+import { Sound } from './Sound.js'
 
 /** Sounds a manager can be given, keyed by the names `play` will accept */
 export type SoundRegistrations = Record<string, SoundDefinition | Sound>
@@ -24,7 +24,7 @@ type NamesOf<T extends SoundRegistrations> = Extract<keyof T, string>
  * so typos fail to compile. Use `new SoundManager<string>()` where names are dynamic.
  */
 export class SoundManager<Name extends string = never> {
-  #sounds: Map<string, Sound> = new Map()
+  #sounds: Map<Name, Sound> = new Map()
   #audioContext: AudioContextLike | null = null
   #masterVolume: number = 1.0
   readonly #useLimiter: boolean
@@ -74,7 +74,8 @@ export class SoundManager<Name extends string = never> {
       ? (definitionOrSound.name === name ? definitionOrSound : definitionOrSound.clone(name))
       : new Sound(name, definitionOrSound)
 
-    this.#sounds.set(name, sound)
+    const registry = this.#sounds as Map<Name | N, Sound>
+    registry.set(name, sound)
     return this as SoundManager<Name | N>
   }
 
@@ -88,23 +89,23 @@ export class SoundManager<Name extends string = never> {
 
   /** Stops the sound before unregistering it */
   unregister(name: string): boolean {
-    const sound = this.#sounds.get(name)
+    const sound = this.#lookup(name)
     if (sound) {
       sound.stop()
-      return this.#sounds.delete(name)
+      return this.#sounds.delete(name as Name)
     }
     return false
   }
 
   get(name: string): Sound | undefined {
-    return this.#sounds.get(name)
+    return this.#lookup(name)
   }
 
   has(name: string): boolean {
-    return this.#sounds.has(name)
+    return this.#lookup(name) !== undefined
   }
 
-  keys(): IterableIterator<string> {
+  keys(): IterableIterator<Name> {
     return this.#sounds.keys()
   }
 
@@ -112,15 +113,16 @@ export class SoundManager<Name extends string = never> {
     return this.#sounds.values()
   }
 
-  entries(): IterableIterator<[string, Sound]> {
+  entries(): IterableIterator<[Name, Sound]> {
     return this.#sounds.entries()
   }
 
-  [Symbol.iterator](): IterableIterator<[string, Sound]> {
+  [Symbol.iterator](): IterableIterator<[Name, Sound]> {
     return this.#sounds.entries()
   }
 
-  list(): string[] {
+  /** Names in registration order, each accepted by `play` */
+  list(): Name[] {
     return Array.from(this.#sounds.keys())
   }
 
@@ -128,13 +130,13 @@ export class SoundManager<Name extends string = never> {
     return Array.from(this.#sounds.values())
   }
 
-  forEach(callback: (sound: Sound, name: string, manager: this) => void): void {
+  forEach(callback: (sound: Sound, name: Name, manager: this) => void): void {
     for (const [name, sound] of this.#sounds.entries()) {
       callback(sound, name, this)
     }
   }
 
-  find(predicate: (sound: Sound, name: string) => boolean): Sound | undefined {
+  find(predicate: (sound: Sound, name: Name) => boolean): Sound | undefined {
     for (const [name, sound] of this.#sounds.entries()) {
       if (predicate(sound, name)) {
         return sound
@@ -143,7 +145,7 @@ export class SoundManager<Name extends string = never> {
     return undefined
   }
 
-  filter(predicate: (sound: Sound, name: string) => boolean): Sound[] {
+  filter(predicate: (sound: Sound, name: Name) => boolean): Sound[] {
     const results: Sound[] = []
     for (const [name, sound] of this.#sounds.entries()) {
       if (predicate(sound, name)) {
@@ -168,6 +170,11 @@ export class SoundManager<Name extends string = never> {
       audioContext,
       destination: this.#resolveBus(audioContext).input,
     })
+  }
+
+  // `get`, `has` and `unregister` take any string so callers can probe names they have not registered
+  #lookup(name: string): Sound | undefined {
+    return this.#sounds.get(name as Name)
   }
 
   // Master bus is scoped to audioContext and recreated when context changes

@@ -5,7 +5,7 @@
   "private": true,
   "packageManager": "pnpm@11.24.0",
   "description": "Sound effects described as data and synthesized in the browser.",
-  "author": "Ruandré Janse van Rensburg <ruandrejvr@gmail.com> (https://github.com/ruandre)",
+  "author": "Ruandre Janse van Rensburg <ruandrejvr@gmail.com> (https://github.com/ruandre)",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -21,6 +21,7 @@
     "test": "vitest run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "verify:consumer": "docker compose -f test/consumer/compose.yaml run --rm verify",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:status": "changeset status --since=origin/main"

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { applyWaveShape, evaluateWaveShape, resolvePartials } from './oscillator'
-import { createMockAudioContext } from './testing/mockAudioContext'
+import { applyWaveShape, evaluateWaveShape, resolvePartials } from './oscillator.js'
+import { createMockAudioContext } from './testing/mockAudioContext.js'
 
 describe('resolvePartials', () => {
   it('reads partials only for a custom wave', () => {

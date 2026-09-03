@@ -1,4 +1,4 @@
-import type { AudioContextConstructor, AudioContextLike } from './webAudio'
+import type { AudioContextConstructor, AudioContextLike } from './webAudio.js'
 
 interface AudioContextGlobals {
   AudioContext?: AudioContextConstructor

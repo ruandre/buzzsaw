@@ -6,7 +6,7 @@ import {
   getAudioContextInstance,
   isAudioContextSupported,
   setAudioContextInstance,
-} from './audioManager'
+} from './audioManager.js'
 
 class MockAudioContext {
   state: AudioContextState

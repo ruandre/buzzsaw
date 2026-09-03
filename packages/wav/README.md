@@ -39,7 +39,7 @@ await WavExporter.downloadWav(laser, 'laser.wav')
 
 Annotate the definition with `SoundDefinition`. Without it, TypeScript widens `waveType: 'sawtooth'` to `string` and the call fails to compile.
 
-`downloadWav` needs a DOM `document` and throws without one. Outside the browser, render and write the bytes yourself.
+`downloadWav` needs a DOM `document` and throws without one, before it renders anything. Outside the browser, render and write the bytes yourself.
 
 ### Render to a Blob or ArrayBuffer
 
@@ -85,7 +85,7 @@ await writeFile('laser.wav', Buffer.from(buffer))
 
 Assigning the polyfill to `globalThis.OfflineAudioContext` works too, but the `offlineAudioContextClass` option keeps it local to the call.
 
-The published types declare only the slice of the Web Audio API these packages use, so this compiles under a Node-only `tsconfig` (`"lib": ["es2023"]`) with no `lib.dom`.
+The published types declare only the slice of the Web Audio API these packages use, so this compiles under a Node-only `tsconfig` (`"lib": ["es2023"]`) with no `lib.dom` and no `@types/node`. `Blob`-returning methods are typed as `BlobLike`, which resolves to the host's own `Blob` wherever one is declared and to a structural equivalent (`size`, `type`, `arrayBuffer()`, `text()`) where none is. Both packages are ESM-only and need `moduleResolution` set to `bundler`, `node16`, or `nodenext`.
 
 ## Features
 
@@ -119,7 +119,7 @@ interface WavExportOptions {
   /** Target sample rate in Hz, at least 8000. Defaults to 44100 */
   sampleRate?: number
 
-  /** Channels written to the file. Defaults to 1 */
+  /** Channels written to the file. Defaults to the input's channel count, which is 1 for Buzzsaw synthesis */
   numChannels?: number
 
   /** Download filename. Defaults to 'sound.wav' */
@@ -136,9 +136,21 @@ interface WavExportOptions {
 }
 ```
 
-Out-of-range values throw a `RangeError` naming the offending value rather than being silently clamped: a `sampleRate` under 8000, a `numChannels` below 1 or non-integer, a negative `volume`, a `pitchScale` of zero or less. An unsupported `bitDepth` throws too.
+Out-of-range values throw a `RangeError` naming the offending value rather than being silently clamped: a `sampleRate` under 8000, a `numChannels` below 1 or non-integer, a negative `volume`, a `pitchScale` of zero or less, an unsupported `bitDepth`.
+
+### Exported audio is not limited
+
+`SoundManager` inserts a brickwall limiter on its master bus by default; this package renders the definition raw. A definition that plays cleanly through a manager can therefore export hotter than it sounds, and a `volume` above 1 clips outright. Keep `volume` at or below 1, or leave headroom in the definition's `gain`, when the two outputs need to match.
 
 Buzzsaw synthesis is mono. `numChannels: 2` therefore writes the same samples to both channels and doubles the file size. It adds no stereo information, and there is no pan or width parameter.
+
+## OfflineSoundRenderer API
+
+`WavExporter` renders through this class; use it directly to get an audio buffer without encoding one.
+
+- `render(definition, options?)`: renders a definition to an audio buffer spanning its effective duration. Accepts `sampleRate`, `numChannels`, `volume`, `pitchScale`, and `offlineAudioContextClass`.
+- `isSupported()`: `true` when a global `OfflineAudioContext` exists. An explicit `offlineAudioContextClass` works regardless.
+- `getOfflineAudioContextClass()`: the global implementation, or `null`.
 
 ## WavEncoder API
 
@@ -181,6 +193,11 @@ interface WavHeaderInfo {
 ```
 
 Returns `null` if the buffer is smaller than 44 bytes or lacks the `RIFF` and `WAVE` magic markers.
+
+### Errors
+
+- `RangeError`: an option outside its documented range, from both `WavEncoder.encode` and `OfflineSoundRenderer.render`.
+- `Error`: the environment is missing something the call needs, namely an `OfflineAudioContext` for rendering or a `document` for `downloadWav`. Both messages name what to install or pass.
 
 ## License
 

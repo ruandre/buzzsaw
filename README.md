@@ -25,6 +25,8 @@ npm install @rjvr/buzzsaw
 # or: pnpm add / yarn add / bun add
 ```
 
+Both packages are ESM-only, and their published types need `moduleResolution` set to `bundler`, `node16`, or `nodenext`.
+
 A `SoundManager` starts empty. The 113 presets live in a separate entrypoint (`@rjvr/buzzsaw/sounds`):
 
 ```ts

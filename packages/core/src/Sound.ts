@@ -1,9 +1,9 @@
-import type { PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types'
-import { ensureAudioContextReady } from './audioManager'
-import { playSoundFromDefinition } from './soundPlayer'
-import { SoundValidationError } from './SoundValidationError'
-import { calculateEffectiveDuration, cloneSoundDefinition, freezeSoundDefinition } from './utils'
-import { validateSoundDefinition } from './validation'
+import type { PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types.js'
+import { ensureAudioContextReady } from './audioManager.js'
+import { playSoundFromDefinition } from './soundPlayer.js'
+import { SoundValidationError } from './SoundValidationError.js'
+import { calculateEffectiveDuration, cloneSoundDefinition, freezeSoundDefinition } from './utils.js'
+import { validateSoundDefinition } from './validation.js'
 
 export class Sound {
   readonly #name: string

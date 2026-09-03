@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { validateSoundDefinition } from './soundPlayer'
-import { DEFAULT_SOUNDS } from './sounds'
+import { validateSoundDefinition } from './soundPlayer.js'
+import { DEFAULT_SOUNDS } from './sounds.js'
 
 describe('dEFAULT_SOUNDS presets registry', () => {
   it('contains a rich library of default sound presets', () => {

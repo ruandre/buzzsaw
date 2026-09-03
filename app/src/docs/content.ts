@@ -339,8 +339,8 @@ for (const [name, definition] of Object.entries(DEFAULT_SOUNDS)) {
         code: `interface SoundDefinition {
   waveType?: WaveType                    // default 'sine'
   partials?: number[]                    // harmonic amplitudes, for waveType 'custom'
-  frequency: number | EnvelopeDefinition
-  gain?: number | EnvelopeDefinition     // default 0.5
+  frequency: number | EnvelopeDefinition // Hz, above 0 and at most 20000
+  gain?: number | EnvelopeDefinition     // 0 to 1, default 0.5
   duration?: number                      // seconds, default 0.5
   attack?: number                        // seconds, default 0.005
   decay?: number                         // seconds, default 0.1

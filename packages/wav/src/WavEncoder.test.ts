@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WavEncoder } from './WavEncoder'
+import { WavEncoder } from './WavEncoder.js'
 
 describe('wavEncoder', () => {
   it('encodes Float32Array channel samples into a valid 16-bit RIFF/WAVE ArrayBuffer', () => {
@@ -88,5 +88,19 @@ describe('wavEncoder', () => {
   it('returns null on invalid buffer in decodeHeader', () => {
     expect(WavEncoder.decodeHeader(new ArrayBuffer(20))).toBeNull()
     expect(WavEncoder.decodeHeader(new ArrayBuffer(50))).toBeNull()
+  })
+
+  it('rejects an unsupported bit depth with a RangeError', () => {
+    expect(() => WavEncoder.encode([new Float32Array(4)], { bitDepth: 12 as never }))
+      .toThrow(new RangeError('Unsupported bit depth: 12. Supported depths are 8, 16, 24, 32.'))
+  })
+
+  it('rejects out-of-range sampleRate and numChannels, matching the offline renderer', () => {
+    expect(() => WavEncoder.encode([new Float32Array(4)], { sampleRate: 100 }))
+      .toThrow(new RangeError('Invalid sampleRate: 100. Must be a finite number of at least 8000.'))
+    expect(() => WavEncoder.encode([new Float32Array(4)], { numChannels: 0 }))
+      .toThrow(new RangeError('Invalid numChannels: 0. Must be an integer of at least 1.'))
+    expect(() => WavEncoder.encode([new Float32Array(4)], { numChannels: 1.5 }))
+      .toThrow(new RangeError('Invalid numChannels: 1.5. Must be an integer of at least 1.'))
   })
 })

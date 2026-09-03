@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { OfflineSoundRenderer } from './OfflineSoundRenderer'
+import { OfflineSoundRenderer } from './OfflineSoundRenderer.js'
 
 class MockOfflineAudioContext {
   sampleRate: number

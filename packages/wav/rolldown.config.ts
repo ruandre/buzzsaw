@@ -6,6 +6,8 @@ export default defineConfig({
     dir: 'dist',
     format: 'esm',
     sourcemap: true,
+    // `src` ships in the tarball, so embedding it again would double the published bytes
+    sourcemapExcludeSources: true,
   },
   external: ['@rjvr/buzzsaw'],
 })

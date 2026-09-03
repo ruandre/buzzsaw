@@ -1,7 +1,7 @@
 import type { AudioBufferLike, SoundDefinition } from '@rjvr/buzzsaw'
-import type { WavExportOptions } from './types'
-import { OfflineSoundRenderer } from './OfflineSoundRenderer'
-import { WavEncoder } from './WavEncoder'
+import type { BlobLike, WavExportOptions } from './types.js'
+import { OfflineSoundRenderer } from './OfflineSoundRenderer.js'
+import { WavEncoder } from './WavEncoder.js'
 
 const DEFAULT_FILENAME = 'sound'
 const REVOKE_DELAY_MS = 200
@@ -24,24 +24,26 @@ export class WavExporter {
   static async renderToWavBlob(
     definition: SoundDefinition,
     options: WavExportOptions = {},
-  ): Promise<Blob> {
+  ): Promise<BlobLike> {
     return WavEncoder.encodeToBlob(await this.renderToAudioBuffer(definition, options), options)
   }
 
   /** Renders SoundDefinition or saves Blob as a WAV download; throws without a DOM document */
   static async downloadWav(
-    soundOrBlob: SoundDefinition | Blob,
+    soundOrBlob: SoundDefinition | BlobLike,
     optionsOrFilename?: string | WavExportOptions,
   ): Promise<void> {
+    // Checked before rendering so a Node caller hears about the missing document, not the missing OfflineAudioContext
+    const doc = requireDocument()
     const options: WavExportOptions = typeof optionsOrFilename === 'string'
       ? { filename: optionsOrFilename }
       : optionsOrFilename ?? {}
 
-    const blob = soundOrBlob instanceof Blob
+    const blob = isBlob(soundOrBlob)
       ? soundOrBlob
       : await this.renderToWavBlob(soundOrBlob, options)
 
-    saveBlob(blob, toWavFilename(options.filename))
+    saveBlob(doc, blob, toWavFilename(options.filename))
   }
 }
 
@@ -50,15 +52,7 @@ function toWavFilename(filename?: string): string {
   return base.endsWith('.wav') ? base : `${base}.wav`
 }
 
-function saveBlob(blob: Blob, filename: string): void {
-  const doc = resolveDocument()
-  if (!doc?.createElement || !doc.body) {
-    throw new Error(
-      'downloadWav requires a DOM document. Outside the browser, use renderToWavArrayBuffer '
-      + 'or renderToWavBlob and write the result yourself.',
-    )
-  }
-
+function saveBlob(doc: Document, blob: BlobLike, filename: string): void {
   const url = URL.createObjectURL(blob)
   const anchor = doc.createElement('a')
   anchor.style.display = 'none'
@@ -75,9 +69,17 @@ function saveBlob(blob: Blob, filename: string): void {
   }, REVOKE_DELAY_MS)
 }
 
-function resolveDocument(): Document | undefined {
-  if (typeof document !== 'undefined') {
-    return document
+function isBlob(value: SoundDefinition | BlobLike): value is BlobLike {
+  return typeof Blob !== 'undefined' && value instanceof Blob
+}
+
+function requireDocument(): Document {
+  const doc = typeof document !== 'undefined' ? document : (globalThis as { document?: Document }).document
+  if (!doc?.createElement || !doc.body) {
+    throw new Error(
+      'downloadWav requires a DOM document. Outside the browser, use renderToWavArrayBuffer '
+      + 'or renderToWavBlob and write the result yourself.',
+    )
   }
-  return (globalThis as { document?: Document }).document
+  return doc
 }

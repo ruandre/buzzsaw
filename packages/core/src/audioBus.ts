@@ -4,8 +4,8 @@ import type {
   BaseAudioContextLike,
   DynamicsCompressorNodeLike,
   GainNodeLike,
-} from './webAudio'
-import { LIMITER_THRESHOLD_DB, MASTER_VOLUME_GLIDE_S, SILENT_GAIN } from './constants'
+} from './webAudio.js'
+import { LIMITER_THRESHOLD_DB, MASTER_VOLUME_GLIDE_S, SILENT_GAIN } from './constants.js'
 
 /** Master output stage: fader, optional brickwall limiter, and peak meter tap */
 export class AudioBus {

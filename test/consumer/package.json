@@ -1,0 +1,6 @@
+{
+  "name": "buzzsaw-consumer-check",
+  "type": "module",
+  "private": true,
+  "description": "Fixture for `just verify-consumer`: typechecks and runs the packed tarballs under Node ESM resolution"
+}
