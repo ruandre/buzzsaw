@@ -2,9 +2,11 @@ import type { AudioContextLike, AudioNodeLike, BaseAudioContextLike, WaveType } 
 
 export type {
   AudioBufferLike,
+  AudioContextConstructor,
   AudioContextLike,
   AudioNodeLike,
   BaseAudioContextLike,
+  OfflineAudioContextConstructor,
   OfflineAudioContextLike,
   WaveType,
 } from './webAudio.js'
@@ -37,11 +39,17 @@ export interface SoundDefinition {
   /** Relative harmonic amplitudes for 'custom' waveType; normalized on playback */
   partials?: number[]
   frequency: FrequencyDefinition
-  /** Peak gain [0..1] or envelope; values above 1 are rejected, not clipped. Defaults to 0.5 */
+  /**
+   * Peak gain [0..1] or envelope; values above 1 are rejected, not clipped; 0 renders as
+   * 0.0001, the silence floor an exponential ramp cannot cross. Defaults to 0.5
+   */
   gain?: GainDefinition
   /** Total seconds, inclusive of attack and decay; envelope steps past it extend it, attack and decay never do. Defaults to 0.5 */
   duration?: number
-  /** Linear ramp-in in seconds, carved out of `duration`. Defaults to 0.005 */
+  /**
+   * Linear ramp-in from silence in seconds, carved out of `duration`; applies to an envelope gain
+   * too, ramping in to its `start`; clamped to leave a 1 ms decay window. Defaults to 0.005
+   */
   attack?: number
   /** Exponential ramp-out in seconds, carved out of `duration`. Defaults to 0.1 */
   decay?: number

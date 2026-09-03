@@ -59,12 +59,12 @@ describe('audioManager helpers', () => {
 })
 
 describe('audioManager getAudioContextInstance', () => {
-  it('returns null and logs error if AudioContext is not supported', () => {
+  it('returns null without logging if AudioContext is not supported', () => {
     globalThis.AudioContext = undefined as unknown as typeof AudioContext
     const ctx = getAudioContextInstance()
 
     expect(ctx).toBeNull()
-    expect(console.error).toHaveBeenCalledWith('Web Audio API is not supported in this environment.')
+    expect(console.error).not.toHaveBeenCalled()
   })
 
   it('creates and returns a new AudioContext if supported', () => {

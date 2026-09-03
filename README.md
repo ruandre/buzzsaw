@@ -6,6 +6,8 @@ Instead of shipping megabytes of `.wav` or `.mp3` assets, Buzzsaw describes soun
 
 Audition the presets and inspect their waveforms in the **[Studio](https://ruandre.github.io/buzzsaw/)**.
 
+Point an LLM or coding agent at **[llms.txt](https://ruandre.github.io/buzzsaw/llms.txt)**, which indexes the API and the behavior that is easiest to guess wrong.
+
 ## Packages
 
 | Package                                                                                 | Description                                                     |

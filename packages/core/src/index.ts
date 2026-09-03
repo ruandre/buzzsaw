@@ -1,3 +1,4 @@
+export { AudioBus } from './audioBus.js'
 export {
   closeAudioContext,
   ensureAudioContextReady,
@@ -37,6 +38,7 @@ export {
   cloneSoundDefinition,
   freezeSoundDefinition,
   isValidSoundDefinition,
+  resolveEnvelopeTiming,
   sampleFrequencyAtTime,
   sampleGainAtTime,
 } from './utils.js'

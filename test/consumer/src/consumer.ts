@@ -44,6 +44,14 @@ assert(names.length === 3, 'every registered name is listed')
 const play: (name: (typeof names)[number]) => Promise<PlaybackHandle | null> = async name => manager.play(name)
 assert(typeof play === 'function', 'listed names are accepted by play')
 
+// Never called; the compiler is the assertion, and playing would log a missing sound
+function emptyManagerRejectsEveryName(): void {
+  // @ts-expect-error no sounds registered; chain .register() or .registerAll() onto the constructor
+  void new SoundManager().play('blip')
+}
+const dynamic: (name: string) => Promise<PlaybackHandle | null> = async name => new SoundManager<string>().play(name)
+assert(typeof emptyManagerRejectsEveryName === 'function' && typeof dynamic === 'function', 'a string-typed manager accepts any name')
+
 const pack: SoundPack = { version: 1, sounds: { blip, coinCollect } }
 assert(Object.keys(DEFAULT_SOUNDS).length > 100 && pack.version === 1, 'presets and pack types resolve')
 

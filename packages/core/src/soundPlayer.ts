@@ -1,4 +1,4 @@
-import type { PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types.js'
+import type { PlaybackHandle, SoundDefinition, SoundStep, StandaloneSoundOptions } from './types.js'
 import type { AudioParamLike, BaseAudioContextLike, GainNodeLike, OscillatorNodeLike } from './webAudio.js'
 import {
   DEFAULT_FREQUENCY_HZ,
@@ -133,9 +133,8 @@ function scheduleGain(
   }
 
   const isStepped = resolveInterpolation(gain, DEFAULT_GAIN_INTERPOLATION) === 'step'
-  param.setValueAtTime(toLevel(gain.start), schedule.start)
-
   const steps = orderedSteps(gain)
+  scheduleEnvelopeAttack(param, toLevel(gain.start), steps, schedule)
   for (const step of steps) {
     const at = stepTime(step.time, schedule)
     if (isStepped) {
@@ -159,6 +158,27 @@ function scheduleGain(
   else {
     param.setValueAtTime(SILENT_GAIN, schedule.end)
   }
+}
+
+// Envelope gain gets the ramp-in a scalar gain gets, yielding to a step authored before it ends
+function scheduleEnvelopeAttack(
+  param: AudioParamLike,
+  startLevel: number,
+  steps: SoundStep[],
+  schedule: PlaybackSchedule,
+): void {
+  const firstStep = steps[0]
+  const attackEnd = firstStep === undefined
+    ? schedule.attackEnd
+    : Math.min(schedule.attackEnd, stepTime(firstStep.time, schedule))
+
+  if (attackEnd <= schedule.start) {
+    param.setValueAtTime(startLevel, schedule.start)
+    return
+  }
+
+  param.setValueAtTime(SILENT_GAIN, schedule.start)
+  param.linearRampToValueAtTime(startLevel, attackEnd)
 }
 
 function scheduleFixedGain(

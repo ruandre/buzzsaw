@@ -1,17 +1,12 @@
-import type { OfflineAudioContextLike } from '@rjvr/buzzsaw'
+import type { OfflineAudioContextConstructor } from '@rjvr/buzzsaw'
 
 export type { BlobLike, MinimalBlob } from './blob.js'
+export type { OfflineAudioContextConstructor } from '@rjvr/buzzsaw'
 
 export type WavBitDepth = 8 | 16 | 24 | 32
 
 /** Lowest sample rate the encoder and offline renderer accept */
 export const MIN_SAMPLE_RATE = 8000
-
-export type OfflineAudioContextConstructor = new (
-  numberOfChannels: number,
-  length: number,
-  sampleRate: number
-) => OfflineAudioContextLike
 
 export interface WavEncodingOptions {
   /** Target sample rate in Hz, at least 8000. Defaults to 44100 */

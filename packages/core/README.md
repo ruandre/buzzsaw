@@ -11,7 +11,7 @@ npm install @rjvr/buzzsaw
 # or: pnpm add / yarn add / bun add
 ```
 
-The package is ESM-only and has no runtime dependencies. Its published types declare only the slice of the Web Audio API it uses, so it typechecks under a Node-only `tsconfig` (`"lib": ["es2023"]`). Set `moduleResolution` to `bundler`, `node16`, or `nodenext`; the legacy `node` setting cannot read the `exports` map and will not find the presets subpath. Running outside the browser needs a polyfill such as [`node-web-audio-api`](https://github.com/ircam-ismm/node-web-audio-api).
+The package is ESM-only and has no runtime dependencies. Its published types declare only the slice of the Web Audio API it uses, so it typechecks under a Node-only `tsconfig` (`"lib": ["es2023"]`). Set `moduleResolution` to `bundler`, `node16`, or `nodenext`; the legacy `node10` setting cannot read the `exports` map and will not find the presets subpath (TypeScript 7 removed it outright). Running outside the browser needs a polyfill such as [`node-web-audio-api`](https://github.com/ircam-ismm/node-web-audio-api).
 
 The 113 built-in presets live in a separate subpath (`@rjvr/buzzsaw/sounds`). Import them individually to bundle only what you use: five presets cost ~0.3 kB gzip on top of the library, all 113 cost ~5.4 kB.
 
@@ -120,7 +120,10 @@ interface SoundDefinition {
   /** Base pitch in Hz, above 0 and at most 20000, or an envelope contour over time */
   frequency: number | EnvelopeDefinition
 
-  /** Peak amplitude from 0 to 1, or an envelope contour; above 1 is an error, not clipping. Defaults to 0.5 */
+  /**
+   * Peak amplitude from 0 to 1, or an envelope contour; above 1 is an error, not clipping;
+   * 0 renders as 0.0001, the silence floor an exponential ramp cannot cross. Defaults to 0.5
+   */
   gain?: number | EnvelopeDefinition
 
   /** Total playback length in seconds, at least 0.01, inclusive of attack and decay. Defaults to 0.5 */
@@ -160,6 +163,10 @@ calculateEffectiveDuration({
 ```
 
 `Sound.duration` and the offline renderer both report this effective length.
+
+The attack ramps up linearly from a 0.0001 silence floor, and the decay ramps back down to it exponentially. Both apply whether `gain` is a number or an envelope. With an envelope, the attack ramps in to the envelope's `start` value, and yields early if a step is authored before the attack would end.
+
+An attack long enough to swallow the whole duration is clamped to leave a 1 ms decay window, so a voice always fades instead of cutting off at full amplitude.
 
 ### Envelopes
 
@@ -258,6 +265,18 @@ Pass your own `onMissing` to silence the default log for unregistered names, whi
 const sounds = new SoundManager({ onMissing: () => {} }).registerAll(DEFAULT_SOUNDS)
 ```
 
+`register` and `registerAll` return a manager widened over the names just added. They do not widen the variable you called them on, so chain them onto the constructor. Registering as a separate statement leaves `play` accepting nothing:
+
+```ts
+const separate = new SoundManager()
+separate.registerAll(DEFAULT_SOUNDS) // the widened manager is discarded
+separate.play('click')
+// Argument of type '"click"' is not assignable to parameter of type
+// '"no sounds registered; chain .register() or .registerAll() onto the constructor"'
+
+const chained = new SoundManager().registerAll(DEFAULT_SOUNDS) // play accepts all 113 names
+```
+
 ### Methods and properties
 
 - `register(name, definitionOrSound)`: adds or updates one sound. Returns the manager, widened so `play` accepts `name`. Throws `SoundValidationError` on a malformed definition.
@@ -323,7 +342,7 @@ else {
 
 ### Inspection
 
-Inspect sound timing and curves without creating Web Audio nodes. These functions drive the waveform previews:
+Inspect sound timing and curves without creating Web Audio nodes. These functions drive the waveform previews. They mirror the ramps that playback schedules, so a sampled gain matches what you hear:
 
 ```ts
 import {
@@ -352,6 +371,16 @@ const partials = resolvePartials(definition)
 const editable = cloneSoundDefinition(sound.definition)
 ```
 
+### Smaller exports
+
+These exist because the Studio needs them. They are stable, but reach for them only when the higher-level API does not cover you:
+
+- `clamp(value, min, max)` and `round(value, decimals)`: the numeric helpers used to keep edited definitions in range. Handy when building an editor over `SoundDefinition`, and nothing more than they look like.
+- `isEnvelope(value)`: narrows a `frequency` or `gain` to `EnvelopeDefinition`.
+- `freezeSoundDefinition(def)`: deep-freezes a definition in place, including its envelope steps. `Sound` applies this to what it holds.
+- `resolveEnvelopeTiming(def, duration)`: the resolved `attack`, `decay`, and `decayStartTime` in seconds, after clamping. This is how a preview draws the phase boundaries playback will use.
+- `AudioBus`: the master output stage a `SoundManager` builds, should you want to construct one yourself. `input`, `setVolume(volume, atTime)`, `readPeakLevel()`, and `dispose()`.
+
 ### Playing without a Sound or a manager
 
 `playSoundFromDefinition(audioContext, definition, options?)` schedules a definition straight onto a context you own and returns a `PlaybackHandle`. `Sound.play` and `SoundManager.play` are built on it.
@@ -364,16 +393,22 @@ It is the one entry point that does **not** validate: validation happens when a 
 - `TypeError`: an argument of the wrong shape, such as an empty sound name or a non-object definition.
 - `RangeError`: a well-typed option outside its documented range, such as `masterVolume`, `volume`, or `pitchScale`.
 
+`Sound.play` and `SoundManager.play` are async, and they **reject** when no `AudioContext` can be created or resumed. That happens outside the browser, and after `closeAudioContext()`. Guard with `isAudioContextSupported()`, supply a context with `setAudioContextInstance()`, or catch the rejection.
+
 ### Audio context
 
 The shared `AudioContext` is created lazily on first playback.
 
 - `ensureAudioContextReady()`: creates or resumes it.
-- `getAudioContextInstance()`: returns it, or `null` where Web Audio is unavailable.
+- `getAudioContextInstance()`: returns it, or `null` where Web Audio is unavailable. It never logs, so reading it during server-side rendering is safe.
 - `isAudioContextSupported()`: reports availability.
 - `closeAudioContext()`: closes and clears it.
 - `setAudioContextInstance(ctx)`: replaces it with one you own, without closing whatever it displaces. This is how a Node polyfill's context is supplied.
 - `getAudioContextClass()`: returns the constructor Buzzsaw would use, or `null` where Web Audio is unavailable.
+
+## For LLMs and coding agents
+
+[llms.txt](https://ruandre.github.io/buzzsaw/llms.txt) condenses this reference into an index of the API and the behavior worth knowing before writing code.
 
 ## License
 

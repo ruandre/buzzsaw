@@ -19,7 +19,10 @@ export function isAudioContextSupported(): boolean {
   return getAudioContextClass() !== null
 }
 
-/** Shared AudioContext singleton, created on first use; null if Web Audio unsupported */
+/**
+ * Shared AudioContext singleton, created on first use; returns null without logging
+ * where Web Audio is absent, so probe with `isAudioContextSupported()`
+ */
 export function getAudioContextInstance(): AudioContextLike | null {
   if (sharedAudioContext) {
     return sharedAudioContext
@@ -27,7 +30,6 @@ export function getAudioContextInstance(): AudioContextLike | null {
 
   const AudioContextClass = getAudioContextClass()
   if (!AudioContextClass) {
-    console.error('Web Audio API is not supported in this environment.')
     return null
   }
 
@@ -67,7 +69,11 @@ export function ensureAudioContextReady(customCtx?: AudioContextLike): Promise<A
   const ctx = customCtx ?? getAudioContextInstance()
 
   if (!ctx) {
-    return Promise.reject(new Error('AudioContext not supported or failed to create.'))
+    return Promise.reject(new Error(
+      'AudioContext not supported or failed to create. Outside the browser, pass a polyfill '
+      + 'context to setAudioContextInstance(), for example from node-web-audio-api, or render '
+      + 'offline with @rjvr/buzzsaw-wav.',
+    ))
   }
   if (ctx.state === 'running') {
     return Promise.resolve(ctx)

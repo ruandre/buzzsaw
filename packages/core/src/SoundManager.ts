@@ -16,12 +16,17 @@ export type SoundRegistrations = Record<string, SoundDefinition | Sound>
 
 type NamesOf<T extends SoundRegistrations> = Extract<keyof T, string>
 
+// `never` rejects every name but says nothing; name the fix in the type a caller sees instead
+type PlayableName<Name extends string>
+  = [Name] extends [never] ? 'no sounds registered; chain .register() or .registerAll() onto the constructor' : Name
+
 /**
  * Registry of named sounds sharing a master bus, volume, and audio context.
  *
  * `Name` is the set of keys `play` accepts, and widens as sounds are registered:
  * `new SoundManager().registerAll(DEFAULT_SOUNDS)` is typed over the preset names,
- * so typos fail to compile. Use `new SoundManager<string>()` where names are dynamic.
+ * so typos fail to compile. Registering as a separate statement discards that widening,
+ * and `play` then rejects every name. Use `new SoundManager<string>()` where names are dynamic.
  */
 export class SoundManager<Name extends string = never> {
   #sounds: Map<Name, Sound> = new Map()
@@ -156,8 +161,8 @@ export class SoundManager<Name extends string = never> {
   }
 
   /** Plays through the master bus. Resolves to null, via `onMissing`, if the name is unregistered */
-  async play(name: Name, options?: SoundPlaybackOptions): Promise<PlaybackHandle | null> {
-    const sound = this.#sounds.get(name)
+  async play(name: PlayableName<Name>, options?: SoundPlaybackOptions): Promise<PlaybackHandle | null> {
+    const sound = this.#lookup(name)
     if (!sound) {
       this.#onMissing(name)
       return null

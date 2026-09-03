@@ -246,6 +246,48 @@ describe('scheduling against a running context clock', () => {
     expect(offsets(CONTEXT_TIME)).toEqual(offsets(0))
   })
 
+  it('ramps a gain envelope in over the attack instead of jumping to its start value', () => {
+    const definition: SoundDefinition = {
+      frequency: 440,
+      gain: { start: 0.6, steps: [{ value: 0.2, time: 0.3 }] },
+      duration: 0.5,
+      attack: 0.05,
+    }
+
+    const gain = playAt(definition, CONTEXT_TIME)
+
+    expect(gain.gain.setValueAtTime).toHaveBeenCalledWith(0.0001, CONTEXT_TIME)
+    expect(gain.gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.6, CONTEXT_TIME + 0.05)
+  })
+
+  it('yields the attack ramp to a step authored before the attack ends', () => {
+    const definition: SoundDefinition = {
+      frequency: 440,
+      gain: { start: 0.6, steps: [{ value: 0.2, time: 0.01 }] },
+      duration: 0.5,
+      attack: 0.05,
+    }
+
+    const gain = playAt(definition, CONTEXT_TIME)
+
+    expect(gain.gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.6, CONTEXT_TIME + 0.01)
+  })
+
+  it('keeps a decay window when the attack covers the whole duration', () => {
+    const definition: SoundDefinition = {
+      frequency: 440,
+      gain: 0.5,
+      duration: 0.2,
+      attack: 0.5,
+    }
+
+    const gain = playAt(definition, CONTEXT_TIME)
+
+    // Attack yields MIN_DECAY_WINDOW_S so the voice fades instead of cutting off at peak
+    expect(gain.gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.5, CONTEXT_TIME + 0.199)
+    expect(gain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.0001, CONTEXT_TIME + 0.2)
+  })
+
   it('rides a gain envelope down from its last step, not from the clock', () => {
     const definition: SoundDefinition = {
       frequency: 440,

@@ -12,6 +12,7 @@ for package in core wav; do
   cd "/work/packages/$package"
   node /repo/node_modules/rolldown/bin/cli.mjs -c
   node /repo/node_modules/typescript/bin/tsc --emitDeclarationOnly
+  node /repo/scripts/container/strip-manifest.mjs package.json
   npm pack --pack-destination /work/tarballs >/dev/null
   mv /work/tarballs/rjvr-buzzsaw*.tgz "/work/tarballs/$package.tgz"
 done

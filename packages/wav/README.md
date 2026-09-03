@@ -199,6 +199,10 @@ Returns `null` if the buffer is smaller than 44 bytes or lacks the `RIFF` and `W
 - `RangeError`: an option outside its documented range, from both `WavEncoder.encode` and `OfflineSoundRenderer.render`.
 - `Error`: the environment is missing something the call needs, namely an `OfflineAudioContext` for rendering or a `document` for `downloadWav`. Both messages name what to install or pass.
 
+## For LLMs and coding agents
+
+[llms.txt](https://ruandre.github.io/buzzsaw/llms.txt) condenses this reference into an index of the API and the behavior worth knowing before writing code.
+
 ## License
 
 [MIT](LICENSE)

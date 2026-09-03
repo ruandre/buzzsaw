@@ -12,8 +12,9 @@ import {
   MIN_DECAY_WINDOW_S,
   MIN_DURATION_S,
   MIN_FREQUENCY_HZ,
+  SILENT_GAIN,
 } from './constants.js'
-import { cloneEnvelope, isEnvelope, latestStepTime, sampleEnvelopeValue } from './envelope.js'
+import { cloneEnvelope, isEnvelope, latestStepTime, orderedSteps, sampleEnvelopeValue } from './envelope.js'
 import { clamp, finiteOr } from './numeric.js'
 import { validateSoundDefinition } from './validation.js'
 
@@ -104,23 +105,25 @@ export function sampleGainAtTime(def: SoundDefinition, time: number, totalDurati
   if (typeof gain === 'number') {
     const peak = Math.max(0, finiteOr(gain, DEFAULT_GAIN))
     if (time < attack) {
-      return (time / Math.max(0.0001, attack)) * peak
+      return attackLevel(peak, time, attack)
     }
     if (time < decayStartTime) {
       return peak
     }
-    return Math.max(0, peak * (1 - decayProgress(time, decayStartTime, duration)))
+    return decayLevel(peak, time, decayStartTime, duration)
   }
 
   if (isEnvelope(gain)) {
-    const lastStepTime = latestStepTime(gain)
-    const level = Math.max(
-      0,
-      sampleEnvelopeValue(withGainFallback(gain), time, DEFAULT_GAIN_INTERPOLATION),
-    )
+    const envelope = withGainFallback(gain)
+    const lastStepTime = latestStepTime(envelope)
+    const level = Math.max(0, sampleEnvelopeValue(envelope, time, DEFAULT_GAIN_INTERPOLATION))
+    const attackEnd = Math.min(attack, firstStepTime(envelope) ?? attack)
+    if (time < attackEnd) {
+      return attackLevel(level, time, attackEnd)
+    }
     // Decay tail applies only after authored envelope steps complete
     if (lastStepTime > 0 && time > lastStepTime && time >= decayStartTime) {
-      return Math.max(0, level * (1 - decayProgress(time, decayStartTime, duration)))
+      return decayLevel(level, time, decayStartTime, duration)
     }
     return level
   }
@@ -138,7 +141,7 @@ export function resolveEnvelopeTiming(def: SoundDefinition, duration: number): {
   decay: number
   decayStartTime: number
 } {
-  const attack = clamp(finiteOr(def.attack, DEFAULT_ATTACK_S), 0, duration)
+  const attack = clamp(finiteOr(def.attack, DEFAULT_ATTACK_S), 0, Math.max(0, duration - MIN_DECAY_WINDOW_S))
   const decay = clamp(
     finiteOr(def.decay, DEFAULT_DECAY_S),
     0,
@@ -157,6 +160,26 @@ function freezeEnvelope(envelope: EnvelopeDefinition): void {
 
 function decayProgress(time: number, decayStartTime: number, duration: number): number {
   return (time - decayStartTime) / Math.max(MIN_DECAY_WINDOW_S, duration - decayStartTime)
+}
+
+// Mirrors the linear attack ramp soundPlayer schedules from SILENT_GAIN
+function attackLevel(peak: number, time: number, attack: number): number {
+  if (attack <= 0) {
+    return peak
+  }
+  return SILENT_GAIN + (peak - SILENT_GAIN) * (time / attack)
+}
+
+// Mirrors soundPlayer's exponentialRampToValueAtTime down to SILENT_GAIN
+function decayLevel(peak: number, time: number, decayStartTime: number, duration: number): number {
+  if (peak <= SILENT_GAIN) {
+    return SILENT_GAIN
+  }
+  return peak * (SILENT_GAIN / peak) ** clamp(decayProgress(time, decayStartTime, duration), 0, 1)
+}
+
+function firstStepTime(envelope: EnvelopeDefinition): number | undefined {
+  return orderedSteps(envelope)[0]?.time
 }
 
 function withFrequencyFallback(envelope: EnvelopeDefinition): EnvelopeDefinition {

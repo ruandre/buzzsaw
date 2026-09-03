@@ -1,5 +1,6 @@
 import type { SoundDefinition } from './types.js'
 import { describe, expect, it } from 'vitest'
+import { SILENT_GAIN } from './constants.js'
 import {
   calculateEffectiveDuration,
   cloneSoundDefinition,
@@ -136,12 +137,13 @@ describe('sounds utils', () => {
         gain: 0.8,
       }
 
-      expect(sampleGainAtTime(def, 0)).toBe(0)
+      expect(sampleGainAtTime(def, 0)).toBe(SILENT_GAIN)
       expect(sampleGainAtTime(def, 0.01)).toBeCloseTo(0.4, 2)
       expect(sampleGainAtTime(def, 0.02)).toBeCloseTo(0.8, 2)
       expect(sampleGainAtTime(def, 0.10)).toBeCloseTo(0.8, 2)
-      expect(sampleGainAtTime(def, 0.175)).toBeCloseTo(0.4, 2)
-      expect(sampleGainAtTime(def, 0.2)).toBe(0)
+      // Decay is exponential toward SILENT_GAIN, matching the ramp soundPlayer schedules
+      expect(sampleGainAtTime(def, 0.175)).toBeCloseTo(0.8 * (SILENT_GAIN / 0.8) ** 0.5, 4)
+      expect(sampleGainAtTime(def, 0.2)).toBe(SILENT_GAIN)
       expect(sampleGainAtTime(def, 0.25)).toBe(0)
     })
 
@@ -155,7 +157,8 @@ describe('sounds utils', () => {
         },
       }
 
-      expect(sampleGainAtTime(def, 0)).toBe(0.2)
+      expect(sampleGainAtTime(def, 0)).toBe(SILENT_GAIN)
+      expect(sampleGainAtTime(def, 0.005)).toBe(0.2)
       expect(sampleGainAtTime(def, 0.05)).toBe(0.2)
       expect(sampleGainAtTime(def, 0.099)).toBe(0.2)
       expect(sampleGainAtTime(def, 0.1)).toBe(0.6)
