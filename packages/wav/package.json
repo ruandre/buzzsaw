@@ -1,7 +1,7 @@
 {
   "name": "@rjvr/buzzsaw-wav",
   "type": "module",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "High-performance RIFF/WAVE encoder, offline sound renderer, and audio file exporter for Web Audio",
   "author": "Ruandre Janse van Rensburg <ruandrejvr@gmail.com> (https://github.com/ruandre)",
   "license": "MIT",
@@ -52,7 +52,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@rjvr/buzzsaw": "^2.0.0"
+    "@rjvr/buzzsaw": "^3.0.0"
   },
   "devDependencies": {
     "@rjvr/buzzsaw": "workspace:^",
