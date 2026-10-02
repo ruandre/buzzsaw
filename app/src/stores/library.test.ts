@@ -1,4 +1,5 @@
 import { setAudioContextInstance } from '@rjvr/buzzsaw'
+import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createFakeAudioContext } from '../testing/fakeAudioContext'
@@ -38,6 +39,33 @@ describe('library store', () => {
     expect(saved).toBeNull()
     expect(library.customSounds).not.toHaveProperty('loud')
     expect(usePlaybackStore().soundManager.has('loud')).toBe(false)
+  })
+
+  it('saves under a renamed key rather than replacing a preset', () => {
+    const library = useLibraryStore()
+
+    const saved = library.save('pop', { frequency: 440 })
+
+    expect(saved).toBe('pop_custom')
+    expect(usePlaybackStore().soundManager.get('pop')?.definition).toEqual(DEFAULT_SOUNDS.pop)
+  })
+
+  it('keeps the preset playable after deleting a sound that shared its name', () => {
+    const library = useLibraryStore()
+    const saved = library.save('pop', { frequency: 440 })!
+
+    library.remove(saved)
+
+    expect(usePlaybackStore().soundManager.has('pop')).toBe(true)
+  })
+
+  it('renames imported sounds that share a preset name', async () => {
+    const library = useLibraryStore()
+
+    await library.importPack(JSON.stringify({ version: 1, sounds: { tap: { frequency: 440 } } }))
+
+    expect(library.customSounds).toHaveProperty('tap_custom')
+    expect(usePlaybackStore().soundManager.get('tap')?.definition).toEqual(DEFAULT_SOUNDS.tap)
   })
 
   it('stops offering a deleted sound for playback', () => {

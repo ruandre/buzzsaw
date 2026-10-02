@@ -3,6 +3,7 @@ import { cloneSoundDefinition, isValidSoundDefinition, validateSoundDefinition }
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
+import { toCustomSoundName } from '../audio/soundName'
 import { downloadJson } from '../utils/download'
 import { forEachYielding } from '../utils/scheduler'
 import { safeRecordEntries, STORAGE_KEYS, usePersistedState } from '../utils/storage'
@@ -62,7 +63,8 @@ export const useLibraryStore = defineStore('library', () => {
 
   /** Saves under the trimmed name, overwriting an existing entry; returns that name, or null if the definition is invalid */
   function save(name: string, definition: SoundDefinition): string | null {
-    const soundName = name.trim() || 'unnamed_sound'
+    const requestedName = name.trim() || 'unnamed_sound'
+    const soundName = toCustomSoundName(requestedName)
     const errors = validateSoundDefinition(definition)
     if (errors.length > 0) {
       playback.cue('error')
@@ -74,7 +76,9 @@ export const useLibraryStore = defineStore('library', () => {
     playback.soundManager.register(soundName, stored)
     customSounds.value = { ...customSounds.value, [soundName]: stored }
     playback.cue('save')
-    notifications.confirm(`Saved "${soundName}" to your library`)
+    notifications.confirm(soundName === requestedName
+      ? `Saved "${soundName}" to your library`
+      : `Saved as "${soundName}"; "${requestedName}" is a built-in preset`)
     return soundName
   }
 
@@ -129,7 +133,7 @@ export const useLibraryStore = defineStore('library', () => {
 
     await forEachYielding(entries, ([name, definition]) => {
       if (isValidSoundDefinition(definition)) {
-        accepted.push([name, cloneSoundDefinition(definition)])
+        accepted.push([toCustomSoundName(name), cloneSoundDefinition(definition)])
       }
     })
 
@@ -179,7 +183,8 @@ function sanitizeSoundMap(raw: unknown): Record<string, SoundDefinition> {
   const sounds: Record<string, SoundDefinition> = {}
   for (const [name, definition] of safeRecordEntries(raw)) {
     if (isValidSoundDefinition(definition)) {
-      sounds[name] = definition
+      // Migrates sounds saved before preset names were reserved
+      sounds[toCustomSoundName(name)] = definition
     }
   }
   return sounds

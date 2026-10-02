@@ -4,6 +4,7 @@ import { isValidSoundDefinition } from '@rjvr/buzzsaw'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { checkPromptApiAvailability, designSound, redesignSound } from '../ai'
+import { toCustomSoundName } from '../audio/soundName'
 import { STORAGE_KEYS, usePersistedState } from '../utils/storage'
 import { useLibraryStore } from './library'
 import { useNotificationsStore } from './notifications'
@@ -118,7 +119,7 @@ export const useAiStore = defineStore('ai', () => {
       const designed = await design()
       const entry: GeneratedSound = {
         id: `ai-${designed.designedAt}-${Math.floor(Math.random() * 1000)}`,
-        name: designed.name,
+        name: toCustomSoundName(designed.name),
         description: designed.description,
         definition: designed.definition,
         prompt,
@@ -200,5 +201,7 @@ function sanitizeHistory(raw: unknown): GeneratedSound[] {
       && typeof entry.name === 'string'
       && isValidSoundDefinition(entry.definition),
     )
+    // Migrates entries generated before preset names were reserved
+    .map(entry => ({ ...entry, name: toCustomSoundName(entry.name) }))
     .slice(0, HISTORY_LIMIT)
 }

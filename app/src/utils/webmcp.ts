@@ -1,7 +1,7 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 import { validateSoundDefinition } from '@rjvr/buzzsaw'
 import { getSoundCategory, SOUND_CATEGORIES } from '../audio/categories'
-import { isValidSoundName, SOUND_NAME_RULE } from '../audio/soundName'
+import { isValidSoundName, SOUND_NAME_RULE, toCustomSoundName } from '../audio/soundName'
 import { useAiStore, useLibraryStore, usePlaybackStore, useUiStore } from '../stores'
 
 // WebMCP tool registration for in-browser AI agents
@@ -97,7 +97,8 @@ export function registerWebMcpTools(): (() => void) | null {
         if (!definition) {
           return { success: false, error: `No sound named "${name}".` }
         }
-        await playback.play(name, definition)
+        // Presets and saved sounds are already registered under their names
+        await playback.play(name)
         return { success: true, message: `Played "${name}".` }
       },
     })
@@ -145,7 +146,7 @@ export function registerWebMcpTools(): (() => void) | null {
           return { success: false, error: errors.join(' ') }
         }
         const savedAs = input.saveToLibrary ? library.save(input.name, definition) : null
-        const name = savedAs ?? input.name
+        const name = savedAs ?? toCustomSoundName(input.name)
         await playback.play(name, definition)
         return { success: true, name, definition, saved: savedAs !== null }
       },

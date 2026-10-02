@@ -28,7 +28,7 @@ export interface DocExample {
 
 export const DOC_EXAMPLES: readonly DocExample[] = [
   {
-    name: 'laserShot',
+    name: 'laserDive',
     description: 'Sawtooth pitch dive. The whole sound is one steep frequency ramp.',
     definition: {
       waveType: 'sawtooth',

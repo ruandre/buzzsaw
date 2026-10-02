@@ -51,6 +51,22 @@ describe('ai store availability', () => {
     expect(ai.promptApi.availability).toBe('available')
   })
 
+  it('renames a generated sound that shares a preset name', async () => {
+    checkAvailability.mockResolvedValue(status('available'))
+    vi.mocked(designSound).mockResolvedValue({
+      name: 'pop',
+      description: '',
+      definition: { frequency: 440 },
+      source: 'model',
+      designedAt: 1,
+    })
+    const ai = useAiStore()
+
+    const entry = await ai.generate('pop')
+
+    expect(entry.name).toBe('pop_custom')
+  })
+
   it('polls while downloading until the model is ready', async () => {
     checkAvailability
       .mockResolvedValueOnce(status('downloading'))

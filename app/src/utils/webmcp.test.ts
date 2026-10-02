@@ -50,6 +50,15 @@ describe('webMCP tools', () => {
     expect(result).toMatchObject({ success: false })
   })
 
+  it('auditions an unsaved sound without replacing the preset it is named after', async () => {
+    const synthesize = registerTools().get('synthesize_sound')!
+
+    const result = await synthesize({ name: 'pop', frequency: 440, duration: 0.2 })
+
+    expect(result).toMatchObject({ success: true, name: 'pop_custom', saved: false })
+    expect(usePlaybackStore().soundManager.get('pop')?.definition.frequency).not.toBe(440)
+  })
+
   it('finds no sound under an inherited object key', () => {
     const getDefinition = registerTools().get('get_sound_definition')!
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isValidSoundName, SOUND_NAME_PATTERN } from './soundName'
+import { isValidSoundName, SOUND_NAME_PATTERN, toCustomSoundName } from './soundName'
 
 describe('isValidSoundName', () => {
   it.each(['ding', 'laser_shot', 'my sound', 'retro-jump', 'a1'])('accepts %s', (name) => {
@@ -17,5 +17,19 @@ describe('isValidSoundName', () => {
   // Verifies pattern compiles under RegExp 'v' flag used by HTML pattern attribute
   it('compiles under the RegExp v flag the browser uses for `pattern`', () => {
     expect(() => new RegExp(`^(?:${SOUND_NAME_PATTERN})$`, 'v')).not.toThrow()
+  })
+})
+
+describe('toCustomSoundName', () => {
+  it('keeps a name no preset uses', () => {
+    expect(toCustomSoundName('my_zap')).toBe('my_zap')
+  })
+
+  it('renames a preset name so the preset and its UI cue keep sounding', () => {
+    expect(toCustomSoundName('pop')).toBe('pop_custom')
+  })
+
+  it('ignores inherited object keys', () => {
+    expect(toCustomSoundName('constructor')).toBe('constructor')
   })
 })
