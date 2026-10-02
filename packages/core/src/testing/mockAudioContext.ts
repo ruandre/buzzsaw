@@ -1,7 +1,11 @@
-import type { AudioContextState, BaseAudioContextLike } from '../webAudio.js'
+import type { AudioContextLike, AudioContextState } from '../webAudio.js'
 import { vi } from 'vitest'
 
 export function createMockAudioContext(options: MockAudioContextOptions = {}): MockAudioContext {
+  return buildMockAudioContext(options) as unknown as MockAudioContext
+}
+
+function buildMockAudioContext(options: MockAudioContextOptions) {
   const gainNodes: MockGainNode[] = []
   const oscillators: MockOscillatorNode[] = []
 
@@ -22,21 +26,25 @@ export function createMockAudioContext(options: MockAudioContextOptions = {}): M
     currentTime: options.currentTime ?? 0,
     destination: { connect: vi.fn(), disconnect: vi.fn() },
     state: 'running' as AudioContextState,
+    resume: vi.fn(async () => {
+      context.state = 'running'
+    }),
+    close: vi.fn(async () => {
+      context.state = 'closed'
+    }),
     gainNodes,
     oscillators,
   }
 
-  return context as unknown as MockAudioContext
+  return context
 }
 
 export interface MockAudioContextOptions {
   currentTime?: number
 }
 
-export type MockAudioContext = BaseAudioContextLike & {
-  gainNodes: MockGainNode[]
-  oscillators: MockOscillatorNode[]
-}
+// Mock members stay visible, so optional factories such as createAnalyser read as defined
+export type MockAudioContext = AudioContextLike & ReturnType<typeof buildMockAudioContext>
 
 export type MockGainNode = ReturnType<typeof createMockGain>
 export type MockOscillatorNode = ReturnType<typeof createMockOscillator>

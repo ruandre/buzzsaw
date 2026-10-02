@@ -90,8 +90,7 @@ describe('soundManager', () => {
   })
 
   it('routes a voice through the master bus rather than straight to the speakers', async () => {
-    const manager = new SoundManager({ audioContext: mockCtx, masterVolume: 0.8 })
-    manager.register('pop', { duration: 0.1, frequency: 600, gain: 0.5 })
+    const manager = new SoundManager({ audioContext: mockCtx, masterVolume: 0.8 }).register('pop', { duration: 0.1, frequency: 600, gain: 0.5 })
 
     const handle = await manager.play('pop')
 
@@ -103,8 +102,7 @@ describe('soundManager', () => {
   })
 
   it('builds the bus once and keeps every voice on it', async () => {
-    const manager = new SoundManager({ audioContext: mockCtx })
-    manager.register('pop', { duration: 0.1, frequency: 600 })
+    const manager = new SoundManager({ audioContext: mockCtx }).register('pop', { duration: 0.1, frequency: 600 })
 
     await manager.play('pop')
     await manager.play('pop')
@@ -155,8 +153,7 @@ describe('soundManager', () => {
   })
 
   it('moves the fader on sounds that are already playing', async () => {
-    const manager = new SoundManager({ audioContext: mockCtx })
-    manager.register('drone', { duration: 5, frequency: 100 })
+    const manager = new SoundManager({ audioContext: mockCtx }).register('drone', { duration: 5, frequency: 100 })
     await manager.play('drone')
 
     manager.masterVolume = 0.25
@@ -176,10 +173,9 @@ describe('soundManager', () => {
   })
 
   it('reports the output level the meter should show', async () => {
-    const manager = new SoundManager({ audioContext: mockCtx })
+    const manager = new SoundManager({ audioContext: mockCtx }).register('pop', { duration: 0.1, frequency: 600 })
     expect(manager.outputLevel).toBe(0)
 
-    manager.register('pop', { duration: 0.1, frequency: 600 })
     await manager.play('pop')
 
     const analyser = vi.mocked(mockCtx.createAnalyser).mock.results[0].value
@@ -191,8 +187,7 @@ describe('soundManager', () => {
   })
 
   it('releases the bus on dispose so it stops feeding the destination', async () => {
-    const manager = new SoundManager({ audioContext: mockCtx })
-    manager.register('pop', { duration: 0.1, frequency: 600 })
+    const manager = new SoundManager({ audioContext: mockCtx }).register('pop', { duration: 0.1, frequency: 600 })
     await manager.play('pop')
 
     manager.dispose()
@@ -202,7 +197,7 @@ describe('soundManager', () => {
   })
 
   it('handles playing non-existent sound gracefully', async () => {
-    const manager = new SoundManager()
+    const manager = new SoundManager<string>()
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const handle = await manager.play('nonexistent')
 
@@ -213,8 +208,8 @@ describe('soundManager', () => {
 
   it('supports iteration and standard collection methods', () => {
     const manager = new SoundManager()
-    manager.register('tone1', { frequency: 440 })
-    manager.register('tone2', { frequency: 880 })
+      .register('tone1', { frequency: 440 })
+      .register('tone2', { frequency: 880 })
 
     expect(Array.from(manager.keys())).toEqual(['tone1', 'tone2'])
     expect(Array.from(manager.values()).map(s => s.name)).toEqual(['tone1', 'tone2'])
@@ -236,7 +231,7 @@ describe('soundManager', () => {
 
     const found = manager.find((s, name) => name === 'tone2')
     expect(found?.name).toBe('tone2')
-    expect(manager.find((s, name) => name === 'missing')).toBeUndefined()
+    expect(manager.find((s, name: string) => name === 'missing')).toBeUndefined()
 
     const filtered = manager.filter((s, name) => name.startsWith('tone'))
     expect(filtered).toHaveLength(2)

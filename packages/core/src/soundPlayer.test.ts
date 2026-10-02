@@ -1,4 +1,5 @@
 import type { MockAudioContext } from './testing/mockAudioContext.js'
+import type { SoundDefinition } from './types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { playSoundFromDefinition, validateSoundDefinition } from './soundPlayer.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
@@ -270,7 +271,7 @@ describe('scheduling against a running context clock', () => {
     }
 
     const offsets = (currentTime: number) =>
-      playAt(definition, currentTime).gain.setValueAtTime.mock.calls.map(([value, time]: [number, number]) => [value, +(time - currentTime).toFixed(6)])
+      playAt(definition, currentTime).gain.setValueAtTime.mock.calls.map(([value, time]) => [value, +(time - currentTime).toFixed(6)])
 
     expect(offsets(CONTEXT_TIME)).toEqual(offsets(0))
   })

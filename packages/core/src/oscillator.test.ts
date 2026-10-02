@@ -26,7 +26,7 @@ describe('resolvePartials', () => {
     const partials = resolvePartials({
       frequency: 440,
       waveType: 'custom',
-      partials: Array.from({ length: 500 }).fill(1),
+      partials: Array.from<number>({ length: 500 }).fill(1),
     })
     expect(partials).toHaveLength(64)
   })

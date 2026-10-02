@@ -1,9 +1,10 @@
+import type { MockAudioContext } from './testing/mockAudioContext.js'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { Sound } from './Sound.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
 
 describe('sound class', () => {
-  let mockCtx: BaseAudioContext
+  let mockCtx: MockAudioContext
 
   beforeEach(() => {
     mockCtx = createMockAudioContext()
@@ -42,7 +43,7 @@ describe('sound class', () => {
       waveType: 'triangle',
     })
 
-    const handle = await sound.play({ audioContext: mockCtx as AudioContext })
+    const handle = await sound.play({ audioContext: mockCtx })
     expect(mockCtx.createOscillator).toHaveBeenCalled()
     expect(mockCtx.createGain).toHaveBeenCalled()
     expect(handle.isPlaying).toBe(true)
@@ -53,7 +54,7 @@ describe('sound class', () => {
 
   it('stops all active handles when sound.stop() is called', async () => {
     const sound = new Sound('beep', { duration: 0.5, frequency: 440 })
-    await sound.play({ audioContext: mockCtx as AudioContext })
+    await sound.play({ audioContext: mockCtx })
     expect(sound.isPlaying).toBe(true)
 
     sound.stop()

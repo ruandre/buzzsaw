@@ -31,13 +31,16 @@ class MockOfflineAudioContext {
       connect: vi.fn(),
       disconnect: vi.fn(),
       frequency: {
+        exponentialRampToValueAtTime: vi.fn(),
         linearRampToValueAtTime: vi.fn(),
         setValueAtTime: vi.fn(),
+        value: 440,
       },
       onended: null,
+      setPeriodicWave: vi.fn(),
       start: vi.fn(),
       stop: vi.fn(),
-      type: 'sine',
+      type: 'sine' as const,
     }
   }
 
