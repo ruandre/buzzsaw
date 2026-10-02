@@ -3,7 +3,7 @@ import { cloneSoundDefinition, isValidSoundDefinition, validateSoundDefinition }
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
-import { toCustomSoundName } from '../audio/soundName'
+import { isValidSoundName, toCustomSoundName } from '../audio/soundName'
 import { downloadJson } from '../utils/download'
 import { forEachYielding } from '../utils/scheduler'
 import { safeRecordEntries, STORAGE_KEYS, usePersistedState } from '../utils/storage'
@@ -132,7 +132,7 @@ export const useLibraryStore = defineStore('library', () => {
     const accepted: [string, SoundDefinition][] = []
 
     await forEachYielding(entries, ([name, definition]) => {
-      if (isValidSoundDefinition(definition)) {
+      if (isValidSoundName(name) && isValidSoundDefinition(definition)) {
         accepted.push([toCustomSoundName(name), cloneSoundDefinition(definition)])
       }
     })
@@ -143,8 +143,9 @@ export const useLibraryStore = defineStore('library', () => {
       throw new Error('No valid sound definitions found in that file.')
     }
 
-    customSounds.value = { ...customSounds.value, ...Object.fromEntries(accepted) }
-    registerAll(Object.fromEntries(accepted))
+    const imported = Object.fromEntries(accepted)
+    registerAll(imported)
+    customSounds.value = { ...customSounds.value, ...imported }
 
     const result: ImportResult = { imported: accepted.length, skipped: entries.length - accepted.length }
     playback.cue('save')
@@ -178,11 +179,12 @@ export const useLibraryStore = defineStore('library', () => {
   }
 })
 
-// Persisted data is untrusted: drops prototype-polluting keys and invalid definitions
-function sanitizeSoundMap(raw: unknown): Record<string, SoundDefinition> {
+// Persisted data is untrusted
+export function sanitizeSoundMap(raw: unknown): Record<string, SoundDefinition> {
   const sounds: Record<string, SoundDefinition> = {}
   for (const [name, definition] of safeRecordEntries(raw)) {
-    if (isValidSoundDefinition(definition)) {
+    // Drops only names SoundManager rejects: save() never enforced SOUND_NAME_PATTERN
+    if (name !== '' && isValidSoundDefinition(definition)) {
       // Migrates sounds saved before preset names were reserved
       sounds[toCustomSoundName(name)] = definition
     }

@@ -1,9 +1,9 @@
 import { setAudioContextInstance } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeAudioContext } from '../testing/fakeAudioContext'
-import { useLibraryStore } from './library'
+import { sanitizeSoundMap, useLibraryStore } from './library'
 import { usePlaybackStore } from './playback'
 
 describe('library store', () => {
@@ -68,6 +68,30 @@ describe('library store', () => {
     expect(usePlaybackStore().soundManager.get('tap')?.definition).toEqual(DEFAULT_SOUNDS.tap)
   })
 
+  it('skips imported sounds with invalid names', async () => {
+    const library = useLibraryStore()
+
+    const result = await library.importPack(JSON.stringify({
+      '': { frequency: 440 },
+      'bad!': { frequency: 440 },
+      'mine': { frequency: 440 },
+    }))
+
+    expect(result).toEqual({ imported: 1, skipped: 2 })
+    expect(Object.keys(library.customSounds)).toEqual(['mine'])
+  })
+
+  it('persists nothing when registering an imported sound fails', async () => {
+    const library = useLibraryStore()
+    vi.spyOn(usePlaybackStore().soundManager, 'register').mockImplementation(() => {
+      throw new TypeError('Invalid sound name provided.')
+    })
+
+    await expect(library.importPack(JSON.stringify({ mine: { frequency: 440 } }))).rejects.toThrow(TypeError)
+
+    expect(library.customSounds).toEqual({})
+  })
+
   it('stops offering a deleted sound for playback', () => {
     const library = useLibraryStore()
     library.save('mine', { frequency: 440 })
@@ -75,5 +99,19 @@ describe('library store', () => {
     library.remove('mine')
 
     expect(usePlaybackStore().soundManager.has('mine')).toBe(false)
+  })
+})
+
+describe('sanitizeSoundMap', () => {
+  it('drops a stored sound with an empty name', () => {
+    const sounds = sanitizeSoundMap({ '': { frequency: 440 }, 'mine': { frequency: 440 } })
+
+    expect(Object.keys(sounds)).toEqual(['mine'])
+  })
+
+  it('keeps a stored sound whose name the save form would reject', () => {
+    const sounds = sanitizeSoundMap({ 'kick.v2': { frequency: 440 } })
+
+    expect(sounds).toHaveProperty(['kick.v2'])
   })
 })
