@@ -142,10 +142,8 @@ export const usePlaybackStore = defineStore('playback', () => {
 
   function stop(name?: string): void {
     if (name) {
+      // Each stopped handle settles its promise, which releases its voice
       soundManager.get(name)?.stop()
-      if ((activeSoundCounts.value[name] ?? 0) > 0) {
-        releaseVoice(name)
-      }
     }
     else {
       stopAll()
