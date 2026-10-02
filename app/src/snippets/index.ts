@@ -17,6 +17,23 @@ function toIdentifier(name: string): string {
   return /^\d/.test(cleaned) ? `_${cleaned}` : cleaned || 'customSound'
 }
 
+const STRICT_RESERVED_WORDS = `arguments await break case catch class const continue debugger
+  default delete do else enum eval export extends false finally for function if implements
+  import in instanceof interface let new null package private protected public return static
+  super switch this throw true try typeof var void while with yield`.split(/\s+/)
+const CORE_SNIPPET_BINDINGS = ['Sound', 'SoundManager', 'sounds', 'handle']
+const UNAVAILABLE_NAMES = new Set([...STRICT_RESERVED_WORDS, ...CORE_SNIPPET_BINDINGS])
+
+function toVariableName(name: string): string {
+  const identifier = toIdentifier(name)
+  return UNAVAILABLE_NAMES.has(identifier) ? `_${identifier}` : identifier
+}
+
+function toStringLiteral(value: string): string {
+  const escaped = JSON.stringify(value).slice(1, -1).replaceAll('\\"', '"').replaceAll('\'', '\\\'')
+  return `'${escaped}'`
+}
+
 export function buildRegisterAllSnippet(sounds: Record<string, SoundDefinition>): Snippet {
   const names = Object.keys(sounds)
   const [firstName] = names
@@ -32,13 +49,15 @@ export function buildRegisterAllSnippet(sounds: Record<string, SoundDefinition>)
 export const sounds = new SoundManager()
   .registerAll(${JSON.stringify(sounds, null, 2)})
 
-await sounds.play('${firstName ?? 'customSound'}')`,
+await sounds.play(${toStringLiteral(firstName ?? 'customSound')})`,
   }
 }
 
 export function buildSnippets(name: string, definition: SoundDefinition): Snippet[] {
   const soundName = name || 'customSound'
   const identifier = toIdentifier(soundName)
+  const variableName = toVariableName(soundName)
+  const nameLiteral = toStringLiteral(soundName)
   const json = JSON.stringify(definition, null, 2)
   const waveSetup = resolvePartials(definition)
     ? `osc.setPeriodicWave(ctx.createPeriodicWave(
@@ -59,12 +78,12 @@ export function buildSnippets(name: string, definition: SoundDefinition): Snippe
 } from '@rjvr/buzzsaw'
 
 // Registry: name once, play anywhere
-const sounds = new SoundManager().register('${soundName}', ${json})
-await sounds.play('${soundName}')
+const sounds = new SoundManager().register(${nameLiteral}, ${json})
+await sounds.play(${nameLiteral})
 
 // Or hold a single sound directly
-const ${identifier} = new Sound('${soundName}', ${json})
-const handle = await ${identifier}.play({ volume: 0.8 })
+const ${variableName} = new Sound(${nameLiteral}, ${json})
+const handle = await ${variableName}.play({ volume: 0.8 })
 handle.stop()`,
     },
     {
@@ -77,7 +96,7 @@ handle.stop()`,
 const definition = ${json}
 
 // Save straight to the user's downloads
-await WavExporter.downloadWav(definition, '${soundName}.wav')
+await WavExporter.downloadWav(definition, ${toStringLiteral(`${soundName}.wav`)})
 
 // Or keep the bytes: 44.1 kHz, 16-bit mono
 const blob = await WavExporter.renderToWavBlob(definition, {
