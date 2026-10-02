@@ -91,8 +91,8 @@ export const useCreatorStore = defineStore('creator', () => {
         ? clampPitch(s.fixedFrequency)
         : { start: clampPitch(s.frequencyStart), steps: s.frequencySteps.map(clampFrequencyStep) },
       gain: s.gainMode === 'fixed'
-        ? Math.max(MIN_GAIN, s.fixedGain)
-        : { start: Math.max(MIN_GAIN, s.gainStart), steps: s.gainSteps.map(clampGainStep) },
+        ? clampGain(s.fixedGain, MIN_GAIN)
+        : { start: clampGain(s.gainStart, MIN_GAIN), steps: s.gainSteps.map(clampGainStep) },
     }
   })
 
@@ -265,8 +265,13 @@ function clampFrequencyStep(step: SoundStep): SoundStep {
   return { value: clampPitch(step.value), time: Math.max(0, step.time || 0) }
 }
 
+// Number inputs accept typed values beyond their max attribute
+function clampGain(value: number, min: number): number {
+  return clamp(value || 0, min, CREATOR_LIMITS.gain.max)
+}
+
 function clampGainStep(step: SoundStep): SoundStep {
-  return { value: Math.max(0, step.value || 0), time: Math.max(0, step.time || 0) }
+  return { value: clampGain(step.value, 0), time: Math.max(0, step.time || 0) }
 }
 
 function byTime(a: SoundStep, b: SoundStep): number {
