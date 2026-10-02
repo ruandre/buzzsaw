@@ -136,7 +136,8 @@ function scheduleGain(
 
   const isStepped = resolveInterpolation(gain, DEFAULT_GAIN_INTERPOLATION) === 'step'
   const steps = orderedSteps(gain)
-  scheduleEnvelopeAttack(param, toLevel(finiteOr(gain.start, DEFAULT_ENVELOPE_GAIN)), steps, schedule)
+  const startLevel = toLevel(finiteOr(gain.start, DEFAULT_ENVELOPE_GAIN))
+  scheduleEnvelopeAttack(param, startLevel, steps, schedule)
   for (const step of steps) {
     const at = stepTime(step.time, schedule)
     if (isStepped) {
@@ -149,7 +150,7 @@ function scheduleGain(
 
   // A stepless envelope holds its start level, which decays like any other
   const lastStep = steps[steps.length - 1]
-  const heldLevel = toLevel(lastStep?.value ?? gain.start)
+  const heldLevel = lastStep ? toLevel(lastStep.value) : startLevel
   const rampStart = Math.max(schedule.start + (lastStep?.time ?? 0), schedule.decayStart)
 
   if (heldLevel > SILENT_GAIN && rampStart < schedule.end) {

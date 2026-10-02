@@ -346,6 +346,20 @@ describe('scheduling against a running context clock', () => {
     expect(gain.gain.setValueAtTime).toHaveBeenCalledWith(0.5, CONTEXT_TIME + 0.4)
     expect(gain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.0001, CONTEXT_TIME + 0.5)
   })
+
+  it('decays a stepless envelope with a non-finite start from the level the sampler reports', () => {
+    const definition: SoundDefinition = {
+      frequency: 440,
+      gain: { start: Number.NaN, steps: [] },
+      duration: 0.5,
+      decay: 0.1,
+    }
+
+    const gain = playAt(definition, CONTEXT_TIME)
+
+    expect(gain.gain.setValueAtTime).toHaveBeenCalledWith(sampleGainAtTime(definition, 0.3), CONTEXT_TIME + 0.4)
+    expect(gain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.0001, CONTEXT_TIME + 0.5)
+  })
 })
 
 describe('playSoundFromDefinition with non-finite fields', () => {
