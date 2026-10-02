@@ -1,6 +1,6 @@
 import type { MockAudioContext, MockGainNode } from './testing/mockAudioContext.js'
 import type { SoundDefinition } from './types.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { playSoundFromDefinition, validateSoundDefinition } from './soundPlayer.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
 import { sampleFrequencyAtTime, sampleGainAtTime } from './utils.js'
@@ -234,6 +234,31 @@ describe('soundPlayer playSoundFromDefinition', () => {
     finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('wall-clock fallbacks', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('arms a fallback timer for a realtime context', () => {
+    playSoundFromDefinition(createMockAudioContext(), { duration: 0.5, frequency: 440 })
+
+    expect(vi.getTimerCount()).toBe(1)
+  })
+
+  it('leaves no timer behind on an offline context, which renders faster than real time', () => {
+    const offlineContext = Object.assign(createMockAudioContext(), { startRendering: vi.fn() })
+
+    const handle = playSoundFromDefinition(offlineContext, { duration: 0.5, frequency: 440 })
+    handle.stop()
+
+    expect(vi.getTimerCount()).toBe(0)
   })
 })
 

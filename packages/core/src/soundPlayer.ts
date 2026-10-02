@@ -240,6 +240,10 @@ function startPlayback(
 
   const durationSec = Math.max(0, schedule.end - schedule.start)
   let safetyTimeout: ReturnType<typeof setTimeout> | undefined
+  // Offline render outpaces wall clock; fallback timer would outlive it
+  const isOffline = 'startRendering' in audioContext
+  const armFallback = (callback: () => void, delayMs: number) =>
+    isOffline ? undefined : setTimeout(callback, delayMs)
 
   const finish = () => {
     if (!isPlaying) {
@@ -254,9 +258,7 @@ function startPlayback(
   }
 
   // Safety timeout in case browser delays oscillator.onended
-  safetyTimeout = setTimeout(() => {
-    finish()
-  }, Math.max(100, Math.ceil((durationSec + 0.1) * 1000)))
+  safetyTimeout = armFallback(finish, Math.max(100, Math.ceil((durationSec + 0.1) * 1000)))
 
   oscillator.onended = finish
 
@@ -283,7 +285,7 @@ function startPlayback(
       oscillator.stop(now + STOP_FADE_S + 0.001)
       // Disconnecting now would cut the fade short and click
       oscillator.onended = disconnect
-      safetyTimeout = setTimeout(disconnect, Math.ceil((STOP_FADE_S + 0.1) * 1000))
+      safetyTimeout = armFallback(disconnect, Math.ceil((STOP_FADE_S + 0.1) * 1000))
     }
     catch {
       // Context closed or node already stopped
