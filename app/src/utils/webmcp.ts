@@ -1,5 +1,7 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
+import { validateSoundDefinition } from '@rjvr/buzzsaw'
 import { getSoundCategory, SOUND_CATEGORIES } from '../audio/categories'
+import { isValidSoundName, SOUND_NAME_RULE } from '../audio/soundName'
 import { useAiStore, useLibraryStore, usePlaybackStore, useUiStore } from '../stores'
 
 // WebMCP tool registration for in-browser AI agents
@@ -38,7 +40,7 @@ export function registerWebMcpTools(): (() => void) | null {
   const ui = useUiStore()
 
   const findSound = (name: string): SoundDefinition | undefined =>
-    library.presets[name] ?? library.customSounds[name]
+    ownEntry(library.presets, name) ?? ownEntry(library.customSounds, name)
 
   const controller = new AbortController()
   const register = (tool: ToolDefinition) =>
@@ -127,6 +129,9 @@ export function registerWebMcpTools(): (() => void) | null {
         gain?: number
         saveToLibrary?: boolean
       }) {
+        if (typeof input.name !== 'string' || !isValidSoundName(input.name)) {
+          return { success: false, error: `Invalid name "${input.name}". ${SOUND_NAME_RULE}` }
+        }
         const definition: SoundDefinition = {
           waveType: input.waveType ?? 'sine',
           frequency: input.frequency,
@@ -135,11 +140,14 @@ export function registerWebMcpTools(): (() => void) | null {
           decay: input.decay ?? 0.1,
           gain: input.gain ?? 0.4,
         }
-        if (input.saveToLibrary) {
-          library.save(input.name, definition)
+        const errors = validateSoundDefinition(definition)
+        if (errors.length > 0) {
+          return { success: false, error: errors.join(' ') }
         }
-        await playback.play(input.name, definition)
-        return { success: true, name: input.name, definition, saved: Boolean(input.saveToLibrary) }
+        const savedAs = input.saveToLibrary ? library.save(input.name, definition) : null
+        const name = savedAs ?? input.name
+        await playback.play(name, definition)
+        return { success: true, name, definition, saved: savedAs !== null }
       },
     })
 
@@ -229,6 +237,11 @@ async function reportResult(run: () => Promise<{
   catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Sound generation failed.' }
   }
+}
+
+// Agent-supplied names must not resolve to inherited members such as "constructor"
+function ownEntry(sounds: Record<string, SoundDefinition>, name: string): SoundDefinition | undefined {
+  return Object.hasOwn(sounds, name) ? sounds[name] : undefined
 }
 
 function resolveModelContext(): ModelContext | null {
