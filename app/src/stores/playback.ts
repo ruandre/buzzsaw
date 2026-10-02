@@ -1,6 +1,6 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 import type { UiSound } from '../audio/uiSounds'
-import { ensureAudioContextReady, MASTER_VOLUME_MIN, SoundManager } from '@rjvr/buzzsaw'
+import { ensureAudioContextReady, MASTER_VOLUME_MIN, SoundManager, SoundValidationError } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { defineStore } from 'pinia'
 import { computed, markRaw, ref, watch } from 'vue'
@@ -90,11 +90,11 @@ export const usePlaybackStore = defineStore('playback', () => {
   }
 
   async function schedule(name: string, definition?: SoundDefinition): Promise<void> {
-    if (definition) {
-      soundManager.register(name, definition)
-    }
-
     try {
+      if (definition) {
+        soundManager.register(name, definition)
+      }
+
       const handle = await soundManager.play(name)
       if (!handle) {
         return
@@ -114,7 +114,9 @@ export const usePlaybackStore = defineStore('playback', () => {
     }
     catch (error) {
       console.error(`Error playing sound "${name}":`, error)
-      notifications.reportError(`Could not play "${name}". Browsers block audio until you interact with the page.`)
+      notifications.reportError(error instanceof SoundValidationError
+        ? `Could not play "${name}": ${error.errors[0]}`
+        : `Could not play "${name}". Browsers block audio until you interact with the page.`)
     }
   }
 

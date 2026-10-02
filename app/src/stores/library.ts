@@ -1,5 +1,5 @@
 import type { SoundDefinition, SoundPack } from '@rjvr/buzzsaw'
-import { cloneSoundDefinition, isValidSoundDefinition } from '@rjvr/buzzsaw'
+import { cloneSoundDefinition, isValidSoundDefinition, validateSoundDefinition } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
@@ -60,14 +60,22 @@ export const useLibraryStore = defineStore('library', () => {
     )
   }
 
-  /** Saves sound definition under name, overwriting existing entry */
-  function save(name: string, definition: SoundDefinition): void {
+  /** Saves under the trimmed name, overwriting an existing entry; returns that name, or null if the definition is invalid */
+  function save(name: string, definition: SoundDefinition): string | null {
     const soundName = name.trim() || 'unnamed_sound'
+    const errors = validateSoundDefinition(definition)
+    if (errors.length > 0) {
+      playback.cue('error')
+      notifications.reportError(`Could not save "${soundName}": ${errors[0]}`)
+      return null
+    }
+
     const stored = cloneSoundDefinition(definition)
-    customSounds.value = { ...customSounds.value, [soundName]: stored }
     playback.soundManager.register(soundName, stored)
+    customSounds.value = { ...customSounds.value, [soundName]: stored }
     playback.cue('save')
     notifications.confirm(`Saved "${soundName}" to your library`)
+    return soundName
   }
 
   function remove(name: string): void {
