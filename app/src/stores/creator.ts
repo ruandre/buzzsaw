@@ -1,6 +1,14 @@
-import type { SoundDefinition, SoundStep } from '@rjvr/buzzsaw'
+import type { EnvelopeDefinition, EnvelopeInterpolation, SoundDefinition, SoundStep } from '@rjvr/buzzsaw'
 import type { Archetype } from '../audio/archetypes'
-import { clamp, isEnvelope, round } from '@rjvr/buzzsaw'
+import {
+  clamp,
+  DEFAULT_ATTACK_S,
+  DEFAULT_DECAY_S,
+  DEFAULT_DURATION_S,
+  isEnvelope,
+  MAX_FREQUENCY_HZ,
+  round,
+} from '@rjvr/buzzsaw'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { findArchetype } from '../audio/archetypes'
@@ -19,10 +27,12 @@ export interface CreatorState {
   fixedFrequency: number
   frequencyStart: number
   frequencySteps: SoundStep[]
+  frequencyInterpolation?: EnvelopeInterpolation
   gainMode: ParameterMode
   fixedGain: number
   gainStart: number
   gainSteps: SoundStep[]
+  gainInterpolation?: EnvelopeInterpolation
   duration: number
   attack: number
   decay: number
@@ -80,7 +90,7 @@ export const useCreatorStore = defineStore('creator', () => {
     const s = state.value
     const duration = Math.max(CREATOR_LIMITS.duration.min, s.duration || DEFAULT_CREATOR_STATE.duration)
     const attack = clamp(s.attack || 0, 0, duration)
-    const decay = clamp(s.decay || 0, 0, Math.max(MIN_GAIN, duration - attack))
+    const decay = clamp(s.decay || 0, 0, duration - attack)
 
     return {
       ...resolveTimbre(s),
@@ -88,11 +98,11 @@ export const useCreatorStore = defineStore('creator', () => {
       attack,
       decay,
       frequency: s.frequencyMode === 'fixed'
-        ? clampPitch(s.fixedFrequency)
-        : { start: clampPitch(s.frequencyStart), steps: s.frequencySteps.map(clampFrequencyStep) },
+        ? clampFrequency(s.fixedFrequency)
+        : toEnvelope(clampFrequency(s.frequencyStart), s.frequencySteps.map(clampFrequencyStep), s.frequencyInterpolation),
       gain: s.gainMode === 'fixed'
         ? clampGain(s.fixedGain, MIN_GAIN)
-        : { start: clampGain(s.gainStart, MIN_GAIN), steps: s.gainSteps.map(clampGainStep) },
+        : toEnvelope(clampGain(s.gainStart, MIN_GAIN), s.gainSteps.map(clampGainStep), s.gainInterpolation),
     }
   })
 
@@ -117,15 +127,17 @@ export const useCreatorStore = defineStore('creator', () => {
       frequencySteps: isEnvelope(frequency)
         ? frequency.steps.map(step => ({ ...step }))
         : [{ value: Math.round(baseFrequency * 1.5), time: 0.1 }],
+      frequencyInterpolation: isEnvelope(frequency) ? frequency.interpolation : undefined,
       gainMode: isEnvelope(gain) ? 'steps' : 'fixed',
       fixedGain: baseGain,
       gainStart: baseGain,
       gainSteps: isEnvelope(gain)
         ? gain.steps.map(step => ({ ...step }))
         : [{ value: MIN_GAIN, time: 0.2 }],
-      duration: source.duration ?? DEFAULT_CREATOR_STATE.duration,
-      attack: source.attack ?? DEFAULT_CREATOR_STATE.attack,
-      decay: source.decay ?? DEFAULT_CREATOR_STATE.decay,
+      gainInterpolation: isEnvelope(gain) ? gain.interpolation : undefined,
+      duration: source.duration ?? DEFAULT_DURATION_S,
+      attack: source.attack ?? DEFAULT_ATTACK_S,
+      decay: source.decay ?? DEFAULT_DECAY_S,
     }
     notifications.announce(`Loaded "${name}" into the synthesizer`, 'info', 'polite')
   }
@@ -261,8 +273,17 @@ function clampPitch(hz: number): number {
   return clamp(hz || DEFAULT_CREATOR_STATE.fixedFrequency, MIN_PITCH_HZ, MAX_PITCH_HZ)
 }
 
+// Compiled output spans core's range; UI controls keep pitch range
+function clampFrequency(hz: number): number {
+  return hz > 0 ? Math.min(hz, MAX_FREQUENCY_HZ) : DEFAULT_CREATOR_STATE.fixedFrequency
+}
+
 function clampFrequencyStep(step: SoundStep): SoundStep {
-  return { value: clampPitch(step.value), time: Math.max(0, step.time || 0) }
+  return { value: clampFrequency(step.value), time: Math.max(0, step.time || 0) }
+}
+
+function toEnvelope(start: number, steps: SoundStep[], interpolation?: EnvelopeInterpolation): EnvelopeDefinition {
+  return interpolation ? { start, steps, interpolation } : { start, steps }
 }
 
 // Number inputs accept typed values beyond their max attribute
