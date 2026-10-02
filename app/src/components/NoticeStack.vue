@@ -13,21 +13,19 @@ const TONE_STYLES: Record<NoticeTone, { icon: string, accent: string }> = {
   error: { icon: 'i-ph-warning-octagon-bold', accent: 'text-danger-ink border-danger/40' },
 }
 
-const politeMessages = computed(() =>
-  notifications.notices.filter(notice => notice.urgency === 'polite').map(notice => notice.message))
-const assertiveMessages = computed(() =>
-  notifications.notices.filter(notice => notice.urgency === 'assertive').map(notice => notice.message))
+const politeNotices = computed(() => notifications.notices.filter(notice => notice.urgency === 'polite'))
+const assertiveNotices = computed(() => notifications.notices.filter(notice => notice.urgency === 'assertive'))
 </script>
 
 <template>
   <div class="sr-only" aria-live="polite" aria-atomic="false">
-    <p v-for="(message, index) in politeMessages" :key="index">
-      {{ message }}
+    <p v-for="notice in politeNotices" :key="notice.id">
+      {{ notice.message }}
     </p>
   </div>
   <div class="sr-only" aria-live="assertive" aria-atomic="false">
-    <p v-for="(message, index) in assertiveMessages" :key="index">
-      {{ message }}
+    <p v-for="notice in assertiveNotices" :key="notice.id">
+      {{ notice.message }}
     </p>
   </div>
 
