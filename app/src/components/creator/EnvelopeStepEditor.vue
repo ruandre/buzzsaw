@@ -23,12 +23,25 @@ const emit = defineEmits<{
   (e: 'remove', index: number): void
   (e: 'sort'): void
 }>()
+
+// Keyed by step identity, not position, so a row and its focus follow a step that sorting moves
+const stepKeys = new WeakMap<SoundStep, number>()
+let nextStepKey = 0
+
+function keyOf(step: SoundStep): number {
+  let key = stepKeys.get(step)
+  if (key === undefined) {
+    key = nextStepKey++
+    stepKeys.set(step, key)
+  }
+  return key
+}
 </script>
 
 <template>
   <div class="space-y-2.5">
     <ol v-if="steps.length > 0" class="max-h-44 overflow-y-auto pr-1 space-y-2">
-      <li v-for="(step, index) in steps" :key="index" class="step-row flex-wrap items-center gap-1.5 p-2 sm:gap-2">
+      <li v-for="(step, index) in steps" :key="keyOf(step)" class="step-row flex-wrap items-center gap-1.5 p-2 sm:gap-2">
         <span class="w-5 select-none text-xs text-ink-subtle font-bold">#{{ index + 1 }}</span>
 
         <label :for="`${idPrefix}-value-${index}`" class="sr-only">
