@@ -126,6 +126,24 @@ describe('wavEncoder', () => {
     expect([view.getUint8(44), view.getUint8(45), view.getUint8(46)]).toEqual([0, 128, 255])
   })
 
+  it('rounds 16-bit samples to the nearest step instead of flooring toward negative infinity', () => {
+    const samples = Float32Array.of(-0.4 / 0x8000, 0.6 / 0x7FFF, -1, 1)
+    const view = new DataView(WavEncoder.encode([samples], { bitDepth: 16 }))
+
+    const decoded = [0, 1, 2, 3].map(index => view.getInt16(44 + index * 2, true))
+    expect(decoded).toEqual([0, 1, -0x8000, 0x7FFF])
+  })
+
+  it('rounds 24-bit samples to the nearest step instead of flooring toward negative infinity', () => {
+    const samples = Float32Array.of(-0.4 / 0x800000, 0.6 / 0x7FFFFF, -1, 1)
+    const view = new DataView(WavEncoder.encode([samples], { bitDepth: 24 }))
+
+    const readInt24 = (offset: number) =>
+      ((view.getUint8(offset) | (view.getUint8(offset + 1) << 8) | (view.getUint8(offset + 2) << 16)) << 8) >> 8
+    const decoded = [0, 1, 2, 3].map(index => readInt24(44 + index * 3))
+    expect(decoded).toEqual([0, 1, -0x800000, 0x7FFFFF])
+  })
+
   it('pads an odd-length data chunk to an even size, as RIFF requires', () => {
     const arrayBuffer = WavEncoder.encode([new Float32Array(3)], { bitDepth: 8 })
     const view = new DataView(arrayBuffer)

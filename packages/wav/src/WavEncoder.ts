@@ -264,7 +264,7 @@ function normalizeSample(value: number | undefined): number {
 
 // Maps [-1, 1] onto asymmetric signed integer range for target bit depth
 function toSignedInt(sample: number, negativeScale: number, positiveScale: number): number {
-  const scaled = sample < 0 ? Math.floor(sample * negativeScale) : Math.floor(sample * positiveScale)
+  const scaled = Math.round(sample * (sample < 0 ? negativeScale : positiveScale))
   return clamp(scaled, -negativeScale, positiveScale)
 }
 
