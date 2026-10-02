@@ -9,7 +9,7 @@ vi.mock('../ai', () => ({
   designSound: vi.fn(),
   redesignSound: vi.fn(),
 }))
-vi.mock('./playback', () => ({ usePlaybackStore: () => ({ play: vi.fn(), cue: vi.fn() }) }))
+vi.mock('./playback', () => ({ usePlaybackStore: () => ({ play: vi.fn(), audition: vi.fn(), cue: vi.fn() }) }))
 vi.mock('./library', () => ({ useLibraryStore: () => ({ save: vi.fn() }) }))
 vi.mock('./notifications', () => ({
   useNotificationsStore: () => ({ announce: vi.fn(), confirm: vi.fn(), reportError: vi.fn() }),

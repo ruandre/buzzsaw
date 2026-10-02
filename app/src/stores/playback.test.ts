@@ -39,4 +39,43 @@ describe('playback store voices', () => {
     expect(useNotificationsStore().notices.at(-1)?.tone).toBe('error')
     expect(playback.activeVoices).toBe(0)
   })
+
+  it('auditions an unsaved definition without replacing the saved sound it is named after', async () => {
+    const playback = usePlaybackStore()
+    playback.soundManager.register('laser', { frequency: 300 })
+
+    await playback.audition('laser', { frequency: 1200 })
+
+    expect(playback.soundManager.get('laser')?.definition.frequency).toBe(300)
+    expect(playback.isSoundPlaying('laser')).toBe(true)
+    expect(playback.currentSound).toBe('laser')
+  })
+
+  it('stops an audition by its name', async () => {
+    const playback = usePlaybackStore()
+    await playback.audition('laser', { frequency: 1200 })
+
+    playback.stop('laser')
+    await settle()
+
+    expect(playback.isSoundPlaying('laser')).toBe(false)
+    expect(playback.activeVoices).toBe(0)
+  })
+
+  it('stops an audition with every other voice', async () => {
+    const playback = usePlaybackStore()
+    await playback.audition('laser', { frequency: 1200 })
+
+    playback.stopAll()
+
+    expect([...playback.soundManager.values()].some(sound => sound.isPlaying)).toBe(false)
+  })
+
+  it('keeps auditions out of recently played, which replays by name', async () => {
+    const playback = usePlaybackStore()
+
+    await playback.audition('laser', { frequency: 1200 })
+
+    expect(playback.recentlyPlayed).not.toContain('laser')
+  })
 })

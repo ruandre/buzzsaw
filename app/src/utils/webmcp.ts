@@ -147,7 +147,7 @@ export function registerWebMcpTools(): (() => void) | null {
         }
         const savedAs = input.saveToLibrary ? library.save(input.name, definition) : null
         const name = savedAs ?? toCustomSoundName(input.name)
-        await playback.play(name, definition)
+        await (savedAs ? playback.play(savedAs) : playback.audition(name, definition))
         return { success: true, name, definition, saved: savedAs !== null }
       },
     })

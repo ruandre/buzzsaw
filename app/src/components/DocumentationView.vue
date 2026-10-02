@@ -163,7 +163,7 @@ function selectPackageManager(manager: PackageManager): void {
                     type="button"
                     class="btn-primary flex-1 px-2 py-1 text-xs"
                     :aria-label="`Play ${example.name}`"
-                    @click="playback.play(example.name, example.definition)"
+                    @click="playback.audition(example.name, example.definition)"
                   >
                     <span class="i-ph-play-bold text-xs" aria-hidden="true" />
                     <span>Play</span>

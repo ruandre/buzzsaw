@@ -59,6 +59,15 @@ describe('webMCP tools', () => {
     expect(usePlaybackStore().soundManager.get('pop')?.definition.frequency).not.toBe(440)
   })
 
+  it('auditions an unsaved sound without replacing the saved sound it is named after', async () => {
+    const synthesize = registerTools().get('synthesize_sound')!
+    useLibraryStore().save('laser', { frequency: 300, duration: 0.2 })
+
+    await synthesize({ name: 'laser', frequency: 1200, duration: 0.2 })
+
+    expect(usePlaybackStore().soundManager.get('laser')?.definition.frequency).toBe(300)
+  })
+
   it('returns a structured error for an edit definition core would reject', async () => {
     const edit = registerTools().get('edit_sound_definition')!
 

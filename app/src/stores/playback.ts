@@ -13,6 +13,8 @@ export const MAX_MASTER_VOLUME = 1.5
 /** SoundManager key for creator preview playback */
 export const PREVIEW_SOUND = '__creator_preview__'
 
+const AUDITION_SOUND = '__audition__'
+
 const RECENT_LIMIT = 10
 const METER_DECAY_PER_FRAME = 0.06
 
@@ -29,6 +31,7 @@ export const usePlaybackStore = defineStore('playback', () => {
   const currentSound = ref<string | null>(null)
   const recentlyPlayed = ref<string[]>([])
   const outputLevel = ref(0)
+  let auditionName: string | null = null
 
   if (typeof window !== 'undefined') {
     const unlock = () => {
@@ -89,13 +92,13 @@ export const usePlaybackStore = defineStore('playback', () => {
     )
   }
 
-  async function schedule(name: string, definition?: SoundDefinition): Promise<void> {
+  async function schedule(name: string, definition?: SoundDefinition, key = name): Promise<void> {
     try {
       if (definition) {
-        soundManager.register(name, definition)
+        soundManager.register(key, definition)
       }
 
-      const handle = await soundManager.play(name)
+      const handle = await soundManager.play(key)
       if (!handle) {
         return
       }
@@ -142,10 +145,19 @@ export const usePlaybackStore = defineStore('playback', () => {
     await play(PREVIEW_SOUND, definition)
   }
 
+  /** Plays unsaved `definition` reported as `name`, leaving any sound registered as `name` intact; cuts previous audition */
+  async function audition(name: string, definition: SoundDefinition): Promise<void> {
+    auditionName = name
+    await schedule(name, definition, AUDITION_SOUND)
+  }
+
   function stop(name?: string): void {
     if (name) {
       // Each stopped handle settles its promise, which releases its voice
       soundManager.get(name)?.stop()
+      if (name === auditionName) {
+        soundManager.get(AUDITION_SOUND)?.stop()
+      }
     }
     else {
       stopAll()
@@ -200,6 +212,7 @@ export const usePlaybackStore = defineStore('playback', () => {
     play,
     cue,
     preview,
+    audition,
     stop,
     stopAll,
   }

@@ -87,7 +87,7 @@ watch(() => ai.isGenerating, (running, wasRunning) => {
   <ModulePanel title="Patch" icon="i-ph-waveform-bold">
     <template v-if="sound" #actions>
       <Tooltip content="Play">
-        <button type="button" class="btn-icon" :aria-label="`Play ${sound.name}`" @click="playback.play(sound.name, sound.definition)">
+        <button type="button" class="btn-icon" :aria-label="`Play ${sound.name}`" @click="playback.audition(sound.name, sound.definition)">
           <span class="i-ph-play-bold shrink-0 text-sm leading-none" aria-hidden="true" />
         </button>
       </Tooltip>

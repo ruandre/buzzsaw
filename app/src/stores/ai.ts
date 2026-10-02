@@ -130,10 +130,8 @@ export const useAiStore = defineStore('ai', () => {
       latest.value = entry
       history.value = [entry, ...history.value].slice(0, HISTORY_LIMIT)
 
-      if (options.saveToLibrary) {
-        library.save(entry.name, entry.definition)
-      }
-      await playback.play(entry.name, entry.definition)
+      const savedAs = options.saveToLibrary ? library.save(entry.name, entry.definition) : null
+      await (savedAs ? playback.play(savedAs) : playback.audition(entry.name, entry.definition))
 
       notifications.confirm(
         `Created "${entry.name}" ${entry.source === 'model' ? 'with the on-device model' : 'with the offline engine'}`,

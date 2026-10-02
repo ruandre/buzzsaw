@@ -70,7 +70,7 @@ function cancel(): void {
 
 function replay(entry: GeneratedSound): void {
   selected.value = entry
-  playback.play(entry.name, entry.definition)
+  playback.audition(entry.name, entry.definition)
 }
 
 onUnmounted(abortRun)
