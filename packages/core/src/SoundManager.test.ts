@@ -1,5 +1,5 @@
 import type { MockAudioContext } from './testing/mockAudioContext.js'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { setAudioContextInstance } from './audioManager.js'
 import { Sound } from './Sound.js'
 import { SoundManager } from './SoundManager.js'
@@ -113,6 +113,8 @@ describe('soundManager', () => {
   })
 
   it('resumes a suspended context it was given before playing', async () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    onTestFinished(() => consoleWarn.mockRestore())
     const context = Object.assign(mockCtx, {
       state: 'suspended',
       resume: vi.fn(async () => {
@@ -124,6 +126,7 @@ describe('soundManager', () => {
     await manager.play('pop')
 
     expect(context.resume).toHaveBeenCalledOnce()
+    expect(consoleWarn).toHaveBeenCalledOnce()
   })
 
   it('stops a playing sound when its name is registered again, so stopAll still reaches every voice', async () => {

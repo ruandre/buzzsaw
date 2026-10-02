@@ -1,6 +1,6 @@
 import { setAudioContextInstance } from '@rjvr/buzzsaw'
 import { createPinia, setActivePinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { createFakeAudioContext } from '../testing/fakeAudioContext'
 import { useNotificationsStore } from './notifications'
 import { usePlaybackStore } from './playback'
@@ -32,12 +32,15 @@ describe('playback store voices', () => {
   })
 
   it('reports an invalid definition instead of rejecting', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    onTestFinished(() => consoleError.mockRestore())
     const playback = usePlaybackStore()
 
     await expect(playback.preview({ frequency: 440, gain: 2 })).resolves.toBeUndefined()
 
     expect(useNotificationsStore().notices.at(-1)?.tone).toBe('error')
     expect(playback.activeVoices).toBe(0)
+    expect(consoleError).toHaveBeenCalledOnce()
   })
 
   it('auditions an unsaved definition without replacing the saved sound it is named after', async () => {
