@@ -36,6 +36,7 @@ export class SoundManager<Name extends string = never> {
   readonly #onMissing: (name: string) => void
   #bus: AudioBus | null = null
   #busContext: BaseAudioContextLike | null = null
+  #stopGeneration = 0
 
   constructor(options: SoundManagerOptions = {}) {
     this.#masterVolume = requireMasterVolume(options.masterVolume)
@@ -166,7 +167,11 @@ export class SoundManager<Name extends string = never> {
     return results
   }
 
-  /** Plays through the master bus. Resolves to null, via `onMissing`, if the name is unregistered */
+  /**
+   * Plays through the master bus. Resolves to null, via `onMissing`, if the name is unregistered.
+   * Resolves to null without `onMissing` if, while the context resumes, the name is unregistered
+   * or replaced, or `stopAll` runs.
+   */
   async play(name: PlayableName<Name>, options?: SoundPlaybackOptions): Promise<PlaybackHandle | null> {
     const sound = this.#lookup(name)
     if (!sound) {
@@ -174,7 +179,11 @@ export class SoundManager<Name extends string = never> {
       return null
     }
 
+    const stopGeneration = this.#stopGeneration
     const audioContext = await ensureAudioContextReady(this.#audioContext ?? undefined)
+    if (this.#lookup(name) !== sound || this.#stopGeneration !== stopGeneration) {
+      return null
+    }
 
     return sound.play({
       ...options,
@@ -201,7 +210,9 @@ export class SoundManager<Name extends string = never> {
     return this.#bus
   }
 
+  /** Also cancels plays still awaiting the context */
   stopAll(): void {
+    this.#stopGeneration++
     for (const sound of this.#sounds.values()) {
       sound.stop()
     }

@@ -249,6 +249,80 @@ describe('soundManager', () => {
   })
 })
 
+describe('soundManager play awaiting a suspended context', () => {
+  function suspendedContext() {
+    let resolveResume = () => {}
+    const context = Object.assign(createMockAudioContext(), {
+      state: 'suspended',
+      resume: vi.fn(() => new Promise<void>((resolve) => {
+        resolveResume = resolve
+      })),
+    })
+    const finishResume = () => {
+      context.state = 'running'
+      resolveResume()
+    }
+    return { context, finishResume }
+  }
+
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('starts the voice once the context resumes', async () => {
+    const { context, finishResume } = suspendedContext()
+    const manager = new SoundManager({ audioContext: context }).register('drone', { duration: 5, frequency: 100 })
+
+    const pending = manager.play('drone')
+    finishResume()
+
+    expect(await pending).not.toBeNull()
+    expect(context.oscillators).toHaveLength(1)
+  })
+
+  it('drops the play when its sound is unregistered before the context resumes', async () => {
+    const { context, finishResume } = suspendedContext()
+    const onMissing = vi.fn()
+    const manager = new SoundManager({ audioContext: context, onMissing }).register('drone', { duration: 5, frequency: 100 })
+
+    const pending = manager.play('drone')
+    manager.unregister('drone')
+    finishResume()
+
+    expect(await pending).toBeNull()
+    expect(context.oscillators).toHaveLength(0)
+    expect(onMissing).not.toHaveBeenCalled()
+  })
+
+  it('drops the play when its name is registered again before the context resumes', async () => {
+    const { context, finishResume } = suspendedContext()
+    const manager = new SoundManager({ audioContext: context }).register('drone', { duration: 5, frequency: 100 })
+
+    const pending = manager.play('drone')
+    manager.register('drone', { duration: 5, frequency: 200 })
+    finishResume()
+
+    expect(await pending).toBeNull()
+    expect(context.oscillators).toHaveLength(0)
+  })
+
+  it('cancels the play on stopAll before the context resumes', async () => {
+    const { context, finishResume } = suspendedContext()
+    const manager = new SoundManager({ audioContext: context }).register('drone', { duration: 5, frequency: 100 })
+
+    const pending = manager.play('drone')
+    manager.stopAll()
+    finishResume()
+
+    expect(await pending).toBeNull()
+    expect(context.oscillators).toHaveLength(0)
+  })
+})
+
 describe('soundManager audioContext getter', () => {
   afterEach(() => {
     vi.unstubAllGlobals()

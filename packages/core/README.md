@@ -284,8 +284,8 @@ const chained = new SoundManager().registerAll(DEFAULT_SOUNDS) // play accepts a
 - `unregister(name)`: stops any active playback of the sound and removes it. Returns `true` if removed.
 - `get(name)`: returns the `Sound` instance, or `undefined`.
 - `has(name)`: returns `true` if registered.
-- `play(name, options?)`: plays through the master bus. Returns `Promise<PlaybackHandle | null>` (`null` if unregistered). Options are `volume` and `pitchScale`; routing belongs to the manager, so use `Sound.play` if you need a custom `destination`.
-- `stopAll()`: immediately stops all playing voices across the registry.
+- `play(name, options?)`: plays through the master bus. Returns `Promise<PlaybackHandle | null>`: `null` if unregistered, or if the name is unregistered or replaced, or `stopAll()` runs, while the context resumes. Options are `volume` and `pitchScale`; routing belongs to the manager, so use `Sound.play` if you need a custom `destination`.
+- `stopAll()`: immediately stops all playing voices across the registry, and cancels plays still waiting for the context to resume.
 - `clear()`: stops all sounds and empties the registry.
 - `dispose()`: clears the registry and disconnects the master audio bus.
 - `list()`: returns an array of registered sound names, typed as the names `play` accepts.
