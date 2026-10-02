@@ -26,6 +26,9 @@ export interface GenerateOptions {
 
 const HISTORY_LIMIT = 30
 
+// Prompt API emits no availability-change event, so downloads are polled
+const DOWNLOAD_POLL_MS = 2000
+
 const CHECKING_STATUS: PromptApiStatus = {
   availability: 'unsupported',
   isSupported: false,
@@ -52,8 +55,14 @@ export const useAiStore = defineStore('ai', () => {
   const latest = ref<GeneratedSound | null>(history.value[0] ?? null)
   const hasHistory = computed(() => history.value.length > 0)
 
+  let downloadPoll: ReturnType<typeof setTimeout> | undefined
+
   async function refreshAvailability(): Promise<PromptApiStatus> {
     promptApi.value = await checkPromptApiAvailability()
+    clearTimeout(downloadPoll)
+    if (promptApi.value.availability === 'downloading') {
+      downloadPoll = setTimeout(refreshAvailability, DOWNLOAD_POLL_MS)
+    }
     return promptApi.value
   }
 
@@ -138,6 +147,8 @@ export const useAiStore = defineStore('ai', () => {
       isGenerating.value = false
       statusText.value = ''
       downloadPercent.value = null
+      // Generation may have downloaded the model
+      void refreshAvailability()
     }
   }
 
