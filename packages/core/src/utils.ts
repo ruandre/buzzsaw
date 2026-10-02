@@ -14,7 +14,7 @@ import {
   MIN_FREQUENCY_HZ,
   SILENT_GAIN,
 } from './constants.js'
-import { cloneEnvelope, isEnvelope, latestStepTime, orderedSteps, sampleEnvelopeValue } from './envelope.js'
+import { cloneEnvelope, isEnvelope, latestStepTime, orderedSteps, resolveInterpolation, sampleEnvelope, sampleEnvelopeValue } from './envelope.js'
 import { clamp, finiteOr } from './numeric.js'
 import { validateSoundDefinition } from './validation.js'
 
@@ -119,7 +119,7 @@ export function sampleGainAtTime(def: SoundDefinition, time: number, totalDurati
     const level = Math.max(0, sampleEnvelopeValue(envelope, time, DEFAULT_GAIN_INTERPOLATION))
     const attackEnd = Math.min(attack, firstStepTime(envelope) ?? attack)
     if (time < attackEnd) {
-      return attackLevel(level, time, attackEnd)
+      return attackLevel(envelopeAttackPeak(envelope, attackEnd), time, attackEnd)
     }
     // Mirrors soundPlayer: the decay ramp waits for both the last step and the decay window
     const decayFrom = Math.max(lastStepTime, decayStartTime)
@@ -174,6 +174,14 @@ function decayLevel(peak: number, time: number, decayStartTime: number, duration
     return SILENT_GAIN
   }
   return peak * (SILENT_GAIN / peak) ** clamp(decayProgress(time, decayStartTime, duration), 0, 1)
+}
+
+// Mirrors soundPlayer: linear attack lands on envelope's own line, stepped attack on start level
+function envelopeAttackPeak(envelope: EnvelopeDefinition, attackEnd: number): number {
+  const peak = resolveInterpolation(envelope, DEFAULT_GAIN_INTERPOLATION) === 'step'
+    ? envelope.start
+    : sampleEnvelope(envelope, attackEnd)
+  return Math.max(0, peak)
 }
 
 function firstStepTime(envelope: EnvelopeDefinition): number | undefined {

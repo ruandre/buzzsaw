@@ -1,4 +1,4 @@
-import type { MockAudioContext } from './testing/mockAudioContext.js'
+import type { MockAudioContext, MockGainNode } from './testing/mockAudioContext.js'
 import type { SoundDefinition } from './types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { playSoundFromDefinition, validateSoundDefinition } from './soundPlayer.js'
@@ -410,5 +410,94 @@ describe('playSoundFromDefinition with non-finite fields', () => {
       expect(context.gainNodes[0].gain.linearRampToValueAtTime)
         .toHaveBeenCalledWith(sampleGainAtTime(definition, 0.05), 0.05)
     }
+  })
+})
+
+type MockAudioParam = MockGainNode['gain']
+
+interface AutomationEvent {
+  kind: 'set' | 'linear' | 'exponential'
+  value: number
+  time: number
+  order: number
+}
+
+function automationEvents(param: MockAudioParam): AutomationEvent[] {
+  const recorded = (kind: AutomationEvent['kind'], method: MockAudioParam['setValueAtTime']) =>
+    method.mock.calls.map(([value, time], index): AutomationEvent =>
+      ({ kind, value, time, order: method.mock.invocationCallOrder[index] }))
+
+  return [
+    ...recorded('set', param.setValueAtTime),
+    ...recorded('linear', param.linearRampToValueAtTime),
+    ...recorded('exponential', param.exponentialRampToValueAtTime),
+  ].sort((a, b) => a.time - b.time || a.order - b.order)
+}
+
+// Web Audio spec: ramp runs from preceding event's value and time; last event's value holds
+function automatedValueAt(param: MockAudioParam, time: number): number {
+  const events = automationEvents(param)
+  const nextIndex = events.findIndex(event => event.time > time)
+  const next = nextIndex === -1 ? undefined : events[nextIndex]
+  const previous = events[(nextIndex === -1 ? events.length : nextIndex) - 1] ?? { value: param.value, time: 0 }
+
+  if (next === undefined || next.kind === 'set') {
+    return previous.value
+  }
+  const progress = (time - previous.time) / (next.time - previous.time)
+  if (next.kind === 'linear') {
+    return previous.value + (next.value - previous.value) * progress
+  }
+  // Spec holds previous value until ramp end when exponential ramp cannot cross zero
+  if (previous.value * next.value <= 0) {
+    return previous.value
+  }
+  return previous.value * (next.value / previous.value) ** progress
+}
+
+describe('sampleGainAtTime against scheduled playback', () => {
+  const timing = { frequency: 440, duration: 0.5, decay: 0.1 }
+
+  function playedGain(definition: SoundDefinition): MockAudioParam {
+    const context = createMockAudioContext()
+    playSoundFromDefinition(context, definition)
+    return context.gainNodes[0].gain
+  }
+
+  const sampleTimes = Array.from({ length: 501 }, (_, index) => index / 1000)
+
+  it.each([
+    ['linear envelope whose attack ends before its first step', {
+      ...timing,
+      attack: 0.05,
+      gain: { start: 0.2, steps: [{ value: 0.8, time: 0.1 }], interpolation: 'linear' as const },
+    }],
+    ['linear envelope whose attack outlasts its first step', {
+      ...timing,
+      attack: 0.2,
+      gain: { start: 0.2, steps: [{ value: 0.8, time: 0.1 }], interpolation: 'linear' as const },
+    }],
+    ['step envelope', {
+      ...timing,
+      attack: 0.05,
+      gain: { start: 0.2, steps: [{ value: 0.8, time: 0.1 }, { value: 0.3, time: 0.25 }], interpolation: 'step' as const },
+    }],
+    ['scalar gain', { ...timing, attack: 0.05, gain: 0.6 }],
+  ])('reports the gain playback schedules for a %s', (_, definition) => {
+    const gain = playedGain(definition)
+
+    for (const time of sampleTimes) {
+      expect(sampleGainAtTime(definition, time), `at ${time}s`).toBeCloseTo(automatedValueAt(gain, time), 6)
+    }
+  })
+
+  it('reaches a linear envelope\'s first step when the attack outlasts it, instead of jumping there', () => {
+    const gain = playedGain({
+      ...timing,
+      attack: 0.2,
+      gain: { start: 0.2, steps: [{ value: 0.8, time: 0.1 }], interpolation: 'linear' },
+    })
+
+    expect(automatedValueAt(gain, 0.0999)).toBeCloseTo(0.8, 2)
   })
 })

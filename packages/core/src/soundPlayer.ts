@@ -10,7 +10,7 @@ import {
   SILENT_GAIN,
   STOP_FADE_S,
 } from './constants.js'
-import { isEnvelope, orderedSteps, resolveInterpolation } from './envelope.js'
+import { isEnvelope, orderedSteps, resolveInterpolation, sampleEnvelope } from './envelope.js'
 import { finiteOr } from './numeric.js'
 import { applyWaveShape } from './oscillator.js'
 import { calculateEffectiveDuration, resolveEnvelopeTiming } from './utils.js'
@@ -136,8 +136,11 @@ function scheduleGain(
 
   const isStepped = resolveInterpolation(gain, DEFAULT_GAIN_INTERPOLATION) === 'step'
   const steps = orderedSteps(gain)
-  const startLevel = toLevel(finiteOr(gain.start, DEFAULT_ENVELOPE_GAIN))
-  scheduleEnvelopeAttack(param, startLevel, steps, schedule)
+  const envelope = { ...gain, start: finiteOr(gain.start, DEFAULT_ENVELOPE_GAIN) }
+  const startLevel = toLevel(envelope.start)
+  // Linear attack lands on envelope's own line so ramp to first step continues without jump
+  const attackPeakAt = (time: number) => isStepped ? startLevel : toLevel(sampleEnvelope(envelope, time - schedule.start))
+  scheduleEnvelopeAttack(param, attackPeakAt, steps, schedule)
   for (const step of steps) {
     const at = stepTime(step.time, schedule)
     if (isStepped) {
@@ -166,7 +169,7 @@ function scheduleGain(
 // Envelope gain gets the ramp-in a scalar gain gets, yielding to a step authored before it ends
 function scheduleEnvelopeAttack(
   param: AudioParamLike,
-  startLevel: number,
+  peakAt: (time: number) => number,
   steps: SoundStep[],
   schedule: PlaybackSchedule,
 ): void {
@@ -176,12 +179,12 @@ function scheduleEnvelopeAttack(
     : Math.min(schedule.attackEnd, stepTime(firstStep.time, schedule))
 
   if (attackEnd <= schedule.start) {
-    param.setValueAtTime(startLevel, schedule.start)
+    param.setValueAtTime(peakAt(schedule.start), schedule.start)
     return
   }
 
   param.setValueAtTime(SILENT_GAIN, schedule.start)
-  param.linearRampToValueAtTime(startLevel, attackEnd)
+  param.linearRampToValueAtTime(peakAt(attackEnd), attackEnd)
 }
 
 function scheduleFixedGain(
