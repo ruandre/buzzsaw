@@ -43,6 +43,9 @@ const isVisible = useElementVisibility(container, { rootMargin: '300px' })
 let animationFrame: number | null = null
 let playStartedAt = 0
 
+// Tracing samples thousands of points; animation frames reuse it and only move the playhead
+let cachedTrace: { width: number, height: number, columns: TraceColumn[] } | null = null
+
 const durationMs = computed(() => Math.round(calculateEffectiveDuration(props.definition) * 1000))
 
 const ariaLabel = computed(() => {
@@ -127,12 +130,11 @@ function draw(): void {
   const canvasWidth = Math.max(1, Math.round(width.value) || element.clientWidth)
   const canvasHeight = props.height
 
-  element.width = Math.round(canvasWidth * dpr)
-  element.height = Math.round(canvasHeight * dpr)
+  resizeCanvas(element, Math.round(canvasWidth * dpr), Math.round(canvasHeight * dpr))
   element.style.height = `${canvasHeight}px`
 
   const theme = getScopeTheme({ isPlaying: props.isPlaying })
-  const columns = traceWaveform(canvasWidth, canvasHeight)
+  const columns = tracedColumns(canvasWidth, canvasHeight)
 
   context.save()
   context.scale(dpr, dpr)
@@ -153,6 +155,23 @@ function draw(): void {
   }
 
   context.restore()
+}
+
+// Assigning a canvas dimension reallocates its backing store, even to the same value
+function resizeCanvas(element: HTMLCanvasElement, pixelWidth: number, pixelHeight: number): void {
+  if (element.width !== pixelWidth) {
+    element.width = pixelWidth
+  }
+  if (element.height !== pixelHeight) {
+    element.height = pixelHeight
+  }
+}
+
+function tracedColumns(canvasWidth: number, canvasHeight: number): TraceColumn[] {
+  if (cachedTrace?.width !== canvasWidth || cachedTrace.height !== canvasHeight) {
+    cachedTrace = { width: canvasWidth, height: canvasHeight, columns: traceWaveform(canvasWidth, canvasHeight) }
+  }
+  return cachedTrace.columns
 }
 
 type ScopeTheme = ReturnType<typeof getScopeTheme>
@@ -332,6 +351,10 @@ watch(() => props.isPlaying, (playing) => {
     draw()
   }
 })
+
+watch(() => props.definition, () => {
+  cachedTrace = null
+}, { deep: true, flush: 'sync' })
 
 // Redraws on visibility, resize, definition, or theme changes
 watch([isVisible, width, () => props.definition, () => ui.isDark], () => {
