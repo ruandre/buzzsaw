@@ -361,7 +361,7 @@ const totalSeconds = calculateEffectiveDuration(definition)
 const hzAtHalfSecond = sampleFrequencyAtTime(definition, 0.5)
 const gainAtHalfSecond = sampleGainAtTime(definition, 0.5, totalSeconds)
 
-// Normalized amplitude [-1, 1] at a phase in radians
+// Normalized amplitude [-1, 1] at a phase in radians, in phase with the oscillator's own shape
 const amplitude = evaluateWaveShape(definition, Math.PI / 2)
 
 // Harmonic amplitudes for a 'custom' waveType, or null

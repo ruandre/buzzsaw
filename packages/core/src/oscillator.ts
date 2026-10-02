@@ -40,37 +40,63 @@ export function applyWaveShape(
   oscillator.type = waveType === 'custom' ? DEFAULT_WAVE_TYPE : waveType
 }
 
-/** Normalized amplitude [-1, 1] at phase in radians */
+const TAU = 2 * Math.PI
+
+// PeriodicWave normalizes by the peak of the series sampled at a power-of-two resolution
+const NORMALIZATION_SAMPLES = 2048
+
+/**
+ * Normalized amplitude [-1, 1] at phase in radians, matching the Web Audio waveform: every
+ * built-in shape is an odd function rising through zero at phase 0
+ */
 export function evaluateWaveShape(def: SoundDefinition, phase: number): number {
   const partials = resolvePartials(def)
   if (partials) {
-    return evaluatePartials(partials, phase)
+    return evaluateSeries(partials, phase) / seriesPeak(partials)
   }
 
-  const cycle = ((phase % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)
+  const cycle = ((phase % TAU) + TAU) % TAU
   switch (def.waveType) {
     case 'square':
       return Math.sin(phase) >= 0 ? 1 : -1
     case 'sawtooth':
-      return cycle / Math.PI - 1
-    case 'triangle': {
-      const progress = cycle / (2 * Math.PI)
-      return progress < 0.5 ? 4 * progress - 1 : 3 - 4 * progress
-    }
+      return cycle <= Math.PI ? cycle / Math.PI : cycle / Math.PI - 2
+    case 'triangle':
+      return triangleAt(cycle / TAU)
     default:
       return Math.sin(phase)
   }
 }
 
-// Evaluates harmonic series normalized to unit peak, matching PeriodicWave
-function evaluatePartials(partials: number[], phase: number): number {
-  let sum = 0
-  let magnitude = 0
+function triangleAt(progress: number): number {
+  if (progress < 0.25) {
+    return 4 * progress
+  }
+  if (progress < 0.75) {
+    return 2 - 4 * progress
+  }
+  return 4 * progress - 4
+}
 
+function evaluateSeries(partials: number[], phase: number): number {
+  let sum = 0
   for (let harmonic = 0; harmonic < partials.length; harmonic++) {
     sum += partials[harmonic] * Math.sin(phase * (harmonic + 1))
-    magnitude += Math.abs(partials[harmonic])
   }
+  return sum
+}
 
-  return magnitude > 0 ? sum / magnitude : 0
+// Single-entry memo: callers sample one definition thousands of times in a row
+let lastPeak: { key: string, peak: number } | null = null
+
+function seriesPeak(partials: number[]): number {
+  const key = partials.join()
+  if (lastPeak?.key !== key) {
+    let peak = 0
+    for (let n = 0; n < NORMALIZATION_SAMPLES; n++) {
+      peak = Math.max(peak, Math.abs(evaluateSeries(partials, (TAU * n) / NORMALIZATION_SAMPLES)))
+    }
+    lastPeak = { key, peak }
+  }
+  return lastPeak.peak
 }

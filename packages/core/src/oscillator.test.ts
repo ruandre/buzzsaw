@@ -89,4 +89,29 @@ describe('evaluateWaveShape', () => {
     expect(evaluateWaveShape(def, Math.PI / 2)).toBeCloseTo(1)
     expect(evaluateWaveShape(def, 0)).toBeCloseTo(0)
   })
+
+  // Web Audio defines every basic shape as an odd function rising through zero at phase 0
+  it('ramps a sawtooth from zero to full scale over half a cycle, as Web Audio does', () => {
+    const def = { frequency: 440, waveType: 'sawtooth' as const }
+    expect(evaluateWaveShape(def, 0)).toBeCloseTo(0)
+    expect(evaluateWaveShape(def, Math.PI / 2)).toBeCloseTo(0.5)
+    expect(evaluateWaveShape(def, (3 * Math.PI) / 2)).toBeCloseTo(-0.5)
+  })
+
+  it('peaks a triangle a quarter cycle in, as Web Audio does', () => {
+    const def = { frequency: 440, waveType: 'triangle' as const }
+    expect(evaluateWaveShape(def, 0)).toBeCloseTo(0)
+    expect(evaluateWaveShape(def, Math.PI / 4)).toBeCloseTo(0.5)
+    expect(evaluateWaveShape(def, Math.PI / 2)).toBeCloseTo(1)
+    expect(evaluateWaveShape(def, (3 * Math.PI) / 2)).toBeCloseTo(-1)
+  })
+
+  it('scales a harmonic series so its own peak reaches full scale, as PeriodicWave does', () => {
+    const def = { frequency: 440, waveType: 'custom' as const, partials: [1, 1] }
+    let peak = 0
+    for (let step = 0; step < 4096; step++) {
+      peak = Math.max(peak, Math.abs(evaluateWaveShape(def, (2 * Math.PI * step) / 4096)))
+    }
+    expect(peak).toBeCloseTo(1, 3)
+  })
 })
