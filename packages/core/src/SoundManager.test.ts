@@ -127,6 +127,25 @@ describe('soundManager', () => {
     expect(context.resume).toHaveBeenCalledOnce()
   })
 
+  it('stops a playing sound when its name is registered again, so stopAll still reaches every voice', async () => {
+    const manager = new SoundManager({ audioContext: mockCtx }).register('drone', { duration: 5, frequency: 100 })
+    const handle = await manager.play('drone')
+
+    manager.register('drone', { duration: 5, frequency: 200 })
+
+    expect(handle?.isPlaying).toBe(false)
+  })
+
+  it('keeps a sound playing when the same instance is registered again', async () => {
+    const sound = new Sound('drone', { duration: 5, frequency: 100 })
+    const manager = new SoundManager({ audioContext: mockCtx }).register('drone', sound)
+    const handle = await manager.play('drone')
+
+    manager.register('drone', sound)
+
+    expect(handle?.isPlaying).toBe(true)
+  })
+
   it('rejects play on a closed context it was given', async () => {
     const context = Object.assign(mockCtx, { state: 'closed', resume: vi.fn() })
     const manager = new SoundManager({ audioContext: context }).register('pop', { duration: 0.1, frequency: 600 })

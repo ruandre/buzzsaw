@@ -279,7 +279,7 @@ const chained = new SoundManager().registerAll(DEFAULT_SOUNDS) // play accepts a
 
 ### Methods and properties
 
-- `register(name, definitionOrSound)`: adds or updates one sound. Returns the manager, widened so `play` accepts `name`. Throws `SoundValidationError` on a malformed definition.
+- `register(name, definitionOrSound)`: adds or updates one sound, stopping the sound it replaces if that is playing. Returns the manager, widened so `play` accepts `name`. Throws `SoundValidationError` on a malformed definition.
 - `registerAll(record)`: same, for an object map of sounds.
 - `unregister(name)`: stops any active playback of the sound and removes it. Returns `true` if removed.
 - `get(name)`: returns the `Sound` instance, or `undefined`.

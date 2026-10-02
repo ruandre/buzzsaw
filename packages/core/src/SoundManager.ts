@@ -69,7 +69,7 @@ export class SoundManager<Name extends string = never> {
     return this.#sounds.size
   }
 
-  /** Adds or replaces one sound, widening this manager to accept `name`; throws SoundValidationError if malformed */
+  /** Adds or replaces one sound, stopping a replaced one, and widens this manager to accept `name`; throws SoundValidationError if malformed */
   register<N extends string>(name: N, definitionOrSound: SoundDefinition | Sound): SoundManager<Name | N> {
     if (!name || typeof name !== 'string') {
       throw new TypeError('Invalid sound name provided.')
@@ -80,6 +80,11 @@ export class SoundManager<Name extends string = never> {
       : new Sound(name, definitionOrSound)
 
     const registry = this.#sounds as Map<Name | N, Sound>
+    const replaced = registry.get(name)
+    // A replaced sound would leave its voices beyond the reach of stop and stopAll
+    if (replaced && replaced !== sound) {
+      replaced.stop()
+    }
     registry.set(name, sound)
     return this as SoundManager<Name | N>
   }
