@@ -1,5 +1,5 @@
 import type { MockAudioContext } from './testing/mockAudioContext.js'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { playSoundFromDefinition, validateSoundDefinition } from './soundPlayer.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
 
@@ -203,6 +203,35 @@ describe('soundPlayer playSoundFromDefinition', () => {
     expect(handle.isPlaying).toBe(true)
     handle.stop()
     expect(handle.isPlaying).toBe(false)
+  })
+
+  it('keeps the voice connected until the stop fade has played', () => {
+    const handle = playSoundFromDefinition(mockCtx, { duration: 0.5, frequency: 440 })
+    const oscillator = mockCtx.oscillators[0]
+    const voiceGain = mockCtx.gainNodes[0]
+
+    handle.stop()
+    expect(voiceGain.disconnect).not.toHaveBeenCalled()
+
+    oscillator.onended?.()
+    expect(voiceGain.disconnect).toHaveBeenCalledOnce()
+    expect(oscillator.disconnect).toHaveBeenCalledOnce()
+  })
+
+  it('disconnects a stopped voice even if the oscillator never reports ending', () => {
+    vi.useFakeTimers()
+    try {
+      const handle = playSoundFromDefinition(mockCtx, { duration: 0.5, frequency: 440 })
+      const voiceGain = mockCtx.gainNodes[0]
+
+      handle.stop()
+      vi.advanceTimersByTime(1000)
+
+      expect(voiceGain.disconnect).toHaveBeenCalledOnce()
+    }
+    finally {
+      vi.useRealTimers()
+    }
   })
 })
 

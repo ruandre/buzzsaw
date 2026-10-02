@@ -217,7 +217,12 @@ function startPlayback(
     resolvePromise = resolve
   })
 
+  let isConnected = true
   const disconnect = () => {
+    if (!isConnected) {
+      return
+    }
+    isConnected = false
     try {
       oscillator.disconnect()
       gainNode.disconnect()
@@ -270,11 +275,14 @@ function startPlayback(
       gainNode.gain.setValueAtTime(gainNode.gain.value ?? SILENT_GAIN, now)
       gainNode.gain.linearRampToValueAtTime(SILENT_GAIN, now + STOP_FADE_S)
       oscillator.stop(now + STOP_FADE_S + 0.001)
+      // Disconnecting now would cut the fade short and click
+      oscillator.onended = disconnect
+      safetyTimeout = setTimeout(disconnect, Math.ceil((STOP_FADE_S + 0.1) * 1000))
     }
     catch {
       // Context closed or node already stopped
+      disconnect()
     }
-    disconnect()
     resolvePromise()
   }
 
