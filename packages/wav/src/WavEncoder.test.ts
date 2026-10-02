@@ -95,6 +95,26 @@ describe('wavEncoder', () => {
       .toThrow(new RangeError('Unsupported bit depth: 12. Supported depths are 8, 16, 24, 32.'))
   })
 
+  it('keeps an audio buffer\'s own sample rate when none is given', () => {
+    const audioBuffer = {
+      numberOfChannels: 1,
+      length: 4,
+      sampleRate: 48000,
+      duration: 4 / 48000,
+      getChannelData: () => new Float32Array(4),
+    }
+
+    const header = WavEncoder.decodeHeader(WavEncoder.encode(audioBuffer))
+
+    expect(header?.sampleRate).toBe(48000)
+  })
+
+  it('writes 44100 Hz for raw channels when no sample rate is given', () => {
+    const header = WavEncoder.decodeHeader(WavEncoder.encode([new Float32Array(4)]))
+
+    expect(header?.sampleRate).toBe(44100)
+  })
+
   it('rejects out-of-range sampleRate and numChannels, matching the offline renderer', () => {
     expect(() => WavEncoder.encode([new Float32Array(4)], { sampleRate: 100 }))
       .toThrow(new RangeError('Invalid sampleRate: 100. Must be a finite number of at least 8000.'))

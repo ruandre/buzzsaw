@@ -9,7 +9,10 @@ export type WavBitDepth = 8 | 16 | 24 | 32
 export const MIN_SAMPLE_RATE = 8000
 
 export interface WavEncodingOptions {
-  /** Target sample rate in Hz, at least 8000. Defaults to 44100 */
+  /**
+   * Sample rate in Hz, at least 8000. Rendering synthesizes at this rate; encoding writes it to
+   * the header without resampling. Defaults to an audio buffer's own rate, otherwise 44100
+   */
   sampleRate?: number
   /**
    * Channel count in the encoded file. Defaults to the input's channel count.

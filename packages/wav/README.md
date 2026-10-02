@@ -116,7 +116,10 @@ interface WavExportOptions {
   /** Bit depth: 8, 16, 24 integer PCM or 32 IEEE float. Defaults to 16 */
   bitDepth?: 8 | 16 | 24 | 32
 
-  /** Target sample rate in Hz, at least 8000. Defaults to 44100 */
+  /**
+   * Sample rate in Hz, at least 8000. Rendering synthesizes at this rate; encoding writes it to
+   * the header without resampling. Defaults to an audio buffer's own rate, otherwise 44100
+   */
   sampleRate?: number
 
   /** Channels written to the file. Defaults to the input's channel count, which is 1 for Buzzsaw synthesis */

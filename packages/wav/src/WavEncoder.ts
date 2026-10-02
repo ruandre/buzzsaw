@@ -39,7 +39,8 @@ export class WavEncoder {
     audioBufferOrChannels: AudioBufferLike | Float32Array[],
     options: WavEncodingOptions = {},
   ): ArrayBuffer {
-    const source = readSource(audioBufferOrChannels, requireSampleRate(options.sampleRate))
+    const sampleRateOverride = options.sampleRate === undefined ? undefined : requireSampleRate(options.sampleRate)
+    const source = readSource(audioBufferOrChannels, sampleRateOverride)
     const numChannels = requireChannelCount(options.numChannels, source.channels.length || 1)
     const bitDepth = requireBitDepth(options.bitDepth)
     const writeSample = SAMPLE_WRITERS[bitDepth]
