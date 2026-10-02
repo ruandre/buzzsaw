@@ -182,6 +182,20 @@ describe('sounds utils', () => {
       expect(sampleGainAtTime(def, 0.15)).toBe(0.001)
       expect(sampleGainAtTime(def, 0.21)).toBe(0.5)
     })
+
+    it('decays a gain envelope that has no steps, as playback does', () => {
+      const def = { duration: 0.5, decay: 0.1, frequency: 440, gain: { start: 0.5, steps: [] } }
+
+      expect(sampleGainAtTime(def, 0.3)).toBe(0.5)
+      expect(sampleGainAtTime(def, 0.45)).toBeCloseTo(0.5 * (SILENT_GAIN / 0.5) ** 0.5, 6)
+    })
+
+    it('starts the decay at a last step that lands after the decay window opens', () => {
+      const def = { duration: 0.5, decay: 0.1, frequency: 440, gain: { start: 0.5, steps: [{ time: 0.6, value: 0.8 }] } }
+
+      // Effective duration is 0.61; playback ramps from 0.8 at 0.6 to silence at 0.61
+      expect(sampleGainAtTime(def, 0.605)).toBeCloseTo(0.8 * (SILENT_GAIN / 0.8) ** 0.5, 6)
+    })
   })
 
   describe('isValidSoundDefinition', () => {

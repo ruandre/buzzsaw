@@ -145,14 +145,14 @@ function scheduleGain(
     }
   }
 
+  // A stepless envelope holds its start level, which decays like any other
   const lastStep = steps[steps.length - 1]
-  const endsAboveSilence = lastStep && lastStep.value > SILENT_GAIN
-    && schedule.start + lastStep.time < schedule.end
+  const heldLevel = toLevel(lastStep?.value ?? gain.start)
+  const rampStart = Math.max(schedule.start + (lastStep?.time ?? 0), schedule.decayStart)
 
-  if (endsAboveSilence) {
+  if (heldLevel > SILENT_GAIN && rampStart < schedule.end) {
     // Exponential ramp down to silence prevents clicks
-    const rampStart = Math.max(schedule.start + lastStep.time, schedule.decayStart)
-    param.setValueAtTime(toLevel(lastStep.value), rampStart)
+    param.setValueAtTime(heldLevel, rampStart)
     param.exponentialRampToValueAtTime(SILENT_GAIN, schedule.end)
   }
   else {

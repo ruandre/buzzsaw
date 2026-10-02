@@ -330,4 +330,18 @@ describe('scheduling against a running context clock', () => {
     // Decay ramp starts at max(lastStep.time, decayStart)
     expect(gain.gain.setValueAtTime).toHaveBeenCalledWith(0.6, CONTEXT_TIME + 0.3)
   })
+
+  it('decays a gain envelope that has no steps instead of cutting it off', () => {
+    const definition: SoundDefinition = {
+      frequency: 440,
+      gain: { start: 0.5, steps: [] },
+      duration: 0.5,
+      decay: 0.1,
+    }
+
+    const gain = playAt(definition, CONTEXT_TIME)
+
+    expect(gain.gain.setValueAtTime).toHaveBeenCalledWith(0.5, CONTEXT_TIME + 0.4)
+    expect(gain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.0001, CONTEXT_TIME + 0.5)
+  })
 })

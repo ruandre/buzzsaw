@@ -121,11 +121,9 @@ export function sampleGainAtTime(def: SoundDefinition, time: number, totalDurati
     if (time < attackEnd) {
       return attackLevel(level, time, attackEnd)
     }
-    // Decay tail applies only after authored envelope steps complete
-    if (lastStepTime > 0 && time > lastStepTime && time >= decayStartTime) {
-      return decayLevel(level, time, decayStartTime, duration)
-    }
-    return level
+    // Mirrors soundPlayer: the decay ramp waits for both the last step and the decay window
+    const decayFrom = Math.max(lastStepTime, decayStartTime)
+    return time > decayFrom ? decayLevel(level, time, decayFrom, duration) : level
   }
 
   return DEFAULT_GAIN
