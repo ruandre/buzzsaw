@@ -30,32 +30,66 @@ export interface ShortcutHandlers {
   isCreatorActive: () => boolean
 }
 
-const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
-const NAVIGATION_KEYS = ['1', '2', '3', '4', '5']
+export type ShortcutEvent = Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'target'>
+export type ShortcutAction = () => void
 
-/** Binds global keyboard shortcuts; ignores keystrokes originating from editable inputs */
+const TEXT_ENTRY_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
+// Widgets consuming printable keys for typeahead or text entry
+const TYPEAHEAD_ROLES = new Set(['combobox', 'option', 'menuitem'])
+const ACTIVATABLE_TAGS = new Set(['BUTTON', 'A'])
+const ACTIVATABLE_ROLES = new Set(['button', 'checkbox', 'radio', 'switch', 'tab', 'slider'])
+const NAVIGATION_KEYS = new Set(['1', '2', '3', '4', '5'])
+
+/** Binds global keyboard shortcuts; cancels default only for keystrokes a shortcut handled */
 export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
-  function bind(keys: string | string[], run: (event: KeyboardEvent) => void): void {
-    onKeyStroke(keys, (event) => {
-      if (isTypingTarget(event.target)) {
-        return
-      }
-      event.preventDefault()
-      run(event)
-    })
-  }
-
-  bind(NAVIGATION_KEYS, event => handlers.onNavigate(Number(event.key)))
-  bind('?', handlers.onToggleShortcuts)
-  bind('/', handlers.onFocusSearch)
-  bind(['m', 'M'], handlers.onToggleMute)
-  bind(['s', 'S'], handlers.onStopAll)
-  bind(['r', 'R'], () => handlers.isCreatorActive() && handlers.onRandomizeCreator())
-  bind(' ', () => handlers.isCreatorActive() && handlers.onAuditionCreator())
+  onKeyStroke((event) => {
+    const action = resolveShortcut(event, handlers)
+    if (!action) {
+      return
+    }
+    event.preventDefault()
+    action()
+  })
 }
 
-function isTypingTarget(target: EventTarget | null): boolean {
+/**
+ * Picks shortcut action for keystroke.
+ *
+ * Shift allowed (`?` needs it on most layouts). Ctrl, Meta, Alt chords left to browser/OS.
+ *
+ * @returns Action to run, or `undefined` when keystroke belongs to browser or focused control.
+ */
+export function resolveShortcut(event: ShortcutEvent, handlers: ShortcutHandlers): ShortcutAction | undefined {
+  if (event.ctrlKey || event.metaKey || event.altKey || targetOwnsKey(event.target, event.key)) {
+    return undefined
+  }
+  return actionFor(event.key.toLowerCase(), handlers)
+}
+
+function actionFor(key: string, handlers: ShortcutHandlers): ShortcutAction | undefined {
+  switch (key) {
+    case '?': return handlers.onToggleShortcuts
+    case '/': return handlers.onFocusSearch
+    case 'm': return handlers.onToggleMute
+    case 's': return handlers.onStopAll
+    case 'r': return creatorAction(handlers, handlers.onRandomizeCreator)
+    case ' ': return creatorAction(handlers, handlers.onAuditionCreator)
+    default: return NAVIGATION_KEYS.has(key) ? () => handlers.onNavigate(Number(key)) : undefined
+  }
+}
+
+function creatorAction(handlers: ShortcutHandlers, action: ShortcutAction): ShortcutAction | undefined {
+  return handlers.isCreatorActive() ? action : undefined
+}
+
+function targetOwnsKey(target: EventTarget | null, key: string): boolean {
   const element = target as HTMLElement | null
-  return Boolean(element)
-    && (EDITABLE_TAGS.has(element!.tagName) || element!.isContentEditable)
+  if (!element?.tagName) {
+    return false
+  }
+  const role = element.getAttribute('role') ?? ''
+  if (TEXT_ENTRY_TAGS.has(element.tagName) || element.isContentEditable || TYPEAHEAD_ROLES.has(role)) {
+    return true
+  }
+  return key === ' ' && (ACTIVATABLE_TAGS.has(element.tagName) || ACTIVATABLE_ROLES.has(role))
 }
