@@ -11,7 +11,9 @@ mkdir -p /work/tarballs
 for package in core wav; do
   cd "/work/packages/$package"
   node /repo/node_modules/rolldown/bin/cli.mjs -c
-  node /repo/node_modules/typescript/bin/tsc --emitDeclarationOnly
+  config=tsconfig.json
+  if [ -f tsconfig.build.json ]; then config=tsconfig.build.json; fi
+  node /repo/node_modules/typescript/bin/tsc -p "$config" --emitDeclarationOnly
   node /repo/scripts/container/strip-manifest.mjs package.json
   npm pack --pack-destination /work/tarballs >/dev/null
   mv /work/tarballs/rjvr-buzzsaw*.tgz "/work/tarballs/$package.tgz"

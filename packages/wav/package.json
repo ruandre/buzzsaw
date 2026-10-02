@@ -46,7 +46,7 @@
     "!src/testing"
   ],
   "scripts": {
-    "build": "rolldown -c && tsc --emitDeclarationOnly",
+    "build": "rolldown -c && tsc -p tsconfig.build.json",
     "dev": "rolldown -c -w",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
