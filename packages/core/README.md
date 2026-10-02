@@ -246,7 +246,7 @@ interface SoundManagerOptions {
   /** Master volume multiplier from 0 to 2. Defaults to 1.0 */
   masterVolume?: number
 
-  /** Custom AudioContext. When omitted, uses the shared singleton context */
+  /** Custom AudioContext, resumed before each play like the shared one. When omitted, uses the shared singleton context */
   audioContext?: AudioContextLike
 
   /** Inserts a brickwall limiter (-3 dBFS threshold) on the master bus. Defaults to true */
@@ -393,7 +393,7 @@ It is the one entry point that does **not** validate: validation happens when a 
 - `TypeError`: an argument of the wrong shape, such as an empty sound name or a non-object definition.
 - `RangeError`: a well-typed option outside its documented range, such as `masterVolume`, `volume`, or `pitchScale`.
 
-`Sound.play` and `SoundManager.play` are async, and they **reject** when no `AudioContext` can be created or resumed. That happens outside the browser, and after `closeAudioContext()`. Guard with `isAudioContextSupported()`, supply a context with `setAudioContextInstance()`, or catch the rejection.
+`Sound.play` and `SoundManager.play` are async, and they **reject** when no `AudioContext` can be created or resumed. That happens outside the browser, after `closeAudioContext()`, and when the context given to `SoundManagerOptions.audioContext` is closed. Guard with `isAudioContextSupported()`, supply a context with `setAudioContextInstance()`, or catch the rejection.
 
 ### Audio context
 

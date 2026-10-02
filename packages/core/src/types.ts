@@ -81,6 +81,7 @@ export interface PlaybackHandle {
 export interface SoundManagerOptions {
   /** Volume multiplier in [0..2]. Defaults to 1.0 */
   masterVolume?: number
+  /** Resumed before each play like the shared context. Defaults to the shared singleton */
   audioContext?: AudioContextLike
   /** Inserts brickwall limiter on master bus. Defaults to true */
   limiter?: boolean

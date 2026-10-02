@@ -168,7 +168,7 @@ export class SoundManager<Name extends string = never> {
       return null
     }
 
-    const audioContext = this.#audioContext ?? await ensureAudioContextReady()
+    const audioContext = await ensureAudioContextReady(this.#audioContext ?? undefined)
 
     return sound.play({
       ...options,

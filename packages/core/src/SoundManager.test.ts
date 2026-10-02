@@ -113,6 +113,28 @@ describe('soundManager', () => {
     expect(manager.dispose).toBeInstanceOf(Function)
   })
 
+  it('resumes a suspended context it was given before playing', async () => {
+    const context = Object.assign(mockCtx, {
+      state: 'suspended',
+      resume: vi.fn(async () => {
+        context.state = 'running'
+      }),
+    })
+    const manager = new SoundManager({ audioContext: context }).register('pop', { duration: 0.1, frequency: 600 })
+
+    await manager.play('pop')
+
+    expect(context.resume).toHaveBeenCalledOnce()
+  })
+
+  it('rejects play on a closed context it was given', async () => {
+    const context = Object.assign(mockCtx, { state: 'closed', resume: vi.fn() })
+    const manager = new SoundManager({ audioContext: context }).register('pop', { duration: 0.1, frequency: 600 })
+
+    await expect(manager.play('pop')).rejects.toThrow('AudioContext is closed')
+    expect(context.oscillators).toHaveLength(0)
+  })
+
   it('moves the fader on sounds that are already playing', async () => {
     const manager = new SoundManager({ audioContext: mockCtx })
     manager.register('drone', { duration: 5, frequency: 100 })
