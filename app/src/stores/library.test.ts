@@ -41,6 +41,26 @@ describe('library store', () => {
     expect(usePlaybackStore().soundManager.has('loud')).toBe(false)
   })
 
+  it('keeps an invalid name out of the library', () => {
+    const library = useLibraryStore()
+
+    const saved = library.save('bad!', { frequency: 440 })
+
+    expect(saved).toBeNull()
+    expect(library.customSounds).toEqual({})
+    expect(usePlaybackStore().soundManager.has('bad!')).toBe(false)
+  })
+
+  it('keeps a name that storage would drop on reload out of the library', () => {
+    const library = useLibraryStore()
+
+    const saved = library.save('__proto__', { frequency: 440 })
+
+    expect(saved).toBeNull()
+    expect(Object.keys(library.customSounds)).toEqual([])
+    expect(usePlaybackStore().soundManager.has('__proto__')).toBe(false)
+  })
+
   it('saves under a renamed key rather than replacing a preset', () => {
     const library = useLibraryStore()
 
@@ -66,6 +86,34 @@ describe('library store', () => {
 
     expect(library.customSounds).toHaveProperty('tap_custom')
     expect(usePlaybackStore().soundManager.get('tap')?.definition).toEqual(DEFAULT_SOUNDS.tap)
+  })
+
+  it('keeps every sound when a renamed preset name collides with another imported name', async () => {
+    const library = useLibraryStore()
+
+    const result = await library.importPack(JSON.stringify({
+      pop: { frequency: 220 },
+      pop_custom: { frequency: 440 },
+    }))
+
+    expect(result).toEqual({ imported: 2, skipped: 0 })
+    expect(library.customSoundCount).toBe(2)
+    expect(library.customSounds).toMatchObject({
+      pop_custom: { frequency: 440 },
+      pop_custom_custom: { frequency: 220 },
+    })
+  })
+
+  it('lets a renamed preset name take the name of a skipped import', async () => {
+    const library = useLibraryStore()
+
+    await library.importPack(JSON.stringify({
+      pop: { frequency: 220 },
+      pop_custom: { frequency: 440, gain: 2 },
+    }))
+
+    expect(Object.keys(library.customSounds)).toEqual(['pop_custom'])
+    expect(library.customSounds.pop_custom?.frequency).toBe(220)
   })
 
   it('skips imported sounds with invalid names', async () => {
@@ -107,6 +155,18 @@ describe('sanitizeSoundMap', () => {
     const sounds = sanitizeSoundMap({ '': { frequency: 440 }, 'mine': { frequency: 440 } })
 
     expect(Object.keys(sounds)).toEqual(['mine'])
+  })
+
+  it('keeps stored sounds named after Object.prototype members', () => {
+    const sounds = sanitizeSoundMap(JSON.parse('{"constructor": {"frequency": 440}, "prototype": {"frequency": 220}}'))
+
+    expect(Object.keys(sounds)).toEqual(['constructor', 'prototype'])
+  })
+
+  it('keeps every stored sound when migrating a preset name onto a taken name', () => {
+    const sounds = sanitizeSoundMap({ pop: { frequency: 220 }, pop_custom: { frequency: 440 } })
+
+    expect(sounds).toEqual({ pop_custom: { frequency: 440 }, pop_custom_custom: { frequency: 220 } })
   })
 
   it('keeps a stored sound whose name the save form would reject', () => {

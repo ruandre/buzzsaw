@@ -11,8 +11,8 @@ export const STORAGE_KEYS = {
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]
 
-// Prototype pollution keys
-const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+// Only `__proto__` assignment replaces prototype; `constructor`/`prototype` are valid sound names
+const UNSAFE_KEYS = new Set(['__proto__'])
 
 /** Reactive localStorage ref with sanitization on read and cross-tab sync */
 export function usePersistedState<T>(
@@ -39,16 +39,4 @@ export function safeRecordEntries(raw: unknown): [string, unknown][] {
 
 export function isSafeKey(key: string): boolean {
   return !UNSAFE_KEYS.has(key)
-}
-
-/** Removes all studio-owned keys from localStorage */
-export function clearAllStoredData(): void {
-  for (const key of Object.values(STORAGE_KEYS)) {
-    try {
-      window.localStorage.removeItem(key)
-    }
-    catch (error) {
-      console.error(`Failed to clear localStorage key "${key}":`, error)
-    }
-  }
 }

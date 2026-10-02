@@ -14,10 +14,21 @@ export function isValidSoundName(name: string): boolean {
 
 const CUSTOM_SUFFIX = '_custom'
 
-/** Name a user sound can take without replacing a built-in preset, which also voices the UI cues */
-export function toCustomSoundName(name: string): string {
-  let candidate = name
-  while (Object.hasOwn(DEFAULT_SOUNDS, candidate)) {
+function isPresetName(name: string): boolean {
+  return Object.hasOwn(DEFAULT_SOUNDS, name)
+}
+
+/**
+ * Name a user sound can take without replacing a built-in preset, which also voices the UI cues
+ *
+ * Renamed preset names also avoid `taken`; any other name is kept even if taken, so it overwrites
+ */
+export function toCustomSoundName(name: string, taken: ReadonlySet<string> = new Set()): string {
+  if (!isPresetName(name)) {
+    return name
+  }
+  let candidate = name + CUSTOM_SUFFIX
+  while (isPresetName(candidate) || taken.has(candidate)) {
     candidate += CUSTOM_SUFFIX
   }
   return candidate

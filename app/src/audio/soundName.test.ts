@@ -29,6 +29,14 @@ describe('toCustomSoundName', () => {
     expect(toCustomSoundName('pop')).toBe('pop_custom')
   })
 
+  it('keeps suffixing a preset name until it avoids every taken name', () => {
+    expect(toCustomSoundName('pop', new Set(['pop_custom']))).toBe('pop_custom_custom')
+  })
+
+  it('keeps a taken name no preset uses, so it can overwrite', () => {
+    expect(toCustomSoundName('mine', new Set(['mine']))).toBe('mine')
+  })
+
   it('ignores inherited object keys', () => {
     expect(toCustomSoundName('constructor')).toBe('constructor')
   })

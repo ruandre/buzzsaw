@@ -3,10 +3,10 @@ import { cloneSoundDefinition, isValidSoundDefinition, validateSoundDefinition }
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
-import { isValidSoundName, toCustomSoundName } from '../audio/soundName'
+import { isValidSoundName, SOUND_NAME_RULE, toCustomSoundName } from '../audio/soundName'
 import { downloadJson } from '../utils/download'
 import { forEachYielding } from '../utils/scheduler'
-import { safeRecordEntries, STORAGE_KEYS, usePersistedState } from '../utils/storage'
+import { isSafeKey, safeRecordEntries, STORAGE_KEYS, usePersistedState } from '../utils/storage'
 import { useNotificationsStore } from './notifications'
 import { usePlaybackStore } from './playback'
 
@@ -61,14 +61,14 @@ export const useLibraryStore = defineStore('library', () => {
     )
   }
 
-  /** Saves under the trimmed name, overwriting an existing entry; returns that name, or null if the definition is invalid */
+  /** Saves under the trimmed name, overwriting an existing entry; returns that name, or null if the name or definition is invalid */
   function save(name: string, definition: SoundDefinition): string | null {
     const requestedName = name.trim() || 'unnamed_sound'
     const soundName = toCustomSoundName(requestedName)
-    const errors = validateSoundDefinition(definition)
-    if (errors.length > 0) {
+    const error = findSaveError(requestedName, definition)
+    if (error !== undefined) {
       playback.cue('error')
-      notifications.reportError(`Could not save "${soundName}": ${errors[0]}`)
+      notifications.reportError(`Could not save "${soundName}": ${error}`)
       return null
     }
 
@@ -133,7 +133,7 @@ export const useLibraryStore = defineStore('library', () => {
 
     await forEachYielding(entries, ([name, definition]) => {
       if (isValidSoundName(name) && isValidSoundDefinition(definition)) {
-        accepted.push([toCustomSoundName(name), cloneSoundDefinition(definition)])
+        accepted.push([name, cloneSoundDefinition(definition)])
       }
     })
 
@@ -143,7 +143,7 @@ export const useLibraryStore = defineStore('library', () => {
       throw new Error('No valid sound definitions found in that file.')
     }
 
-    const imported = Object.fromEntries(accepted)
+    const imported = toCustomSoundMap(accepted)
     registerAll(imported)
     customSounds.value = { ...customSounds.value, ...imported }
 
@@ -179,15 +179,35 @@ export const useLibraryStore = defineStore('library', () => {
   }
 })
 
+function findSaveError(name: string, definition: SoundDefinition): string | undefined {
+  if (!isValidSoundName(name)) {
+    return SOUND_NAME_RULE
+  }
+  if (!isSafeKey(name)) {
+    return 'That name is reserved.'
+  }
+  return validateSoundDefinition(definition).at(0)
+}
+
+/** Reserves preset names; a renamed sound never collides with another sound of the same batch */
+function toCustomSoundMap(sounds: [string, SoundDefinition][]): Record<string, SoundDefinition> {
+  const taken = new Set(sounds.map(([name]) => name))
+  return Object.fromEntries(sounds.map(([name, definition]) => {
+    const customName = toCustomSoundName(name, taken)
+    taken.add(customName)
+    return [customName, definition]
+  }))
+}
+
 // Persisted data is untrusted
 export function sanitizeSoundMap(raw: unknown): Record<string, SoundDefinition> {
-  const sounds: Record<string, SoundDefinition> = {}
+  const kept: [string, SoundDefinition][] = []
   for (const [name, definition] of safeRecordEntries(raw)) {
-    // Drops only names SoundManager rejects: save() never enforced SOUND_NAME_PATTERN
+    // Drops only names SoundManager rejects: older saves skipped SOUND_NAME_PATTERN
     if (name !== '' && isValidSoundDefinition(definition)) {
-      // Migrates sounds saved before preset names were reserved
-      sounds[toCustomSoundName(name)] = definition
+      kept.push([name, definition])
     }
   }
-  return sounds
+  // Migrates sounds saved before preset names were reserved
+  return toCustomSoundMap(kept)
 }
