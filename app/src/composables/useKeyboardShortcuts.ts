@@ -53,8 +53,6 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
 }
 
 /**
- * Picks shortcut action for keystroke.
- *
  * Shift allowed (`?` needs it on most layouts). Ctrl, Meta, Alt chords left to browser/OS.
  *
  * @returns Action to run, or `undefined` when keystroke belongs to browser or focused control.
