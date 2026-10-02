@@ -73,7 +73,7 @@ function resolveTimbre(state: CreatorState): Pick<SoundDefinition, 'waveType' | 
   if (state.waveType !== 'custom') {
     return { waveType: state.waveType }
   }
-  return state.partials?.some(level => level > 0)
+  return state.partials?.some(level => level !== 0)
     ? { waveType: 'custom', partials: state.partials }
     : { waveType: 'sine' }
 }

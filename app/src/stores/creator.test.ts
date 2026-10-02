@@ -66,4 +66,13 @@ describe('creator store load', () => {
 
     expect(creator.definition).toStrictEqual(source)
   })
+
+  it('keeps a custom timbre whose partials are all phase-inverted', () => {
+    const creator = useCreatorStore()
+    const source: SoundDefinition = { waveType: 'custom', partials: [-1, 0, -0.3], frequency: 440 }
+
+    creator.load('inverted', source)
+
+    expect(creator.definition).toMatchObject({ waveType: 'custom', partials: [-1, 0, -0.3] })
+  })
 })
