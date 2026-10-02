@@ -123,56 +123,79 @@ async function play${identifier.charAt(0).toUpperCase()}${identifier.slice(1)}(c
   // exponentialRampToValueAtTime cannot reach 0, so this is the silence floor
   const SILENT = 0.0001
 
-  // Envelopes may run past \`duration\`; the sound lasts as long as its last step
+  // Envelopes may run past \`duration\`; the sound then lasts 10 ms past its last step
   const lastStep = param =>
     typeof param === 'object' && param !== null && Array.isArray(param.steps)
       ? Math.max(0, ...param.steps.map(step => step.time))
       : 0
-  const duration = Math.max(
-    def.duration ?? 0.5,
-    lastStep(def.frequency),
-    lastStep(def.gain),
-  )
-  // Clamped so an attack and decay that overrun the sound cannot schedule
-  // automation out of order, which throws
-  const attack = Math.min(def.attack ?? 0.005, duration)
+  const lastStepTime = Math.max(lastStep(def.frequency), lastStep(def.gain))
+  const duration = Math.max(0.01, def.duration ?? 0.5, lastStepTime > 0 ? lastStepTime + 0.01 : 0)
+  // Attack and decay are carved out of the sound, leaving at least 1 ms to decay
+  const attack = Math.min(def.attack ?? 0.005, duration - 0.001)
   const decay = Math.min(def.decay ?? 0.1, duration - attack)
   const start = ctx.currentTime
+  const attackEnd = start + attack
   const decayStart = start + Math.max(attack, duration - decay)
   const end = start + duration
+  const byTime = steps => [...steps].sort((a, b) => a.time - b.time)
+  const moveTo = (param, interpolation, value, time) =>
+    interpolation === 'step'
+      ? param.setValueAtTime(value, time)
+      : param.linearRampToValueAtTime(value, time)
 
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
   ${waveSetup}
   osc.connect(gain).connect(ctx.destination)
 
-  // Pitch: a fixed value, or a ramp through each step
+  // Pitch: a fixed value, or a glide (or jump, with 'step') to each step
   if (typeof def.frequency === 'number') {
     osc.frequency.setValueAtTime(def.frequency, start)
   } else {
     osc.frequency.setValueAtTime(def.frequency.start, start)
-    for (const step of [...def.frequency.steps].sort((a, b) => a.time - b.time)) {
-      osc.frequency.linearRampToValueAtTime(step.value, Math.min(end, start + step.time))
+    for (const step of byTime(def.frequency.steps)) {
+      moveTo(osc.frequency, def.frequency.interpolation ?? 'linear', step.value, start + step.time)
     }
   }
 
-  // Level: attack up, hold, then decay to silence, or hold each envelope step
+  // Level: attack up from silence, hold or follow the envelope, then decay to silence
   const level = def.gain ?? 0.5
+  const toLevel = value => Math.max(SILENT, value)
   if (typeof level === 'number') {
     gain.gain.setValueAtTime(SILENT, start)
-    gain.gain.linearRampToValueAtTime(Math.max(SILENT, level), start + attack)
-    gain.gain.setValueAtTime(Math.max(SILENT, level), decayStart)
+    gain.gain.linearRampToValueAtTime(toLevel(level), attackEnd)
+    if (decayStart > attackEnd) {
+      gain.gain.setValueAtTime(toLevel(level), decayStart)
+    }
     gain.gain.exponentialRampToValueAtTime(SILENT, end)
   } else {
-    const steps = [...level.steps].sort((a, b) => a.time - b.time)
-    gain.gain.setValueAtTime(Math.max(SILENT, level.start), start)
-    for (const step of steps) {
-      gain.gain.setValueAtTime(Math.max(SILENT, step.value), Math.min(end, start + step.time))
-    }
+    const interpolation = level.interpolation ?? 'step'
+    const steps = byTime(level.steps)
+    const [first] = steps
     const last = steps[steps.length - 1]
-    if (last && last.value > SILENT && start + last.time < end) {
-      // Ride the final step down instead of cutting it off, which clicks
-      gain.gain.setValueAtTime(Math.max(SILENT, last.value), Math.max(start + last.time, decayStart))
+
+    // A first step before the attack ends cuts it short
+    const peakTime = first ? Math.min(attackEnd, start + first.time) : attackEnd
+    // Linear attack lands on the envelope's own line, so the ramp onward has no jump
+    const peak = interpolation === 'linear' && first
+      ? level.start + (first.value - level.start) * (peakTime - start) / first.time
+      : level.start
+    if (peakTime > start) {
+      gain.gain.setValueAtTime(SILENT, start)
+      gain.gain.linearRampToValueAtTime(toLevel(peak), peakTime)
+    } else {
+      gain.gain.setValueAtTime(toLevel(level.start), start)
+    }
+
+    for (const step of steps) {
+      moveTo(gain.gain, interpolation, toLevel(step.value), start + step.time)
+    }
+
+    // Ride the held level down instead of cutting it off, which clicks
+    const held = toLevel(last ? last.value : level.start)
+    const decayFrom = Math.max(start + (last ? last.time : 0), decayStart)
+    if (held > SILENT && decayFrom < end) {
+      gain.gain.setValueAtTime(held, decayFrom)
       gain.gain.exponentialRampToValueAtTime(SILENT, end)
     } else {
       gain.gain.setValueAtTime(SILENT, end)

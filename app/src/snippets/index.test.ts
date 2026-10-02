@@ -1,7 +1,12 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
+import type { Mock } from 'vitest'
+import type { MockAudioContext } from '../../../packages/core/src/testing/mockAudioContext'
+import { runInNewContext } from 'node:vm'
+import { playSoundFromDefinition } from '@rjvr/buzzsaw'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import { buildRegisterAllSnippet, buildSnippets } from '.'
+import { createMockAudioContext } from '../../../packages/core/src/testing/mockAudioContext'
 
 const definition: SoundDefinition = { frequency: 440, duration: 0.2 }
 const hostileName = `x'); alert(1); ('`
@@ -81,5 +86,112 @@ describe('buildRegisterAllSnippet', () => {
 
     expect(syntaxErrors(code)).toEqual([])
     expect(literalArguments(code)).toContain(hostileName)
+  })
+})
+
+type MockAudioParam = MockAudioContext['oscillators'][number]['frequency']
+
+const AUTOMATION_METHODS = ['setValueAtTime', 'linearRampToValueAtTime', 'exponentialRampToValueAtTime'] as const
+
+// Absorbs float noise from equivalent arithmetic; `+ 0` folds -0
+function rounded(values: unknown[]): unknown[] {
+  return values.map(value => typeof value === 'number' ? Math.round(value * 1e9) / 1e9 + 0 : value)
+}
+
+function automation(param: MockAudioParam): unknown[][] {
+  return AUTOMATION_METHODS
+    .flatMap(method => param[method].mock.calls.map((args, index) => ({
+      order: param[method].mock.invocationCallOrder[index],
+      call: rounded([method, ...args]),
+    })))
+    .sort((a, b) => a.order - b.order)
+    .map(({ call }) => call)
+}
+
+function recordedSchedule(context: MockAudioContext) {
+  const [oscillator] = context.oscillators
+  const [gainNode] = context.gainNodes
+  return {
+    frequency: automation(oscillator.frequency),
+    gain: automation(gainNode.gain),
+    start: rounded(oscillator.start.mock.calls.flat()),
+    stop: rounded(oscillator.stop.mock.calls.flat()),
+    type: oscillator.type,
+    // vm realm's Float32Array never deep-equals ours
+    periodicWaves: context.createPeriodicWave.mock.calls.map(tables => tables.map(table => Array.from(table))),
+  }
+}
+
+function chainable<Node extends { connect: Mock }>(create: () => Node): () => Node {
+  return () => {
+    const node = create()
+    node.connect.mockImplementation(destination => destination)
+    return node
+  }
+}
+
+// AudioNode.connect returns its destination, which the snippet chains on
+function createContext(): MockAudioContext {
+  const context = createMockAudioContext({ currentTime: 1.5 })
+  context.createGain.mockImplementation(chainable(context.createGain.getMockImplementation()!))
+  context.createOscillator.mockImplementation(chainable(context.createOscillator.getMockImplementation()!))
+  return context
+}
+
+function libraryScheduleOf(soundDefinition: SoundDefinition) {
+  const context = createContext()
+  playSoundFromDefinition(context, soundDefinition)
+  return recordedSchedule(context)
+}
+
+async function vanillaScheduleOf(soundDefinition: SoundDefinition) {
+  const context = createContext()
+  const { code } = buildSnippets('probe', soundDefinition).find(snippet => snippet.id === 'vanilla')!
+  const playing: Promise<void> = runInNewContext(`${code}\nplayProbe(context)`, { context })
+  context.oscillators[0]?.onended?.()
+  await playing
+  return recordedSchedule(context)
+}
+
+describe('vanilla Web Audio snippet', () => {
+  it.each<[string, SoundDefinition]>([
+    ['scalar gain and frequency', { frequency: 440, gain: 0.3, duration: 0.4, attack: 0.02, decay: 0.15 }],
+    ['default gain', { frequency: 220 }],
+    ['attack filling the whole sound', { frequency: 220, duration: 0.1, attack: 0.5, decay: 0.5 }],
+    ['stepless gain envelope', { frequency: 330, gain: { start: 0.6, steps: [] }, duration: 0.3 }],
+    ['linear gain envelope with attack past its first step', {
+      frequency: 440,
+      gain: { start: 0.2, steps: [{ time: 0.05, value: 0.8 }, { time: 0.2, value: 0.4 }], interpolation: 'linear' },
+      duration: 0.4,
+      attack: 0.1,
+    }],
+    ['step gain envelope with attack past its first step', {
+      frequency: 440,
+      gain: { start: 0.2, steps: [{ time: 0.2, value: 0.4 }, { time: 0.05, value: 0.8 }] },
+      duration: 0.4,
+      attack: 0.1,
+    }],
+    ['linear gain envelope with attack before its first step', {
+      frequency: 440,
+      gain: { start: 0.2, steps: [{ time: 0.3, value: 0.9 }], interpolation: 'linear' },
+      duration: 0.5,
+      attack: 0.1,
+    }],
+    ['gain envelope starting on a step at zero', {
+      frequency: 440,
+      gain: { start: 0.2, steps: [{ time: 0, value: 0.7 }] },
+    }],
+    ['stepped frequency envelope', {
+      frequency: { start: 220, steps: [{ time: 0.1, value: 440 }, { time: 0.2, value: 330 }], interpolation: 'step' },
+      duration: 0.3,
+    }],
+    ['last step at duration', {
+      frequency: { start: 880, steps: [{ time: 0.25, value: 110 }] },
+      gain: { start: 0.5, steps: [{ time: 0.25, value: 0.1 }] },
+      duration: 0.25,
+    }],
+    ['custom partials wave', { waveType: 'custom', partials: [1, 0.5, 0.25], frequency: 440, gain: 0.4 }],
+  ])('schedules what the library schedules for %s', async (_, soundDefinition) => {
+    expect(await vanillaScheduleOf(soundDefinition)).toEqual(libraryScheduleOf(soundDefinition))
   })
 })
