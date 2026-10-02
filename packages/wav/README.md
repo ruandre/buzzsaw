@@ -54,7 +54,8 @@ const blob = await WavExporter.renderToWavBlob(laser, {
   bitDepth: 16,
 })
 
-// ArrayBuffer containing the canonical 44-byte RIFF header and PCM samples
+// ArrayBuffer containing the canonical 44-byte RIFF header and PCM samples.
+// 32-bit float files carry a 58-byte header: fmt gains a cbSize field and a fact chunk follows
 const buffer = await WavExporter.renderToWavArrayBuffer(laser, {
   bitDepth: 24,
 })
@@ -180,7 +181,7 @@ if (info) {
 
 ### Decoded header info
 
-`WavEncoder.decodeHeader` reads the 44-byte RIFF/WAVE header and returns:
+`WavEncoder.decodeHeader` reads the `fmt ` and `data` chunks of a RIFF/WAVE buffer, skipping any others such as `fact` or `LIST`, and returns:
 
 ```ts
 interface WavHeaderInfo {
@@ -195,7 +196,7 @@ interface WavHeaderInfo {
 }
 ```
 
-Returns `null` if the buffer is smaller than 44 bytes or lacks the `RIFF` and `WAVE` magic markers.
+Returns `null` if the buffer lacks the `RIFF` and `WAVE` magic markers, or a complete `fmt ` chunk and a `data` chunk header.
 
 ### Errors
 

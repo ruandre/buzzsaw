@@ -2,7 +2,12 @@ import type { AudioBufferLike } from '@rjvr/buzzsaw'
 import type { BlobLike, WavBitDepth, WavEncodingOptions, WavHeaderInfo } from './types.js'
 import { DEFAULT_SAMPLE_RATE, requireBitDepth, requireChannelCount, requireSampleRate } from './options.js'
 
-const HEADER_BYTES = 44
+const RIFF_PREAMBLE_BYTES = 12
+const CHUNK_HEADER_BYTES = 8
+const PCM_FMT_BYTES = 16
+// Non-PCM formats extend fmt with a 2-byte cbSize and require a fact chunk holding the frame count
+const FLOAT_FMT_BYTES = 18
+const FACT_CHUNK_BYTES = CHUNK_HEADER_BYTES + 4
 
 const FORMAT_PCM = 1
 const FORMAT_IEEE_FLOAT = 3
@@ -49,19 +54,17 @@ export class WavEncoder {
     const dataSize = source.numSamples * blockAlign
     // RIFF chunks are word-aligned; an odd-sized chunk is followed by one zero pad byte
     const padBytes = dataSize % 2
-    const arrayBuffer = new ArrayBuffer(HEADER_BYTES + dataSize + padBytes)
+    const arrayBuffer = new ArrayBuffer(headerBytes(bitDepth) + dataSize + padBytes)
     const view = new DataView(arrayBuffer)
 
-    writeHeader(view, {
+    let offset = writeHeader(view, {
       sampleRate: source.sampleRate,
       numChannels,
       bitDepth,
       blockAlign,
       dataSize,
-      padBytes,
+      numSamples: source.numSamples,
     })
-
-    let offset = HEADER_BYTES
     for (let frame = 0; frame < source.numSamples; frame++) {
       for (let channel = 0; channel < numChannels; channel++) {
         const data = source.channels[channel] ?? source.channels[0]
@@ -79,9 +82,9 @@ export class WavEncoder {
     return new Blob([this.encode(audioBufferOrChannels, options)], { type: 'audio/wav' })
   }
 
-  /** Decodes RIFF/WAVE header; returns null if invalid or truncated */
+  /** Decodes the fmt and data chunks of a RIFF/WAVE buffer, skipping others; returns null if invalid or truncated */
   static decodeHeader(arrayBuffer: ArrayBuffer): WavHeaderInfo | null {
-    if (arrayBuffer.byteLength < HEADER_BYTES) {
+    if (arrayBuffer.byteLength < RIFF_PREAMBLE_BYTES) {
       return null
     }
 
@@ -90,18 +93,24 @@ export class WavEncoder {
       return null
     }
 
-    const byteRate = view.getUint32(28, true)
-    const dataSize = view.getUint32(40, true)
+    const chunks = locateChunks(view)
+    const fmt = chunks.get('fmt ')
+    const data = chunks.get('data')
+    if (!fmt || !data || fmt.size < PCM_FMT_BYTES || fmt.offset + PCM_FMT_BYTES > view.byteLength) {
+      return null
+    }
+
+    const byteRate = view.getUint32(fmt.offset + 8, true)
 
     return {
-      audioFormat: view.getUint16(20, true),
-      numChannels: view.getUint16(22, true),
-      sampleRate: view.getUint32(24, true),
+      audioFormat: view.getUint16(fmt.offset, true),
+      numChannels: view.getUint16(fmt.offset + 2, true),
+      sampleRate: view.getUint32(fmt.offset + 4, true),
       byteRate,
-      blockAlign: view.getUint16(32, true),
-      bitDepth: view.getUint16(34, true),
-      dataSize,
-      duration: byteRate > 0 ? dataSize / byteRate : 0,
+      blockAlign: view.getUint16(fmt.offset + 12, true),
+      bitDepth: view.getUint16(fmt.offset + 14, true),
+      dataSize: data.size,
+      duration: byteRate > 0 ? data.size / byteRate : 0,
     }
   }
 }
@@ -145,27 +154,77 @@ interface HeaderFields {
   bitDepth: WavBitDepth
   blockAlign: number
   dataSize: number
-  padBytes: number
+  numSamples: number
 }
 
-function writeHeader(view: DataView, fields: HeaderFields): void {
-  const { sampleRate, numChannels, bitDepth, blockAlign, dataSize, padBytes } = fields
+interface ChunkLocation {
+  /** Byte offset of the chunk's payload */
+  offset: number
+  size: number
+}
 
-  writeAscii(view, 0, 'RIFF')
-  view.setUint32(4, 36 + dataSize + padBytes, true)
-  writeAscii(view, 8, 'WAVE')
+function isFloat(bitDepth: WavBitDepth): boolean {
+  return bitDepth === 32
+}
 
-  writeAscii(view, 12, 'fmt ')
-  view.setUint32(16, 16, true)
-  view.setUint16(20, bitDepth === 32 ? FORMAT_IEEE_FLOAT : FORMAT_PCM, true)
-  view.setUint16(22, numChannels, true)
-  view.setUint32(24, sampleRate, true)
-  view.setUint32(28, sampleRate * blockAlign, true)
-  view.setUint16(32, blockAlign, true)
-  view.setUint16(34, bitDepth, true)
+// 44 bytes for PCM, 58 for IEEE float
+function headerBytes(bitDepth: WavBitDepth): number {
+  return isFloat(bitDepth)
+    ? RIFF_PREAMBLE_BYTES + CHUNK_HEADER_BYTES + FLOAT_FMT_BYTES + FACT_CHUNK_BYTES + CHUNK_HEADER_BYTES
+    : RIFF_PREAMBLE_BYTES + CHUNK_HEADER_BYTES + PCM_FMT_BYTES + CHUNK_HEADER_BYTES
+}
 
-  writeAscii(view, 36, 'data')
-  view.setUint32(40, dataSize, true)
+/** Returns the offset where sample data begins */
+function writeHeader(view: DataView, fields: HeaderFields): number {
+  const { sampleRate, numChannels, bitDepth, blockAlign, dataSize, numSamples } = fields
+  const float = isFloat(bitDepth)
+
+  // RIFF size spans everything after its own 8-byte header, pad byte included
+  let offset = writeChunkHeader(view, 0, 'RIFF', view.byteLength - CHUNK_HEADER_BYTES)
+  writeAscii(view, offset, 'WAVE')
+  offset += 4
+
+  offset = writeChunkHeader(view, offset, 'fmt ', float ? FLOAT_FMT_BYTES : PCM_FMT_BYTES)
+  view.setUint16(offset, float ? FORMAT_IEEE_FLOAT : FORMAT_PCM, true)
+  view.setUint16(offset + 2, numChannels, true)
+  view.setUint32(offset + 4, sampleRate, true)
+  view.setUint32(offset + 8, sampleRate * blockAlign, true)
+  view.setUint16(offset + 12, blockAlign, true)
+  view.setUint16(offset + 14, bitDepth, true)
+  offset += PCM_FMT_BYTES
+
+  if (float) {
+    // cbSize: no format extension follows
+    view.setUint16(offset, 0, true)
+    offset += FLOAT_FMT_BYTES - PCM_FMT_BYTES
+    offset = writeChunkHeader(view, offset, 'fact', 4)
+    view.setUint32(offset, numSamples, true)
+    offset += 4
+  }
+
+  return writeChunkHeader(view, offset, 'data', dataSize)
+}
+
+/** Returns the offset just past the chunk header */
+function writeChunkHeader(view: DataView, offset: number, id: string, size: number): number {
+  writeAscii(view, offset, id)
+  view.setUint32(offset + 4, size, true)
+  return offset + CHUNK_HEADER_BYTES
+}
+
+// First occurrence of each chunk id; chunks are word-aligned, so odd sizes skip a pad byte
+function locateChunks(view: DataView): Map<string, ChunkLocation> {
+  const chunks = new Map<string, ChunkLocation>()
+  let offset = RIFF_PREAMBLE_BYTES
+  while (offset + CHUNK_HEADER_BYTES <= view.byteLength) {
+    const id = readAscii(view, offset, 4)
+    const size = view.getUint32(offset + 4, true)
+    if (!chunks.has(id)) {
+      chunks.set(id, { offset: offset + CHUNK_HEADER_BYTES, size })
+    }
+    offset += CHUNK_HEADER_BYTES + size + (size % 2)
+  }
+  return chunks
 }
 
 function normalizeSample(value: number | undefined): number {

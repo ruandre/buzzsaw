@@ -64,11 +64,36 @@ describe('wavEncoder', () => {
       sampleRate: 44100,
     })
 
-    expect(arrayBuffer.byteLength).toBe(44 + 100 * 2 * 4)
+    expect(arrayBuffer.byteLength).toBe(58 + 100 * 2 * 4)
     const header = WavEncoder.decodeHeader(arrayBuffer)
     expect(header?.audioFormat).toBe(3)
     expect(header?.bitDepth).toBe(32)
     expect(header?.numChannels).toBe(2)
+  })
+
+  it('writes the cbSize field and fact chunk a non-PCM format requires', () => {
+    const arrayBuffer = WavEncoder.encode([new Float32Array(5)], { bitDepth: 32 })
+    const view = new DataView(arrayBuffer)
+    const ascii = (offset: number) => String.fromCharCode(...new Uint8Array(arrayBuffer, offset, 4))
+
+    expect(view.getUint32(16, true)).toBe(18)
+    expect(view.getUint16(36, true)).toBe(0)
+    expect(ascii(38)).toBe('fact')
+    expect(view.getUint32(42, true)).toBe(4)
+    expect(view.getUint32(46, true)).toBe(5)
+    expect(ascii(50)).toBe('data')
+    expect(view.getUint32(4, true)).toBe(arrayBuffer.byteLength - 8)
+  })
+
+  it('decodes a header past chunks it does not know', () => {
+    const pcm = new Uint8Array(WavEncoder.encode([new Float32Array(2)], { sampleRate: 8000 }))
+    const list = [...'LIST', '\x06', '\0', '\0', '\0', ...'INFOab'].map(char => char.charCodeAt(0))
+    const withList = Uint8Array.from([...pcm.slice(0, 36), ...list, ...pcm.slice(36)])
+
+    const header = WavEncoder.decodeHeader(withList.buffer)
+
+    expect(header?.sampleRate).toBe(8000)
+    expect(header?.dataSize).toBe(4)
   })
 
   it('throws for unsupported bit depth', () => {
