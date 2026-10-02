@@ -3,7 +3,7 @@ import type { UiSound } from '../audio/uiSounds'
 import { ensureAudioContextReady, MASTER_VOLUME_MIN, SoundManager } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, markRaw, ref, watch } from 'vue'
 import { UI_SOUNDS } from '../audio/uiSounds'
 import { useNotificationsStore } from './notifications'
 
@@ -19,8 +19,9 @@ const METER_DECAY_PER_FRAME = 0.06
 export const usePlaybackStore = defineStore('playback', () => {
   const notifications = useNotificationsStore()
 
-  // Names are dynamic: the studio registers user-authored sounds at runtime
-  const soundManager = new SoundManager<string>().registerAll(DEFAULT_SOUNDS)
+  // Names are dynamic: the studio registers user-authored sounds at runtime.
+  // markRaw keeps Pinia from proxying it; #private fields throw through a proxy
+  const soundManager = markRaw(new SoundManager<string>().registerAll(DEFAULT_SOUNDS))
   const masterVolume = ref(1)
   const isMuted = ref(false)
   const activeVoices = ref(0)
