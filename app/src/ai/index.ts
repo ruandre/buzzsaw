@@ -1,8 +1,9 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 import type { SoundPatch } from './patch'
 import type { PromptRunOptions } from './session'
+import { validateSoundDefinition } from '@rjvr/buzzsaw'
 import { designHeuristicPatch, editHeuristicPatch } from './heuristics'
-import { parseSoundPatch } from './patch'
+import { normalizeSoundPatch, parseSoundPatch } from './patch'
 import {
   buildDesignPrompt,
   buildEditPrompt,
@@ -94,5 +95,14 @@ async function runWithFallback(
   }
 
   options.onProgress?.('Using the offline synthesis engine...')
-  return { ...offline(), source: 'offline', designedAt: Date.now() }
+  return { ...ensureValidPatch(offline()), source: 'offline', designedAt: Date.now() }
+}
+
+// Valid patches pass untouched; normalizing would clamp them to tighter generative limits
+function ensureValidPatch(patch: SoundPatch): SoundPatch {
+  if (validateSoundDefinition(patch.definition).length === 0) {
+    return patch
+  }
+  const { name, description, definition } = patch
+  return normalizeSoundPatch({ name, description, ...definition })
 }

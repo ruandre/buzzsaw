@@ -189,6 +189,10 @@ export function registerWebMcpTools(): (() => void) | null {
         instruction: string
         saveToLibrary?: boolean
       }) {
+        const errors = input.definition == null ? [] : validateSoundDefinition(input.definition)
+        if (errors.length > 0) {
+          return { success: false, error: errors.join(' ') }
+        }
         const target = input.definition ?? findSound(input.name)
         if (!target) {
           return { success: false, error: `No sound named "${input.name}", and no definition was given.` }

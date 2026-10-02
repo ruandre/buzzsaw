@@ -59,6 +59,22 @@ describe('webMCP tools', () => {
     expect(usePlaybackStore().soundManager.get('pop')?.definition.frequency).not.toBe(440)
   })
 
+  it('returns a structured error for an edit definition core would reject', async () => {
+    const edit = registerTools().get('edit_sound_definition')!
+
+    const result = await edit({ name: 'shrill', definition: { frequency: 50000 }, instruction: 'softer' })
+
+    expect(result).toMatchObject({ success: false, error: expect.stringContaining('frequency') })
+  })
+
+  it('edits the named sound when the definition is null', async () => {
+    const edit = registerTools().get('edit_sound_definition')!
+
+    const result = await edit({ name: 'pop', definition: null, instruction: 'softer' })
+
+    expect(result).toMatchObject({ success: true })
+  })
+
   it('finds no sound under an inherited object key', () => {
     const getDefinition = registerTools().get('get_sound_definition')!
 
