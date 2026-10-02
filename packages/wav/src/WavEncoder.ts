@@ -1,6 +1,13 @@
 import type { AudioBufferLike } from '@rjvr/buzzsaw'
 import type { BlobLike, WavBitDepth, WavEncodingOptions, WavHeaderInfo } from './types.js'
-import { DEFAULT_SAMPLE_RATE, requireBitDepth, requireChannelCount, requireSampleRate } from './options.js'
+import {
+  DEFAULT_SAMPLE_RATE,
+  MAX_UINT16,
+  MAX_UINT32,
+  requireBitDepth,
+  requireChannelCount,
+  requireSampleRate,
+} from './options.js'
 
 const RIFF_PREAMBLE_BYTES = 12
 const CHUNK_HEADER_BYTES = 8
@@ -50,7 +57,8 @@ export class WavEncoder {
     const bitDepth = requireBitDepth(options.bitDepth)
     const writeSample = SAMPLE_WRITERS[bitDepth]
 
-    const blockAlign = numChannels * (bitDepth / 8)
+    const blockAlign = requireBlockAlign(numChannels, bitDepth)
+    requireByteRate(source.sampleRate, numChannels, bitDepth)
     const dataSize = source.numSamples * blockAlign
     // RIFF chunks are word-aligned; an odd-sized chunk is followed by one zero pad byte
     const padBytes = dataSize % 2
@@ -96,7 +104,13 @@ export class WavEncoder {
     const chunks = locateChunks(view)
     const fmt = chunks.get('fmt ')
     const data = chunks.get('data')
-    if (!fmt || !data || fmt.size < PCM_FMT_BYTES || fmt.offset + PCM_FMT_BYTES > view.byteLength) {
+    if (
+      !fmt
+      || !data
+      || fmt.size < PCM_FMT_BYTES
+      || fmt.offset + PCM_FMT_BYTES > view.byteLength
+      || data.offset + data.size > view.byteLength
+    ) {
       return null
     }
 
@@ -161,6 +175,23 @@ interface ChunkLocation {
   /** Byte offset of the chunk's payload */
   offset: number
   size: number
+}
+
+function requireBlockAlign(numChannels: number, bitDepth: WavBitDepth): number {
+  const maxChannels = Math.floor(MAX_UINT16 / (bitDepth / 8))
+  if (numChannels > maxChannels) {
+    throw new RangeError(`Invalid numChannels: ${numChannels}. Must be at most ${maxChannels} at bit depth ${bitDepth}.`)
+  }
+  return numChannels * (bitDepth / 8)
+}
+
+function requireByteRate(sampleRate: number, numChannels: number, bitDepth: WavBitDepth): void {
+  const maxSampleRate = Math.floor(MAX_UINT32 / (numChannels * (bitDepth / 8)))
+  if (sampleRate > maxSampleRate) {
+    throw new RangeError(
+      `Invalid sampleRate: ${sampleRate}. Must be at most ${maxSampleRate} with numChannels ${numChannels} at bit depth ${bitDepth}.`,
+    )
+  }
 }
 
 function isFloat(bitDepth: WavBitDepth): boolean {

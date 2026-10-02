@@ -4,14 +4,16 @@ import { MIN_SAMPLE_RATE } from './types.js'
 export const DEFAULT_SAMPLE_RATE = 44100
 export const DEFAULT_BIT_DEPTH: WavBitDepth = 16
 export const SUPPORTED_BIT_DEPTHS: readonly WavBitDepth[] = [8, 16, 24, 32]
+export const MAX_UINT16 = 0xFFFF
+export const MAX_UINT32 = 0xFFFFFFFF
 
 export function requireSampleRate(sampleRate: number | undefined): number {
   if (sampleRate === undefined) {
     return DEFAULT_SAMPLE_RATE
   }
-  if (!Number.isFinite(sampleRate) || sampleRate < MIN_SAMPLE_RATE) {
+  if (!Number.isInteger(sampleRate) || sampleRate < MIN_SAMPLE_RATE || sampleRate > MAX_UINT32) {
     throw new RangeError(
-      `Invalid sampleRate: ${sampleRate}. Must be a finite number of at least ${MIN_SAMPLE_RATE}.`,
+      `Invalid sampleRate: ${sampleRate}. Must be an integer from ${MIN_SAMPLE_RATE} to ${MAX_UINT32}.`,
     )
   }
   return sampleRate
@@ -21,8 +23,8 @@ export function requireChannelCount(numChannels: number | undefined, fallback = 
   if (numChannels === undefined) {
     return fallback
   }
-  if (!Number.isInteger(numChannels) || numChannels < 1) {
-    throw new RangeError(`Invalid numChannels: ${numChannels}. Must be an integer of at least 1.`)
+  if (!Number.isInteger(numChannels) || numChannels < 1 || numChannels > MAX_UINT16) {
+    throw new RangeError(`Invalid numChannels: ${numChannels}. Must be an integer from 1 to ${MAX_UINT16}.`)
   }
   return numChannels
 }

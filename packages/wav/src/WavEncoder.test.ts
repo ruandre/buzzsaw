@@ -157,10 +157,43 @@ describe('wavEncoder', () => {
 
   it('rejects out-of-range sampleRate and numChannels, matching the offline renderer', () => {
     expect(() => WavEncoder.encode([new Float32Array(4)], { sampleRate: 100 }))
-      .toThrow(new RangeError('Invalid sampleRate: 100. Must be a finite number of at least 8000.'))
+      .toThrow(new RangeError('Invalid sampleRate: 100. Must be an integer from 8000 to 4294967295.'))
     expect(() => WavEncoder.encode([new Float32Array(4)], { numChannels: 0 }))
-      .toThrow(new RangeError('Invalid numChannels: 0. Must be an integer of at least 1.'))
+      .toThrow(new RangeError('Invalid numChannels: 0. Must be an integer from 1 to 65535.'))
     expect(() => WavEncoder.encode([new Float32Array(4)], { numChannels: 1.5 }))
-      .toThrow(new RangeError('Invalid numChannels: 1.5. Must be an integer of at least 1.'))
+      .toThrow(new RangeError('Invalid numChannels: 1.5. Must be an integer from 1 to 65535.'))
+  })
+
+  it('rejects a fractional sampleRate, which the integer header field cannot hold', () => {
+    expect(() => WavEncoder.encode([new Float32Array(4)], { sampleRate: 22050.5 }))
+      .toThrow(new RangeError('Invalid sampleRate: 22050.5. Must be an integer from 8000 to 4294967295.'))
+  })
+
+  it('rejects a sampleRate too large for its uint32 header field', () => {
+    expect(() => WavEncoder.encode([new Float32Array(4)], { sampleRate: 5e9 }))
+      .toThrow(new RangeError('Invalid sampleRate: 5000000000. Must be an integer from 8000 to 4294967295.'))
+  })
+
+  it('rejects a numChannels too large for its uint16 header field', () => {
+    expect(() => WavEncoder.encode([new Float32Array(4)], { numChannels: 70000, bitDepth: 8 }))
+      .toThrow(new RangeError('Invalid numChannels: 70000. Must be an integer from 1 to 65535.'))
+  })
+
+  it('rejects a numChannels whose blockAlign overflows uint16 at the chosen bit depth', () => {
+    expect(() => WavEncoder.encode([new Float32Array(4)], { numChannels: 40000, bitDepth: 16 }))
+      .toThrow(new RangeError('Invalid numChannels: 40000. Must be at most 32767 at bit depth 16.'))
+  })
+
+  it('rejects a sampleRate whose byteRate overflows uint32 at the chosen layout', () => {
+    expect(() => WavEncoder.encode([new Float32Array(4)], { sampleRate: 3e9, bitDepth: 16 }))
+      .toThrow(new RangeError(
+        'Invalid sampleRate: 3000000000. Must be at most 2147483647 with numChannels 1 at bit depth 16.',
+      ))
+  })
+
+  it('returns null from decodeHeader when the data chunk claims more bytes than the buffer holds', () => {
+    const truncated = WavEncoder.encode([new Float32Array(1000)]).slice(0, 100)
+
+    expect(WavEncoder.decodeHeader(truncated)).toBeNull()
   })
 })

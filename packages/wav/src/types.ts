@@ -10,7 +10,7 @@ export const MIN_SAMPLE_RATE = 8000
 
 export interface WavEncodingOptions {
   /**
-   * Sample rate in Hz, at least 8000. Rendering synthesizes at this rate; encoding writes it to
+   * Sample rate in whole Hz, at least 8000. Rendering synthesizes at this rate; encoding writes it to
    * the header without resampling. Defaults to an audio buffer's own rate, otherwise 44100
    */
   sampleRate?: number

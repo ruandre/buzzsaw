@@ -118,7 +118,7 @@ interface WavExportOptions {
   bitDepth?: 8 | 16 | 24 | 32
 
   /**
-   * Sample rate in Hz, at least 8000. Rendering synthesizes at this rate; encoding writes it to
+   * Sample rate in whole Hz, at least 8000. Rendering synthesizes at this rate; encoding writes it to
    * the header without resampling. Defaults to an audio buffer's own rate, otherwise 44100
    */
   sampleRate?: number
@@ -140,7 +140,7 @@ interface WavExportOptions {
 }
 ```
 
-Out-of-range values throw a `RangeError` naming the offending value rather than being silently clamped: a `sampleRate` under 8000, a `numChannels` below 1 or non-integer, a negative `volume`, a `pitchScale` of zero or less, an unsupported `bitDepth`.
+Out-of-range values throw a `RangeError` naming the offending value rather than being silently clamped: a `sampleRate` under 8000 or non-integer, a `numChannels` below 1 or non-integer, a `sampleRate` or `numChannels` too large for its header field at the chosen `bitDepth`, a negative `volume`, a `pitchScale` of zero or less, an unsupported `bitDepth`.
 
 ### Exported audio is not limited
 
@@ -196,7 +196,7 @@ interface WavHeaderInfo {
 }
 ```
 
-Returns `null` if the buffer lacks the `RIFF` and `WAVE` magic markers, or a complete `fmt ` chunk and a `data` chunk header.
+Returns `null` if the buffer lacks the `RIFF` and `WAVE` magic markers, a complete `fmt ` chunk, or a `data` chunk holding as many bytes as its header claims.
 
 ### Errors
 

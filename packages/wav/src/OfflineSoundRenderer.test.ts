@@ -127,4 +127,10 @@ describe('offlineSoundRenderer', () => {
       .rejects
       .toThrow(RangeError)
   })
+
+  it('rejects a fractional sample rate a WAV header cannot hold', async () => {
+    await expect(OfflineSoundRenderer.render({ frequency: 440 }, { sampleRate: 22050.5 }))
+      .rejects
+      .toThrow(new RangeError('Invalid sampleRate: 22050.5. Must be an integer from 8000 to 4294967295.'))
+  })
 })
