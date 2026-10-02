@@ -1,3 +1,4 @@
+import { SoundValidationError } from '@rjvr/buzzsaw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OfflineSoundRenderer } from './OfflineSoundRenderer.js'
 
@@ -110,6 +111,15 @@ describe('offlineSoundRenderer', () => {
     )
 
     expect(audioBuffer.length).toBe(Math.ceil(0.1 * 44100))
+  })
+
+  it('rejects an invalid definition instead of rendering it', async () => {
+    const construct = vi.spyOn(globalThis, 'OfflineAudioContext')
+
+    await expect(OfflineSoundRenderer.render({ frequency: 440, gain: 2 }))
+      .rejects
+      .toThrow(SoundValidationError)
+    expect(construct).not.toHaveBeenCalled()
   })
 
   it('rejects a sample rate below the 8000 Hz floor instead of clamping', async () => {

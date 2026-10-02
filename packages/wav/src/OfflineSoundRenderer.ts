@@ -1,6 +1,6 @@
 import type { AudioBufferLike, SoundDefinition } from '@rjvr/buzzsaw'
 import type { OfflineAudioContextConstructor, WavExportOptions } from './types.js'
-import { calculateEffectiveDuration, playSoundFromDefinition } from '@rjvr/buzzsaw'
+import { calculateEffectiveDuration, playSoundFromDefinition, SoundValidationError, validateSoundDefinition } from '@rjvr/buzzsaw'
 import { requireChannelCount, requireSampleRate } from './options.js'
 
 const UNSUPPORTED_MESSAGE = 'OfflineAudioContext is not available in this environment. '
@@ -27,7 +27,7 @@ export class OfflineSoundRenderer {
 
   /**
    * Faster than real time, no user gesture; buffer spans `calculateEffectiveDuration` so the tail is included
-   * @throws if no OfflineAudioContext is available, or `sampleRate` is below 8000
+   * @throws if no OfflineAudioContext is available, `sampleRate` is below 8000, or the definition is malformed
    */
   static async render(
     definition: SoundDefinition,
@@ -41,6 +41,10 @@ export class OfflineSoundRenderer {
 
     const sampleRate = requireSampleRate(options.sampleRate)
     const numChannels = requireChannelCount(options.numChannels)
+    const errors = validateSoundDefinition(definition)
+    if (errors.length > 0) {
+      throw new SoundValidationError('offline render', errors)
+    }
     const length = Math.max(1, Math.ceil(calculateEffectiveDuration(definition) * sampleRate))
 
     const offlineCtx = new OfflineContextClass(numChannels, length, sampleRate)

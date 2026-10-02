@@ -201,6 +201,7 @@ Returns `null` if the buffer lacks the `RIFF` and `WAVE` magic markers, or a com
 ### Errors
 
 - `RangeError`: an option outside its documented range, from both `WavEncoder.encode` and `OfflineSoundRenderer.render`.
+- `SoundValidationError` (from `@rjvr/buzzsaw`, with an `errors` string array): a malformed definition passed to `OfflineSoundRenderer.render` or any `WavExporter` method that renders, checked before any audio is synthesized.
 - `Error`: the environment is missing something the call needs, namely an `OfflineAudioContext` for rendering or a `document` for `downloadWav`. Both messages name what to install or pass.
 
 ## For LLMs and coding agents
