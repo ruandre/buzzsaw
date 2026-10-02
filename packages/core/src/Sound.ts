@@ -5,10 +5,17 @@ import { SoundValidationError } from './SoundValidationError.js'
 import { calculateEffectiveDuration, cloneSoundDefinition, freezeSoundDefinition } from './utils.js'
 import { validateSoundDefinition } from './validation.js'
 
+const STOPPED_HANDLE: PlaybackHandle = Object.freeze({
+  stop: () => {},
+  isPlaying: false,
+  promise: Promise.resolve(),
+})
+
 export class Sound {
   readonly #name: string
   #definition: Readonly<SoundDefinition>
   #activeHandles: PlaybackHandle[] = []
+  #stopGeneration = 0
 
   /** Throws SoundValidationError if the definition is malformed */
   constructor(name: string, definition: SoundDefinition) {
@@ -43,9 +50,16 @@ export class Sound {
     return this
   }
 
-  /** Initializes and resumes the shared AudioContext when options omit one */
+  /**
+   * Initializes and resumes the shared AudioContext when options omit one
+   * Resolves to never-played handle if `stop` runs while context resumes
+   */
   async play(options?: StandaloneSoundOptions): Promise<PlaybackHandle> {
+    const stopGeneration = this.#stopGeneration
     const ctx = options?.audioContext ?? await ensureAudioContextReady()
+    if (this.#stopGeneration !== stopGeneration) {
+      return STOPPED_HANDLE
+    }
     const handle = playSoundFromDefinition(ctx, this.#definition, options)
     this.#activeHandles.push(handle)
 
@@ -56,7 +70,9 @@ export class Sound {
     return handle
   }
 
+  /** Also cancels plays still awaiting the context */
   stop(): void {
+    this.#stopGeneration++
     for (const handle of this.#activeHandles) {
       handle.stop()
     }

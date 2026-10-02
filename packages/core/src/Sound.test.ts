@@ -1,5 +1,6 @@
 import type { MockAudioContext } from './testing/mockAudioContext.js'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setAudioContextInstance } from './audioManager.js'
 import { Sound } from './Sound.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
 
@@ -110,5 +111,58 @@ describe('sound class', () => {
       ;(sound.definition as { duration?: number }).duration = 99
     }).toThrow(TypeError)
     expect(sound.definition.duration).toBe(0.2)
+  })
+})
+
+describe('sound play awaiting the shared suspended context', () => {
+  function suspendedSharedContext() {
+    let resolveResume = () => {}
+    const context = Object.assign(createMockAudioContext(), {
+      state: 'suspended',
+      resume: vi.fn(() => new Promise<void>((resolve) => {
+        resolveResume = resolve
+      })),
+    })
+    setAudioContextInstance(context)
+    const finishResume = () => {
+      context.state = 'running'
+      resolveResume()
+    }
+    return { context, finishResume }
+  }
+
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    setAudioContextInstance(null)
+    vi.restoreAllMocks()
+  })
+
+  it('starts the voice once the context resumes', async () => {
+    const { context, finishResume } = suspendedSharedContext()
+    const sound = new Sound('drone', { duration: 5, frequency: 100 })
+
+    const pending = sound.play()
+    finishResume()
+
+    expect((await pending).isPlaying).toBe(true)
+    expect(context.oscillators).toHaveLength(1)
+  })
+
+  it('cancels the play on stop before the context resumes', async () => {
+    const { context, finishResume } = suspendedSharedContext()
+    const sound = new Sound('drone', { duration: 5, frequency: 100 })
+
+    const pending = sound.play()
+    sound.stop()
+    finishResume()
+
+    const handle = await pending
+    expect(handle.isPlaying).toBe(false)
+    await expect(handle.promise).resolves.toBeUndefined()
+    expect(context.oscillators).toHaveLength(0)
+    expect(sound.isPlaying).toBe(false)
   })
 })
