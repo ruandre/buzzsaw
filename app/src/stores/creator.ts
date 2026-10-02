@@ -10,7 +10,7 @@ import {
   round,
 } from '@rjvr/buzzsaw'
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { findArchetype } from '../audio/archetypes'
 import { MAX_PITCH_HZ, MIN_PITCH_HZ, RANDOMISER_PITCHES } from '../audio/pitches'
 import { useNotificationsStore } from './notifications'
@@ -85,18 +85,30 @@ export const useCreatorStore = defineStore('creator', () => {
   const notifications = useNotificationsStore()
   const state = ref<CreatorState>(structuredClone(DEFAULT_CREATOR_STATE))
 
-  /** Compiles editable state into valid SoundDefinition */
-  const definition = computed<SoundDefinition>(() => {
+  const timing = computed(() => {
     const s = state.value
     const duration = Math.max(CREATOR_LIMITS.duration.min, s.duration || DEFAULT_CREATOR_STATE.duration)
     const attack = clamp(s.attack || 0, 0, duration)
     const decay = clamp(s.decay || 0, 0, duration - attack)
+    return { duration, attack, decay }
+  })
+
+  const attackMax = computed(() => Math.min(CREATOR_LIMITS.attack.max, timing.value.duration))
+  const decayMax = computed(() => Math.min(CREATOR_LIMITS.decay.max, timing.value.duration - timing.value.attack))
+
+  // Sliders read state; keeping it at compiled timing makes readouts match playback
+  watch(timing, ({ attack, decay }) => {
+    state.value.attack = attack
+    state.value.decay = decay
+  })
+
+  /** Compiles editable state into valid SoundDefinition */
+  const definition = computed<SoundDefinition>(() => {
+    const s = state.value
 
     return {
       ...resolveTimbre(s),
-      duration,
-      attack,
-      decay,
+      ...timing.value,
       frequency: s.frequencyMode === 'fixed'
         ? clampFrequency(s.fixedFrequency)
         : toEnvelope(clampFrequency(s.frequencyStart), s.frequencySteps.map(clampFrequencyStep), s.frequencyInterpolation),
@@ -254,6 +266,8 @@ export const useCreatorStore = defineStore('creator', () => {
   return {
     state,
     definition,
+    attackMax,
+    decayMax,
     load,
     loadArchetype,
     reset,

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { CREATOR_LIMITS, useCreatorStore } from '../../stores'
 import ModulePanel from '../ui/ModulePanel.vue'
 import Slider from '../ui/Slider.vue'
@@ -6,6 +7,10 @@ import EnvelopeStepEditor from './EnvelopeStepEditor.vue'
 import ParameterModeSwitch from './ParameterModeSwitch.vue'
 
 const creator = useCreatorStore()
+
+const MIN_ENVELOPE_S = 0.001
+// Slider divides by max - min; attack filling duration would collapse decay range to zero
+const decaySliderMax = computed(() => Math.max(MIN_ENVELOPE_S * 2, creator.decayMax))
 
 const asMilliseconds = (seconds: number) => `${Math.round(seconds * 1000)} ms`
 const asPercent = (gain: number) => `${Math.round(gain * 100)}%`
@@ -16,8 +21,8 @@ const asPercent = (gain: number) => `${Math.round(gain * 100)}%`
     <div class="space-y-5">
       <Slider
         v-model="creator.state.attack"
-        :min="0.001"
-        :max="CREATOR_LIMITS.attack.max"
+        :min="MIN_ENVELOPE_S"
+        :max="creator.attackMax"
         :step="0.002"
         label="Attack"
         :format-value="value => `${(value * 1000).toFixed(1)} ms`"
@@ -25,8 +30,8 @@ const asPercent = (gain: number) => `${Math.round(gain * 100)}%`
 
       <Slider
         v-model="creator.state.decay"
-        :min="0.001"
-        :max="CREATOR_LIMITS.decay.max"
+        :min="MIN_ENVELOPE_S"
+        :max="decaySliderMax"
         :step="CREATOR_LIMITS.decay.step"
         label="Decay"
         :format-value="asMilliseconds"
