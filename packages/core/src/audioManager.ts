@@ -44,6 +44,11 @@ export function getAudioContextInstance(): AudioContextLike | null {
   }
 }
 
+/** Shared singleton if one exists; unlike getAudioContextInstance, never creates one */
+export function peekAudioContextInstance(): AudioContextLike | null {
+  return sharedAudioContext
+}
+
 /** Replaces the shared singleton without closing it; caller disposes what it displaces */
 export function setAudioContextInstance(ctx: AudioContextLike | null): void {
   sharedAudioContext = ctx

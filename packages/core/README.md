@@ -294,6 +294,7 @@ const chained = new SoundManager().registerAll(DEFAULT_SOUNDS) // play accepts a
 - `masterVolume`: get or set the master output volume (`0..2`). Adjusts running voices with an anti-zipper glide.
 - `outputLevel`: peak amplitude (`0..1`) leaving the master fader over the last analysis window. Reads `0` until the first `play()` call builds the bus, and on contexts with no analyser node.
 - `size`: count of registered sounds.
+- `audioContext`: the context passed in the options, otherwise the shared one, or `null` before anything has created it. Reading it never creates a context.
 
 ## Preset library
 

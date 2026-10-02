@@ -7,7 +7,7 @@ import type {
   SoundPlaybackOptions,
 } from './types.js'
 import { AudioBus } from './audioBus.js'
-import { ensureAudioContextReady, getAudioContextInstance } from './audioManager.js'
+import { ensureAudioContextReady, peekAudioContextInstance } from './audioManager.js'
 import { MASTER_VOLUME_MAX, MASTER_VOLUME_MIN } from './constants.js'
 import { Sound } from './Sound.js'
 
@@ -61,8 +61,9 @@ export class SoundManager<Name extends string = never> {
     return this.#bus?.readPeakLevel() ?? 0
   }
 
+  /** Context this manager plays on; null until the shared one is created by playback or `getAudioContextInstance` */
   get audioContext(): AudioContextLike | null {
-    return this.#audioContext ?? getAudioContextInstance()
+    return this.#audioContext ?? peekAudioContextInstance()
   }
 
   get size(): number {

@@ -1,5 +1,6 @@
 import type { MockAudioContext } from './testing/mockAudioContext.js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setAudioContextInstance } from './audioManager.js'
 import { Sound } from './Sound.js'
 import { SoundManager } from './SoundManager.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
@@ -245,5 +246,27 @@ describe('soundManager', () => {
     expect(manager.size).toBe(2)
     manager.clear()
     expect(manager.size).toBe(0)
+  })
+})
+
+describe('soundManager audioContext getter', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    setAudioContextInstance(null)
+  })
+
+  it('reads null rather than creating a context nobody has asked to play on', () => {
+    const construct = vi.fn()
+    vi.stubGlobal('AudioContext', construct)
+
+    expect(new SoundManager().audioContext).toBeNull()
+    expect(construct).not.toHaveBeenCalled()
+  })
+
+  it('reads the shared context once one exists', () => {
+    const shared = createMockAudioContext()
+    setAudioContextInstance(shared)
+
+    expect(new SoundManager().audioContext).toBe(shared)
   })
 })
