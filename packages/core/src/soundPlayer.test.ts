@@ -3,6 +3,7 @@ import type { SoundDefinition } from './types.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { playSoundFromDefinition, validateSoundDefinition } from './soundPlayer.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
+import { sampleFrequencyAtTime, sampleGainAtTime } from './utils.js'
 
 describe('soundPlayer validateSoundDefinition', () => {
   it('returns errors for non-objects or null', () => {
@@ -344,5 +345,56 @@ describe('scheduling against a running context clock', () => {
 
     expect(gain.gain.setValueAtTime).toHaveBeenCalledWith(0.5, CONTEXT_TIME + 0.4)
     expect(gain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.0001, CONTEXT_TIME + 0.5)
+  })
+})
+
+describe('playSoundFromDefinition with non-finite fields', () => {
+  function scheduledValues(context: MockAudioContext): unknown[] {
+    const params = [context.oscillators[0].frequency, context.gainNodes[0].gain]
+    return params.flatMap(param => [
+      ...param.setValueAtTime.mock.calls,
+      ...param.linearRampToValueAtTime.mock.calls,
+      ...param.exponentialRampToValueAtTime.mock.calls,
+    ].flat())
+  }
+
+  it.each([
+    ['NaN frequency', { frequency: Number.NaN }],
+    ['infinite frequency', { frequency: Infinity }],
+    ['NaN frequency envelope start', { frequency: { start: Number.NaN, steps: [{ value: 880, time: 0.1 }] } }],
+    ['NaN gain', { frequency: 440, gain: Number.NaN }],
+    ['infinite gain', { frequency: 440, gain: Infinity }],
+    ['NaN gain envelope start', { frequency: 440, gain: { start: Number.NaN, steps: [{ value: 0.2, time: 0.3 }] } }],
+  ])('hands AudioParams only finite values for %s', (_, definition) => {
+    const context = createMockAudioContext()
+
+    playSoundFromDefinition(context, definition)
+
+    expect(scheduledValues(context).filter(value => !Number.isFinite(value))).toEqual([])
+  })
+
+  it('falls back to the frequency the sampler reports', () => {
+    const scalar = { frequency: Number.NaN }
+    const envelope = { frequency: { start: Number.NaN, steps: [{ value: 880, time: 0.1 }] } }
+
+    for (const definition of [scalar, envelope]) {
+      const context = createMockAudioContext()
+      playSoundFromDefinition(context, definition)
+      expect(context.oscillators[0].frequency.setValueAtTime)
+        .toHaveBeenCalledWith(sampleFrequencyAtTime(definition, 0), 0)
+    }
+  })
+
+  it('ramps up to the gain the sampler reports', () => {
+    const timing = { frequency: 440, duration: 0.5, attack: 0.05, decay: 0.1 }
+    const scalar = { ...timing, gain: Number.NaN }
+    const envelope = { ...timing, gain: { start: Number.NaN, steps: [{ value: 0.2, time: 0.3 }] } }
+
+    for (const definition of [scalar, envelope]) {
+      const context = createMockAudioContext()
+      playSoundFromDefinition(context, definition)
+      expect(context.gainNodes[0].gain.linearRampToValueAtTime)
+        .toHaveBeenCalledWith(sampleGainAtTime(definition, 0.05), 0.05)
+    }
   })
 })

@@ -1,6 +1,7 @@
 import type { PlaybackHandle, SoundDefinition, SoundStep, StandaloneSoundOptions } from './types.js'
 import type { AudioParamLike, BaseAudioContextLike, GainNodeLike, OscillatorNodeLike } from './webAudio.js'
 import {
+  DEFAULT_ENVELOPE_GAIN,
   DEFAULT_FREQUENCY_HZ,
   DEFAULT_FREQUENCY_INTERPOLATION,
   DEFAULT_GAIN,
@@ -10,6 +11,7 @@ import {
   STOP_FADE_S,
 } from './constants.js'
 import { isEnvelope, orderedSteps, resolveInterpolation } from './envelope.js'
+import { finiteOr } from './numeric.js'
 import { applyWaveShape } from './oscillator.js'
 import { calculateEffectiveDuration, resolveEnvelopeTiming } from './utils.js'
 
@@ -90,7 +92,7 @@ function scheduleFrequency(
   const toHz = (value: number) => Math.max(MIN_FREQUENCY_HZ, value * pitchScale)
 
   if (typeof frequency === 'number') {
-    param.setValueAtTime(toHz(frequency), schedule.start)
+    param.setValueAtTime(toHz(finiteOr(frequency, DEFAULT_FREQUENCY_HZ)), schedule.start)
     return
   }
 
@@ -101,7 +103,7 @@ function scheduleFrequency(
   }
 
   const isStepped = resolveInterpolation(frequency, DEFAULT_FREQUENCY_INTERPOLATION) === 'step'
-  param.setValueAtTime(toHz(frequency.start), schedule.start)
+  param.setValueAtTime(toHz(finiteOr(frequency.start, DEFAULT_FREQUENCY_HZ)), schedule.start)
   for (const step of orderedSteps(frequency)) {
     const at = stepTime(step.time, schedule)
     if (isStepped) {
@@ -122,7 +124,7 @@ function scheduleGain(
   const toLevel = (value: number) => Math.max(SILENT_GAIN, value * volume)
 
   if (typeof gain === 'number') {
-    scheduleFixedGain(param, toLevel(gain), volume, schedule)
+    scheduleFixedGain(param, toLevel(finiteOr(gain, DEFAULT_GAIN)), volume, schedule)
     return
   }
 
@@ -134,7 +136,7 @@ function scheduleGain(
 
   const isStepped = resolveInterpolation(gain, DEFAULT_GAIN_INTERPOLATION) === 'step'
   const steps = orderedSteps(gain)
-  scheduleEnvelopeAttack(param, toLevel(gain.start), steps, schedule)
+  scheduleEnvelopeAttack(param, toLevel(finiteOr(gain.start, DEFAULT_ENVELOPE_GAIN)), steps, schedule)
   for (const step of steps) {
     const at = stepTime(step.time, schedule)
     if (isStepped) {
