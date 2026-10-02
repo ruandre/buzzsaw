@@ -95,6 +95,21 @@ describe('wavEncoder', () => {
       .toThrow(new RangeError('Unsupported bit depth: 12. Supported depths are 8, 16, 24, 32.'))
   })
 
+  it('centres 8-bit silence on 128, the unsigned midpoint', () => {
+    const view = new DataView(WavEncoder.encode([Float32Array.of(-1, 0, 1, 0)], { bitDepth: 8 }))
+
+    expect([view.getUint8(44), view.getUint8(45), view.getUint8(46)]).toEqual([0, 128, 255])
+  })
+
+  it('pads an odd-length data chunk to an even size, as RIFF requires', () => {
+    const arrayBuffer = WavEncoder.encode([new Float32Array(3)], { bitDepth: 8 })
+    const view = new DataView(arrayBuffer)
+
+    expect(arrayBuffer.byteLength).toBe(44 + 3 + 1)
+    expect(view.getUint32(4, true)).toBe(36 + 3 + 1)
+    expect(WavEncoder.decodeHeader(arrayBuffer)?.dataSize).toBe(3)
+  })
+
   it('keeps an audio buffer\'s own sample rate when none is given', () => {
     const audioBuffer = {
       numberOfChannels: 1,

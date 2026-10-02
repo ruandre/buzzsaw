@@ -13,7 +13,7 @@ type SampleWriter = (view: DataView, offset: number, sample: number) => number
 const SAMPLE_WRITERS: Record<WavBitDepth, SampleWriter> = {
   8: (view, offset, sample) => {
     // 8-bit WAV PCM is unsigned, centered on 128
-    view.setUint8(offset, clamp(Math.floor((sample + 1) * 127.5), 0, 255))
+    view.setUint8(offset, clamp(Math.round((sample + 1) * 127.5), 0, 255))
     return 1
   },
   16: (view, offset, sample) => {
@@ -47,7 +47,9 @@ export class WavEncoder {
 
     const blockAlign = numChannels * (bitDepth / 8)
     const dataSize = source.numSamples * blockAlign
-    const arrayBuffer = new ArrayBuffer(HEADER_BYTES + dataSize)
+    // RIFF chunks are word-aligned; an odd-sized chunk is followed by one zero pad byte
+    const padBytes = dataSize % 2
+    const arrayBuffer = new ArrayBuffer(HEADER_BYTES + dataSize + padBytes)
     const view = new DataView(arrayBuffer)
 
     writeHeader(view, {
@@ -56,6 +58,7 @@ export class WavEncoder {
       bitDepth,
       blockAlign,
       dataSize,
+      padBytes,
     })
 
     let offset = HEADER_BYTES
@@ -142,13 +145,14 @@ interface HeaderFields {
   bitDepth: WavBitDepth
   blockAlign: number
   dataSize: number
+  padBytes: number
 }
 
 function writeHeader(view: DataView, fields: HeaderFields): void {
-  const { sampleRate, numChannels, bitDepth, blockAlign, dataSize } = fields
+  const { sampleRate, numChannels, bitDepth, blockAlign, dataSize, padBytes } = fields
 
   writeAscii(view, 0, 'RIFF')
-  view.setUint32(4, 36 + dataSize, true)
+  view.setUint32(4, 36 + dataSize + padBytes, true)
   writeAscii(view, 8, 'WAVE')
 
   writeAscii(view, 12, 'fmt ')
