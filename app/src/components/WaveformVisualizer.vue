@@ -131,7 +131,6 @@ function draw(): void {
   const canvasHeight = props.height
 
   resizeCanvas(element, Math.round(canvasWidth * dpr), Math.round(canvasHeight * dpr))
-  element.style.height = `${canvasHeight}px`
 
   const theme = getScopeTheme({ isPlaying: props.isPlaying })
   const columns = tracedColumns(canvasWidth, canvasHeight)
@@ -329,9 +328,13 @@ function drawPlayhead(
   context.fill()
 }
 
+// Ends once playhead reaches the end; voice release can lag behind duration
 function animate(): void {
   draw()
-  animationFrame = requestAnimationFrame(animate)
+  const elapsed = (performance.now() - playStartedAt) / 1000
+  animationFrame = elapsed < calculateEffectiveDuration(props.definition)
+    ? requestAnimationFrame(animate)
+    : null
 }
 
 function stopAnimation(): void {
@@ -350,7 +353,7 @@ watch(() => props.isPlaying, (playing) => {
   else {
     draw()
   }
-})
+}, { immediate: true })
 
 watch(() => props.definition, () => {
   cachedTrace = null
@@ -371,6 +374,6 @@ onUnmounted(stopAnimation)
     ref="container"
     class="relative w-full overflow-hidden border border-line rounded-lg bg-surface-muted shadow-bezel"
   >
-    <canvas ref="canvas" role="img" :aria-label="ariaLabel" class="block h-full w-full" />
+    <canvas ref="canvas" role="img" :aria-label="ariaLabel" class="block w-full" :style="{ height: `${height}px` }" />
   </div>
 </template>
