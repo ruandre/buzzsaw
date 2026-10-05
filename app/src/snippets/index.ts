@@ -64,7 +64,10 @@ export function buildSnippets(name: string, definition: SoundDefinition): Snippe
     new Float32Array(def.partials.length + 1),
     Float32Array.from([0, ...def.partials]),
   ))`
-    : `osc.type = def.waveType ?? 'sine'`
+    : definition.waveType === 'custom'
+      // 'custom' is not assignable to osc.type; without audible partials the library plays a sine
+      ? `osc.type = 'sine'`
+      : `osc.type = def.waveType ?? 'sine'`
 
   return [
     {

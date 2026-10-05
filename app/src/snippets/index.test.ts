@@ -191,6 +191,8 @@ describe('vanilla Web Audio snippet', () => {
       duration: 0.25,
     }],
     ['custom partials wave', { waveType: 'custom', partials: [1, 0.5, 0.25], frequency: 440, gain: 0.4 }],
+    ['custom wave without partials', { waveType: 'custom', frequency: 440 }],
+    ['custom wave with only silent partials', { waveType: 'custom', partials: [0, 0], frequency: 440 }],
   ])('schedules what the library schedules for %s', async (_, soundDefinition) => {
     expect(await vanillaScheduleOf(soundDefinition)).toEqual(libraryScheduleOf(soundDefinition))
   })
