@@ -204,9 +204,8 @@ export class SoundManager<Name extends string = never> {
     }
 
     this.#bus?.dispose()
-    this.#bus = new AudioBus(audioContext, this.#useLimiter)
+    this.#bus = new AudioBus(audioContext, this.#useLimiter, this.#masterVolume)
     this.#busContext = audioContext
-    this.#bus.setVolume(this.#masterVolume, audioContext.currentTime)
     return this.#bus
   }
 

@@ -14,8 +14,10 @@ export class AudioBus {
   private readonly nodes: AudioNodeLike[]
   private readonly samples: Float32Array<ArrayBuffer> | null
 
-  constructor(audioContext: BaseAudioContextLike, limiter = false) {
+  constructor(audioContext: BaseAudioContextLike, limiter = false, initialVolume = 1) {
     this.gainNode = audioContext.createGain()
+    // Set before any voice connects; a glide from default 1 would leak full scale
+    this.gainNode.gain.value = Math.max(0, initialVolume)
     this.nodes = [this.gainNode]
 
     const limiterNode = limiter ? createLimiter(audioContext) : null

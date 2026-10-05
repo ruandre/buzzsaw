@@ -97,9 +97,18 @@ describe('soundManager', () => {
 
     expect(handle).not.toBeNull()
     const [busFader, voiceGain] = mockCtx.gainNodes
-    expect(busFader.gain.setTargetAtTime).toHaveBeenCalledWith(0.8, expect.any(Number), expect.any(Number))
+    expect(busFader.gain.value).toBe(0.8)
     expect(voiceGain.connect).toHaveBeenCalledWith(busFader)
     expect(voiceGain.connect).not.toHaveBeenCalledWith(mockCtx.destination)
+  })
+
+  it('opens a muted bus silent instead of gliding down from full scale', async () => {
+    const manager = new SoundManager({ audioContext: mockCtx, masterVolume: 0 }).register('pop', { duration: 0.1, frequency: 600, gain: 0.5 })
+
+    await manager.play('pop')
+
+    const [busFader] = mockCtx.gainNodes
+    expect(busFader.gain.value).toBe(0)
   })
 
   it('builds the bus once and keeps every voice on it', async () => {
