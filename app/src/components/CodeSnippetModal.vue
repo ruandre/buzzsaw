@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Snippet, SnippetId } from '../snippets'
-import { TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
+import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { computed, ref, watch } from 'vue'
 import { useStudioActions, useSyntaxHighlight, useTransientFlag } from '../composables'
 import { usePlaybackStore } from '../stores'
@@ -81,10 +81,13 @@ async function copy(): Promise<void> {
           {{ snippet.label }}
         </TabsTrigger>
       </TabsList>
+      <TabsContent v-for="snippet in snippets" :key="snippet.id" :value="snippet.id" class="max-h-80 overflow-auto bg-surface-muted p-6 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-inset">
+        <pre class="whitespace-pre text-sm text-ink leading-relaxed font-mono"><code :class="`language-${snippet.language}`">{{ snippet.code }}</code></pre>
+      </TabsContent>
     </TabsRoot>
 
-    <div v-if="activeSnippet" class="max-h-80 overflow-auto bg-surface-muted p-6">
-      <pre tabindex="0" class="whitespace-pre text-sm text-ink leading-relaxed font-mono focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"><code :class="`language-${activeSnippet.language}`">{{ activeSnippet.code }}</code></pre>
+    <div v-else-if="activeSnippet" tabindex="0" class="max-h-80 overflow-auto bg-surface-muted p-6 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-inset">
+      <pre class="whitespace-pre text-sm text-ink leading-relaxed font-mono"><code :class="`language-${activeSnippet.language}`">{{ activeSnippet.code }}</code></pre>
     </div>
 
     <template #footer>
