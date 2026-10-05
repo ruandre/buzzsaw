@@ -69,8 +69,9 @@ function saveBlob(doc: Document, blob: BlobLike, filename: string): void {
   }, REVOKE_DELAY_MS)
 }
 
+// Structural: `instanceof Blob` misses blobs from other realms (iframes, workers)
 function isBlob(value: SoundDefinition | BlobLike): value is BlobLike {
-  return typeof Blob !== 'undefined' && value instanceof Blob
+  return 'arrayBuffer' in value && typeof value.arrayBuffer === 'function'
 }
 
 function requireDocument(): Document {

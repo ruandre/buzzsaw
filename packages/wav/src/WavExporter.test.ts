@@ -88,6 +88,25 @@ describe('wavExporter', () => {
     expect(globalThis.document.body.appendChild).toHaveBeenCalledWith(mockAnchor)
   })
 
+  it('downloads a blob from another realm as-is instead of rendering it as a sound', async () => {
+    // Shape of a Blob made in an iframe or worker, which fails `instanceof Blob` here
+    const foreignBlob = {
+      size: 100,
+      type: 'audio/wav',
+      arrayBuffer: async () => new ArrayBuffer(100),
+      text: async () => '',
+    }
+    const render = vi.spyOn(OfflineSoundRenderer, 'render')
+    vi.mocked(globalThis.document.createElement).mockReturnValue({ click: vi.fn(), style: {} } as unknown as HTMLElement)
+
+    await WavExporter.downloadWav(foreignBlob as unknown as Blob, 'laser')
+
+    expect(render).not.toHaveBeenCalled()
+    expect(globalThis.URL.createObjectURL).toHaveBeenCalledWith(foreignBlob)
+
+    render.mockRestore()
+  })
+
   it('reports the missing document before attempting to render', async () => {
     globalThis.document = undefined as unknown as Document
     const render = vi.spyOn(OfflineSoundRenderer, 'render')
