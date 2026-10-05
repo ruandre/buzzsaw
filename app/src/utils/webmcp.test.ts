@@ -89,4 +89,36 @@ describe('webMCP tools', () => {
 
     expect(getDefinition({ name: 'constructor' })).toEqual({ error: 'No sound named "constructor".' })
   })
+
+  it('lists every preset when called without arguments', () => {
+    const listPresets = registerTools().get('list_sound_presets')!
+
+    expect(listPresets(undefined)).toHaveLength(Object.keys(useLibraryStore().presets).length)
+  })
+
+  it.each(['get_sound_definition', 'play_sound_preset', 'synthesize_sound'])('returns a structured error when %s gets no arguments', async (tool) => {
+    const execute = registerTools().get(tool)!
+
+    await expect(Promise.resolve(execute(null))).resolves.toMatchObject({ error: expect.stringContaining('name') })
+  })
+
+  it('returns a structured error when generate_ai_sound gets no prompt', async () => {
+    const generate = registerTools().get('generate_ai_sound')!
+
+    await expect(generate({})).resolves.toEqual({ success: false, error: 'Missing "prompt": describe the sound to design.' })
+  })
+
+  it('returns a structured error when edit_sound_definition gets no name', async () => {
+    const edit = registerTools().get('edit_sound_definition')!
+
+    await expect(edit({ definition: { frequency: 440 }, instruction: 'softer' }))
+      .resolves
+      .toEqual({ success: false, error: 'Missing "name": the sound to edit.' })
+  })
+
+  it('returns a structured error when edit_sound_definition gets no instruction', async () => {
+    const edit = registerTools().get('edit_sound_definition')!
+
+    await expect(edit({ name: 'pop' })).resolves.toEqual({ success: false, error: 'Missing "instruction": the change to make.' })
+  })
 })

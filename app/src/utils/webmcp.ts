@@ -10,7 +10,7 @@ interface ToolDefinition {
   name: string
   description: string
   inputSchema: object
-  execute: (input: never) => unknown
+  execute: (input: unknown) => unknown
   annotations?: { readOnlyHint?: boolean }
 }
 
@@ -23,6 +23,8 @@ const NAME_INPUT = {
   properties: { name: { type: 'string', description: 'Exact sound name.' } },
   required: ['name'],
 } as const
+
+const MISSING_NAME = 'Missing "name": the exact sound name.'
 
 /**
  * Registers studio tools via navigator.modelContext
@@ -62,8 +64,10 @@ export function registerWebMcpTools(): (() => void) | null {
         },
       },
       annotations: { readOnlyHint: true },
-      execute({ category = 'all', search = '' }: { category?: string, search?: string }) {
-        const query = search.toLowerCase()
+      execute(input) {
+        const fields = readInput(input)
+        const category = readString(fields, 'category') ?? 'all'
+        const query = (readString(fields, 'search') ?? '').toLowerCase()
         return Object.entries(library.presets)
           .filter(([name]) =>
             (!query || name.toLowerCase().includes(query))
@@ -82,7 +86,11 @@ export function registerWebMcpTools(): (() => void) | null {
       description: 'Returns the full JSON definition of a preset or saved sound.',
       inputSchema: NAME_INPUT,
       annotations: { readOnlyHint: true },
-      execute({ name }: { name: string }) {
+      execute(input) {
+        const name = readString(readInput(input), 'name')
+        if (name === undefined) {
+          return { error: MISSING_NAME }
+        }
         const definition = findSound(name)
         return definition ? { name, definition } : { error: `No sound named "${name}".` }
       },
@@ -92,7 +100,11 @@ export function registerWebMcpTools(): (() => void) | null {
       name: 'play_sound_preset',
       description: 'Plays a preset or saved sound aloud in this tab.',
       inputSchema: NAME_INPUT,
-      async execute({ name }: { name: string }) {
+      async execute(input) {
+        const name = readString(readInput(input), 'name')
+        if (name === undefined) {
+          return { success: false, error: MISSING_NAME }
+        }
         const definition = findSound(name)
         if (!definition) {
           return { success: false, error: `No sound named "${name}".` }
@@ -120,17 +132,22 @@ export function registerWebMcpTools(): (() => void) | null {
         },
         required: ['name', 'frequency', 'duration'],
       },
-      async execute(input: {
-        name: string
-        waveType?: OscillatorType
-        frequency: number
-        duration: number
-        attack?: number
-        decay?: number
-        gain?: number
-        saveToLibrary?: boolean
-      }) {
-        if (typeof input.name !== 'string' || !isValidSoundName(input.name)) {
+      async execute(rawInput) {
+        // Remaining fields are checked by validateSoundDefinition
+        const input = readInput(rawInput) as {
+          name?: unknown
+          waveType?: OscillatorType
+          frequency: number
+          duration: number
+          attack?: number
+          decay?: number
+          gain?: number
+          saveToLibrary?: boolean
+        }
+        if (typeof input.name !== 'string') {
+          return { success: false, error: MISSING_NAME }
+        }
+        if (!isValidSoundName(input.name)) {
           return { success: false, error: `Invalid name "${input.name}". ${SOUND_NAME_RULE}` }
         }
         const definition: SoundDefinition = {
@@ -166,8 +183,14 @@ export function registerWebMcpTools(): (() => void) | null {
         },
         required: ['prompt'],
       },
-      execute: (input: { prompt: string, saveToLibrary?: boolean }) =>
-        reportResult(() => ai.generate(input.prompt, { saveToLibrary: input.saveToLibrary })),
+      async execute(input) {
+        const fields = readInput(input)
+        const prompt = readString(fields, 'prompt')
+        if (!prompt?.trim()) {
+          return { success: false, error: 'Missing "prompt": describe the sound to design.' }
+        }
+        return reportResult(() => ai.generate(prompt, { saveToLibrary: fields.saveToLibrary === true }))
+      },
     })
 
     register({
@@ -183,22 +206,27 @@ export function registerWebMcpTools(): (() => void) | null {
         },
         required: ['name', 'instruction'],
       },
-      execute(input: {
-        name: string
-        definition?: SoundDefinition
-        instruction: string
-        saveToLibrary?: boolean
-      }) {
-        const errors = input.definition == null ? [] : validateSoundDefinition(input.definition)
+      async execute(input) {
+        const fields = readInput(input)
+        const name = readString(fields, 'name')
+        const instruction = readString(fields, 'instruction')
+        if (name === undefined) {
+          return { success: false, error: 'Missing "name": the sound to edit.' }
+        }
+        if (!instruction?.trim()) {
+          return { success: false, error: 'Missing "instruction": the change to make.' }
+        }
+        const definition = fields.definition as SoundDefinition | null | undefined
+        const errors = definition == null ? [] : validateSoundDefinition(definition)
         if (errors.length > 0) {
           return { success: false, error: errors.join(' ') }
         }
-        const target = input.definition ?? findSound(input.name)
+        const target = definition ?? findSound(name)
         if (!target) {
-          return { success: false, error: `No sound named "${input.name}", and no definition was given.` }
+          return { success: false, error: `No sound named "${name}", and no definition was given.` }
         }
         return reportResult(() =>
-          ai.edit(target, input.name, input.instruction, { saveToLibrary: input.saveToLibrary }))
+          ai.edit(target, name, instruction, { saveToLibrary: fields.saveToLibrary === true }))
       },
     })
 
@@ -226,6 +254,16 @@ export function registerWebMcpTools(): (() => void) | null {
     controller.abort()
     return null
   }
+}
+
+// Agents may omit arguments or send the wrong types; schema is advisory, not enforced
+function readInput(input: unknown): Record<string, unknown> {
+  return typeof input === 'object' && input !== null ? input as Record<string, unknown> : {}
+}
+
+function readString(fields: Record<string, unknown>, key: string): string | undefined {
+  const value = fields[key]
+  return typeof value === 'string' ? value : undefined
 }
 
 // WebMCP tools return errors as structured data rather than throwing
