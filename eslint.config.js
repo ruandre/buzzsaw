@@ -1,11 +1,12 @@
 import antfu from '@antfu/eslint-config'
+import noUnsanitized from 'eslint-plugin-no-unsanitized'
 import security from 'eslint-plugin-security'
 
 export default antfu({
   formatters: true,
   unocss: true,
   vue: true,
-}, security.configs.recommended, {
+}, noUnsanitized.configs.recommended, security.configs.recommended, {
   // Flags every `obj[key]` lookup; typed records and arrays make it noise here
   name: 'buzzsaw/security-overrides',
   rules: {
