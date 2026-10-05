@@ -16,6 +16,7 @@ describe('isValidSoundName', () => {
 
   // Verifies pattern compiles under RegExp 'v' flag used by HTML pattern attribute
   it('compiles under the RegExp v flag the browser uses for `pattern`', () => {
+    // eslint-disable-next-line security/detect-non-literal-regexp -- compiles app constant, not input
     expect(() => new RegExp(`^(?:${SOUND_NAME_PATTERN})$`, 'v')).not.toThrow()
   })
 })

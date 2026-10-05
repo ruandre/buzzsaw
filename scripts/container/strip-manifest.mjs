@@ -4,5 +4,7 @@ import process from 'node:process'
 import { toPublishManifest } from '../publish-manifest.mjs'
 
 const path = process.argv[2]
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- path is pack-libs.sh's fixed argument
 const manifest = toPublishManifest(JSON.parse(readFileSync(path, 'utf8')))
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- path is pack-libs.sh's fixed argument
 writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`)

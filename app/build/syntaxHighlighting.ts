@@ -17,6 +17,7 @@ export function microlighterGrammars(): Plugin {
       const source = resolve(dirname(resolveMicrolighterEntry()), 'grammars')
 
       // Fails build loudly if package layout changes to prevent silent highlight loss
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- path resolved from installed package, not input
       const stats = await stat(source).catch(() => null)
       if (!stats?.isDirectory()) {
         throw new Error(
