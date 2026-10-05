@@ -173,7 +173,7 @@ function handleAction(actionId: string, name: string, definition: SoundDefinitio
             <button
               v-if="searchQuery"
               type="button"
-              class="cursor-pointer border-0 bg-transparent p-1 text-ink-subtle transition-colors duration-fast hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              class="min-h-6 min-w-6 inline-flex cursor-pointer items-center justify-center border-0 bg-transparent p-1 text-ink-subtle transition-colors duration-fast hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               aria-label="Clear search"
               @click="clearSearch"
             >
