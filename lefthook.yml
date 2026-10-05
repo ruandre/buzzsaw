@@ -11,7 +11,13 @@ pre-commit:
       stage_fixed: true
 
     - name: verify
-      glob: '*.{ts,vue}'
+      # Manifests, lockfile and tsconfig included: dependency bumps can break types and tests without touching source
+      glob:
+        - '*.{ts,vue}'
+        - '*package.json'
+        - '*pnpm-lock.yaml'
+        - '*pnpm-workspace.yaml'
+        - '*tsconfig*.json'
       group:
         parallel: true
         jobs:
