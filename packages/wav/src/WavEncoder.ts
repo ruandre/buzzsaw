@@ -62,7 +62,9 @@ export class WavEncoder {
     const dataSize = source.numSamples * blockAlign
     // RIFF chunks are word-aligned; an odd-sized chunk is followed by one zero pad byte
     const padBytes = dataSize % 2
-    const arrayBuffer = new ArrayBuffer(headerBytes(bitDepth) + dataSize + padBytes)
+    const fileBytes = headerBytes(bitDepth) + dataSize + padBytes
+    requireRiffSize(fileBytes - CHUNK_HEADER_BYTES)
+    const arrayBuffer = new ArrayBuffer(fileBytes)
     const view = new DataView(arrayBuffer)
 
     let offset = writeHeader(view, {
@@ -190,6 +192,14 @@ function requireByteRate(sampleRate: number, numChannels: number, bitDepth: WavB
   if (sampleRate > maxSampleRate) {
     throw new RangeError(
       `Invalid sampleRate: ${sampleRate}. Must be at most ${maxSampleRate} with numChannels ${numChannels} at bit depth ${bitDepth}.`,
+    )
+  }
+}
+
+function requireRiffSize(riffSize: number): void {
+  if (riffSize > MAX_UINT32) {
+    throw new RangeError(
+      `Audio too long for WAV: ${riffSize} RIFF bytes exceed the ${MAX_UINT32}-byte limit of its uint32 size field.`,
     )
   }
 }

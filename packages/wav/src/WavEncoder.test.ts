@@ -212,6 +212,14 @@ describe('wavEncoder', () => {
       .toThrow(new RangeError('Invalid sampleRate: 5000000000. Must be an integer from 8000 to 4294967295.'))
   })
 
+  it('rejects audio too long for the uint32 RIFF size field instead of writing a wrapped header', () => {
+    // 2^30 stereo 16-bit frames is 4 GiB of data; checked before any buffer is allocated
+    const tooLong = { numberOfChannels: 2, sampleRate: 44100, length: 2 ** 30, duration: 0, getChannelData: () => new Float32Array(0) }
+
+    expect(() => WavEncoder.encode(tooLong, { bitDepth: 16 }))
+      .toThrow(new RangeError('Audio too long for WAV: 4294967332 RIFF bytes exceed the 4294967295-byte limit of its uint32 size field.'))
+  })
+
   it('rejects a numChannels too large for its uint16 header field', () => {
     expect(() => WavEncoder.encode([new Float32Array(4)], { numChannels: 70000, bitDepth: 8 }))
       .toThrow(new RangeError('Invalid numChannels: 70000. Must be an integer from 1 to 65535.'))
