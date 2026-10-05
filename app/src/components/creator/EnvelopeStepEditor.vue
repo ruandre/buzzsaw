@@ -22,7 +22,16 @@ const emit = defineEmits<{
   (e: 'add'): void
   (e: 'remove', index: number): void
   (e: 'sort'): void
+  (e: 'update', index: number, patch: Partial<SoundStep>): void
 }>()
+
+// A cleared or partial number leaves the step at its last valid value
+function emitField(index: number, field: keyof SoundStep, event: Event): void {
+  const value = (event.target as HTMLInputElement).valueAsNumber
+  if (Number.isFinite(value)) {
+    emit('update', index, { [field]: value })
+  }
+}
 
 // Keyed by step identity, not position, so a row and its focus follow a step that sorting moves
 const stepKeys = new WeakMap<SoundStep, number>()
@@ -49,13 +58,14 @@ function keyOf(step: SoundStep): number {
         </label>
         <input
           :id="`${idPrefix}-value-${index}`"
-          v-model.number="step.value"
+          :value="step.value"
           type="number"
           inputmode="decimal"
           :min="valueMin"
           :max="valueMax"
           :step="valueStep"
           class="w-16 border border-line-control rounded-md bg-control px-2 py-1 text-xs text-ink font-bold shadow-inset transition-colors duration-fast sm:w-20 focus:border-accent focus:outline-none"
+          @input="emitField(index, 'value', $event)"
         >
         <span v-if="valueUnit" class="select-none text-xs text-ink-subtle font-semibold">{{ valueUnit }}</span>
 
@@ -66,13 +76,14 @@ function keyOf(step: SoundStep): number {
         </label>
         <input
           :id="`${idPrefix}-time-${index}`"
-          v-model.number="step.time"
+          :value="step.time"
           type="number"
           inputmode="decimal"
           min="0"
           :max="timeMax"
           step="0.01"
           class="w-16 border border-line-control rounded-md bg-control px-2 py-1 text-xs text-ink font-bold shadow-inset transition-colors duration-fast sm:w-18 focus:border-accent focus:outline-none"
+          @input="emitField(index, 'time', $event)"
           @change="emit('sort')"
         >
         <span class="select-none text-xs text-ink-subtle font-semibold">s</span>

@@ -216,6 +216,10 @@ export const useCreatorStore = defineStore('creator', () => {
     state.value.frequencySteps.sort(byTime)
   }
 
+  function updateFrequencyStep(index: number, patch: Partial<SoundStep>): void {
+    updateStep(state.value.frequencySteps, index, patch)
+  }
+
   function addGainStep(): void {
     const steps = state.value.gainSteps
     steps.push({ value: 0.1, time: nextStepTime(steps[steps.length - 1]?.time) })
@@ -228,6 +232,10 @@ export const useCreatorStore = defineStore('creator', () => {
 
   function sortGainSteps(): void {
     state.value.gainSteps.sort(byTime)
+  }
+
+  function updateGainStep(index: number, patch: Partial<SoundStep>): void {
+    updateStep(state.value.gainSteps, index, patch)
   }
 
   /** Sets base pitch for both fixed and envelope frequency modes */
@@ -275,9 +283,11 @@ export const useCreatorStore = defineStore('creator', () => {
     addFrequencyStep,
     removeFrequencyStep,
     sortFrequencySteps,
+    updateFrequencyStep,
     addGainStep,
     removeGainStep,
     sortGainSteps,
+    updateGainStep,
     setPitch,
     shiftOctave,
   }
@@ -307,6 +317,14 @@ function clampGain(value: number, min: number): number {
 
 function clampGainStep(step: SoundStep): SoundStep {
   return { value: clampGain(step.value, 0), time: Math.max(0, step.time || 0) }
+}
+
+// Mutates in place: step editor keys rows by step identity
+function updateStep(steps: SoundStep[], index: number, patch: Partial<SoundStep>): void {
+  const step = steps[index]
+  if (step) {
+    Object.assign(step, patch)
+  }
 }
 
 function byTime(a: SoundStep, b: SoundStep): number {

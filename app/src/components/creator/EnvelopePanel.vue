@@ -82,6 +82,7 @@ const asPercent = (gain: number) => `${Math.round(gain * 100)}%`
             @add="creator.addGainStep()"
             @remove="creator.removeGainStep($event)"
             @sort="creator.sortGainSteps()"
+            @update="(index, patch) => creator.updateGainStep(index, patch)"
           />
         </div>
       </div>

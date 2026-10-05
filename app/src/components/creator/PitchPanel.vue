@@ -100,6 +100,7 @@ const PITCH_SLIDER = { min: 50, max: 3000, step: 5 } as const
           @add="creator.addFrequencyStep()"
           @remove="creator.removeFrequencyStep($event)"
           @sort="creator.sortFrequencySteps()"
+          @update="(index, patch) => creator.updateFrequencyStep(index, patch)"
         />
       </div>
     </div>

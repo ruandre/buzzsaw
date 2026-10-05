@@ -114,3 +114,38 @@ describe('creator store envelope timing', () => {
     expect(creator.decayMax).toBe(CREATOR_LIMITS.decay.max)
   })
 })
+
+describe('creator store step edits', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('edits a pitch step in place, keeping the row identity its editor keys on', () => {
+    const creator = useCreatorStore()
+    creator.state.frequencySteps = [{ value: 440, time: 0.1 }]
+    const [step] = creator.state.frequencySteps
+
+    creator.updateFrequencyStep(0, { value: 880 })
+
+    expect(creator.state.frequencySteps).toEqual([{ value: 880, time: 0.1 }])
+    expect(creator.state.frequencySteps[0]).toBe(step)
+  })
+
+  it('edits a gain step time', () => {
+    const creator = useCreatorStore()
+    creator.state.gainSteps = [{ value: 0.5, time: 0.1 }]
+
+    creator.updateGainStep(0, { time: 0.3 })
+
+    expect(creator.state.gainSteps).toEqual([{ value: 0.5, time: 0.3 }])
+  })
+
+  it('ignores an edit to a step that no longer exists', () => {
+    const creator = useCreatorStore()
+    creator.state.gainSteps = []
+
+    creator.updateGainStep(2, { value: 0.5 })
+
+    expect(creator.state.gainSteps).toEqual([])
+  })
+})
