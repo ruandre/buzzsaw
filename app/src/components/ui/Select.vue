@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string">
 import {
   SelectContent,
   SelectGroup,
@@ -14,15 +14,9 @@ import {
 } from 'reka-ui'
 import { usePlaybackStore } from '../../stores'
 
-export interface SelectOption {
-  value: string
-  label: string
-  icon?: string
-}
-
 const props = withDefaults(defineProps<{
-  modelValue: string
-  options: SelectOption[]
+  modelValue: T
+  options: readonly { value: T, label: string, icon?: string }[]
   placeholder?: string
   ariaLabel?: string
   id?: string
@@ -32,7 +26,7 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
+  (e: 'update:modelValue', value: T): void
 }>()
 
 const playback = usePlaybackStore()
@@ -43,12 +37,14 @@ function announceOpen(open: boolean): void {
   }
 }
 
+// Resolved through options so the emitted value keeps its literal type
 function select(value: unknown): void {
-  if (typeof value !== 'string' || value === props.modelValue) {
+  const option = props.options.find(candidate => candidate.value === value)
+  if (!option || option.value === props.modelValue) {
     return
   }
   playback.cue('select')
-  emit('update:modelValue', value)
+  emit('update:modelValue', option.value)
 }
 </script>
 
