@@ -4,15 +4,15 @@
   --syntax-comment: rgb(var(--bs-ink-subtle));
   --syntax-keyword: rgb(var(--bs-accent-ink));
   --syntax-operator: rgb(var(--bs-ink-muted));
-  --syntax-string: rgb(var(--bs-success));
-  --syntax-constant: rgb(var(--bs-warning));
+  --syntax-string: rgb(var(--bs-success-ink));
+  --syntax-constant: rgb(var(--bs-warning-ink));
   --syntax-function: rgb(var(--bs-ink));
   --syntax-type: rgb(var(--bs-accent-ink-strong));
   --syntax-variable: rgb(var(--bs-ink));
   --syntax-property: rgb(var(--bs-ink));
   --syntax-tag: rgb(var(--bs-accent-ink));
   --syntax-selector: rgb(var(--bs-accent-ink));
-  --syntax-inserted: rgb(var(--bs-success));
+  --syntax-inserted: rgb(var(--bs-success-ink));
   --syntax-deleted: rgb(var(--bs-danger-ink));
 }
 

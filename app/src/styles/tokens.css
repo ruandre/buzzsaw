@@ -34,7 +34,7 @@
 
   --bs-ink: 24 26 28;
   --bs-ink-muted: 90 86 82;
-  --bs-ink-subtle: 136 130 124;
+  --bs-ink-subtle: 105 100 95;
   --bs-ink-badge: 90 86 82;
 
   --bs-line: 189 186 181;
@@ -57,8 +57,11 @@
 
   --bs-success: 22 163 74;
   --bs-warning: 217 119 6;
+  /* Text variants: success and warning hues fall short of 4.5:1 on light surfaces */
+  --bs-success-ink: 16 116 53;
+  --bs-warning-ink: 152 83 4;
   --bs-danger: 212 32 24;
-  --bs-danger-ink: 212 32 24;
+  --bs-danger-ink: 198 30 22;
   --bs-danger-line: 231 160 160;
   --bs-danger-wash: 254 242 242;
 
@@ -124,7 +127,7 @@
 
   --bs-ink: 255 255 255;
   --bs-ink-muted: 181 185 191;
-  --bs-ink-subtle: 127 134 144;
+  --bs-ink-subtle: 142 148 157;
   --bs-ink-badge: 181 185 191;
 
   --bs-line: 53 59 67;
@@ -137,7 +140,7 @@
   --bs-accent-lift: 248 70 74;
   --bs-accent-press: 176 24 28;
   --bs-accent-deep: 148 18 22;
-  --bs-accent-ink: 248 70 74;
+  --bs-accent-ink: 249 96 99;
   --bs-accent-ink-strong: 255 110 114;
 
   --bs-accent-solid: 206 32 36;
@@ -147,6 +150,8 @@
 
   --bs-success: 34 197 94;
   --bs-warning: 245 158 11;
+  --bs-success-ink: 34 197 94;
+  --bs-warning-ink: 245 158 11;
   --bs-danger: 239 68 68;
   --bs-danger-ink: 248 113 113;
   --bs-danger-line: 88 32 32;
