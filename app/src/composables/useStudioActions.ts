@@ -70,9 +70,12 @@ export function useStudioActions() {
     notifications.announce(`Auditioning "${name}"`, 'info', 'polite', 2000)
   }
 
-  /** Applies AI edit instruction to creator patch */
-  async function refineCreatorPatchWithAi(instruction: string): Promise<void> {
-    const result = await ai.edit(creator.definition, creator.state.name, instruction)
+  /** Applies AI edit instruction to creator patch; an aborted run leaves the patch unchanged */
+  async function refineCreatorPatchWithAi(instruction: string, signal?: AbortSignal): Promise<void> {
+    const result = await ai.edit(creator.definition, creator.state.name, instruction, { signal })
+    if (signal?.aborted) {
+      return
+    }
     creator.load(result.name, result.definition)
   }
 

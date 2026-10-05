@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { QUICK_TRANSFORMS } from '../../ai/presets'
 import { ARCHETYPES } from '../../audio/archetypes'
@@ -35,6 +35,9 @@ const source = ref<Source>('describe')
 const prompt = ref('')
 const promptInput = ref<HTMLInputElement | null>(null)
 
+// Leaving the panel cancels the run, so a late result cannot pull the user back to the synth
+let inFlight: AbortController | null = null
+
 const isTemplateMode = computed(() => source.value === 'template')
 const copy = computed(() => PROMPT_COPY[source.value === 'refine' ? 'refine' : 'describe'])
 
@@ -58,13 +61,18 @@ async function submit(instruction = prompt.value): Promise<void> {
   }
 
   ai.dismissError()
+  const run = new AbortController()
+  inFlight = run
 
   try {
     if (source.value === 'refine') {
-      await refineCreatorPatchWithAi(text)
+      await refineCreatorPatchWithAi(text, run.signal)
     }
     else {
-      const result = await ai.generate(text)
+      const result = await ai.generate(text, { signal: run.signal })
+      if (run.signal.aborted) {
+        return
+      }
       openInCreator(result.name, result.definition)
     }
     prompt.value = ''
@@ -73,7 +81,12 @@ async function submit(instruction = prompt.value): Promise<void> {
     // Retains prompt on failure for rewording
     promptInput.value?.focus()
   }
+  finally {
+    inFlight = null
+  }
 }
+
+onUnmounted(() => inFlight?.abort())
 </script>
 
 <template>
