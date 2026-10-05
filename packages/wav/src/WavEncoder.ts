@@ -25,7 +25,7 @@ type SampleWriter = (view: DataView, offset: number, sample: number) => number
 const SAMPLE_WRITERS: Record<WavBitDepth, SampleWriter> = {
   8: (view, offset, sample) => {
     // 8-bit WAV PCM is unsigned, centered on 128
-    view.setUint8(offset, clamp(Math.round((sample + 1) * 127.5), 0, 255))
+    view.setUint8(offset, toSignedInt(sample, 0x80, 0x7F) + 0x80)
     return 1
   },
   16: (view, offset, sample) => {

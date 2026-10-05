@@ -126,6 +126,14 @@ describe('wavEncoder', () => {
     expect([view.getUint8(44), view.getUint8(45), view.getUint8(46)]).toEqual([0, 128, 255])
   })
 
+  it('rounds 8-bit samples either side of zero to the midpoint, as 16- and 24-bit do', () => {
+    const samples = Float32Array.of(-0.4 / 128, 0.4 / 127, -0.6 / 128, 0.6 / 127)
+    const view = new DataView(WavEncoder.encode([samples], { bitDepth: 8 }))
+
+    const decoded = [0, 1, 2, 3].map(index => view.getUint8(44 + index))
+    expect(decoded).toEqual([128, 128, 127, 129])
+  })
+
   it('rounds 16-bit samples to the nearest step instead of flooring toward negative infinity', () => {
     const samples = Float32Array.of(-0.4 / 0x8000, 0.6 / 0x7FFF, -1, 1)
     const view = new DataView(WavEncoder.encode([samples], { bitDepth: 16 }))
