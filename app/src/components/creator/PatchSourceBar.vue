@@ -125,7 +125,7 @@ async function submit(instruction = prompt.value): Promise<void> {
             :placeholder="copy.placeholder"
             :disabled="ai.isGenerating"
             :aria-invalid="ai.lastError ? 'true' : undefined"
-            aria-errormessage="creator-ai-error"
+            :aria-errormessage="ai.lastError && !ai.isGenerating ? 'creator-ai-error' : undefined"
             class="input-base flex-1 bg-surface-muted font-sans"
             @input="ai.dismissError()"
           >

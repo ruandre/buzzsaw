@@ -159,7 +159,7 @@ watch(() => ai.isGenerating, (running, wasRunning) => {
             placeholder="Make it punchier with a pitch dive..."
             :disabled="ai.isGenerating"
             :aria-invalid="ai.lastError ? 'true' : undefined"
-            aria-errormessage="refinement-error"
+            :aria-errormessage="ai.lastError ? 'refinement-error' : undefined"
             class="input-base flex-1 bg-surface-muted font-sans"
             @input="ai.dismissError()"
           >
