@@ -15,3 +15,6 @@ trustPolicyExclude:
 packages:
   - 'packages/*'
   - app
+# Patched brace-expansion (GHSA-q2hr-2g5m-vwhr and related DoS); drop once minimatch resolves it
+overrides:
+  brace-expansion@>=4.0.0 <5.0.12: ^5.0.12
