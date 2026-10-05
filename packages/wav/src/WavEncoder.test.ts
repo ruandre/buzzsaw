@@ -126,6 +126,18 @@ describe('wavEncoder', () => {
     expect([view.getUint8(44), view.getUint8(45), view.getUint8(46)]).toEqual([0, 128, 255])
   })
 
+  it('keeps 32-bit float samples past full scale, the headroom float exists for', () => {
+    const view = new DataView(WavEncoder.encode([Float32Array.of(1.5, -2)], { bitDepth: 32 }))
+
+    expect([view.getFloat32(58, true), view.getFloat32(62, true)]).toEqual([1.5, -2])
+  })
+
+  it('clips integer PCM samples past full scale to the end of the range', () => {
+    const view = new DataView(WavEncoder.encode([Float32Array.of(1.5, -2)], { bitDepth: 16 }))
+
+    expect([view.getInt16(44, true), view.getInt16(46, true)]).toEqual([0x7FFF, -0x8000])
+  })
+
   it('rounds 8-bit samples either side of zero to the midpoint, as 16- and 24-bit do', () => {
     const samples = Float32Array.of(-0.4 / 128, 0.4 / 127, -0.6 / 128, 0.6 / 127)
     const view = new DataView(WavEncoder.encode([samples], { bitDepth: 8 }))

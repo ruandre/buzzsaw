@@ -144,7 +144,7 @@ Out-of-range values throw a `RangeError` naming the offending value rather than 
 
 ### Exported audio is not limited
 
-`SoundManager` inserts a brickwall limiter on its master bus by default; this package renders the definition raw. A definition that plays cleanly through a manager can therefore export hotter than it sounds, and a `volume` above 1 clips outright. Keep `volume` at or below 1, or leave headroom in the definition's `gain`, when the two outputs need to match.
+`SoundManager` inserts a brickwall limiter on its master bus by default; this package renders the definition raw. A definition that plays cleanly through a manager can therefore export hotter than it sounds, and a `volume` above 1 clips outright in integer PCM (32-bit float keeps samples past full scale for the player or editor to handle). Keep `volume` at or below 1, or leave headroom in the definition's `gain`, when the two outputs need to match.
 
 Buzzsaw synthesis is mono. `numChannels: 2` therefore writes the same samples to both channels and doubles the file size. It adds no stereo information, and there is no pan or width parameter.
 

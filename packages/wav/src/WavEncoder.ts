@@ -19,7 +19,7 @@ const FACT_CHUNK_BYTES = CHUNK_HEADER_BYTES + 4
 const FORMAT_PCM = 1
 const FORMAT_IEEE_FLOAT = 3
 
-/** Writes clamped [-1, 1] sample at offset; returns bytes written */
+/** Writes finite sample at offset, clipping to integer range where format has one; returns bytes written */
 type SampleWriter = (view: DataView, offset: number, sample: number) => number
 
 const SAMPLE_WRITERS: Record<WavBitDepth, SampleWriter> = {
@@ -258,8 +258,9 @@ function locateChunks(view: DataView): Map<string, ChunkLocation> {
   return chunks
 }
 
+// Range is left to each writer: integer PCM clips, float keeps headroom past full scale
 function normalizeSample(value: number | undefined): number {
-  return typeof value === 'number' && Number.isFinite(value) ? clamp(value, -1, 1) : 0
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
 // Maps [-1, 1] onto asymmetric signed integer range for target bit depth
