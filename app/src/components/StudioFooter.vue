@@ -18,9 +18,12 @@ function scrollToTop(): void {
         class="hidden cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-xs text-ink-muted leading-none font-mono transition-colors duration-fast sm:inline-flex hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         @click="ui.setShortcutsSheetOpen(true)"
       >
-        <span>Press</span>
-        <kbd class="h-4.5 min-w-[1.25rem] inline-flex items-center justify-center border border-line-control rounded-[3px] bg-surface-sunken px-1 text-[11px] text-ink font-bold font-mono shadow-inset">?</kbd>
-        <span>for shortcuts</span>
+        <template v-if="ui.areShortcutsEnabled">
+          <span>Press</span>
+          <kbd class="h-4.5 min-w-[1.25rem] inline-flex items-center justify-center border border-line-control rounded-[3px] bg-surface-sunken px-1 text-[11px] text-ink font-bold font-mono shadow-inset">?</kbd>
+          <span>for shortcuts</span>
+        </template>
+        <span v-else>Keyboard shortcuts</span>
       </button>
 
       <p class="flex items-center justify-center text-xs text-ink-subtle sm:flex-1">

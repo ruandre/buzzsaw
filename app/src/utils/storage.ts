@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   customSounds: 'buzzsaw_studio_custom_sounds',
   favorites: 'buzzsaw_studio_favorites',
   aiHistory: 'buzzsaw_studio_ai_history',
+  shortcuts: 'buzzsaw_studio_shortcuts',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

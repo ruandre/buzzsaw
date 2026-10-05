@@ -12,6 +12,7 @@ function handlers(overrides: Partial<ShortcutHandlers> = {}): ShortcutHandlers {
     onRandomizeCreator: vi.fn(),
     onAuditionCreator: vi.fn(),
     isCreatorActive: () => true,
+    areShortcutsEnabled: () => true,
     ...overrides,
   }
 }
@@ -36,6 +37,10 @@ function keydown(key: string, overrides: Partial<ShortcutEvent> = {}): ShortcutE
 }
 
 describe('resolveShortcut', () => {
+  it.each(['1', '/', '?', 'm', 's', 'r', ' '])('leaves %j to the page while shortcuts are turned off', (key) => {
+    expect(resolveShortcut(keydown(key), handlers({ areShortcutsEnabled: () => false }))).toBeUndefined()
+  })
+
   it('navigates to the view matching a number key', () => {
     const bound = handlers()
 

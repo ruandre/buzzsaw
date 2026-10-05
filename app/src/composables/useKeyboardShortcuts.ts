@@ -28,6 +28,8 @@ export interface ShortcutHandlers {
   onRandomizeCreator: () => void
   onAuditionCreator: () => void
   isCreatorActive: () => boolean
+  /** Users can turn single-key shortcuts off (WCAG 2.1.4) */
+  areShortcutsEnabled: () => boolean
 }
 
 export type ShortcutEvent = Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'target'>
@@ -58,7 +60,7 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
  * @returns Action to run, or `undefined` when keystroke belongs to browser or focused control.
  */
 export function resolveShortcut(event: ShortcutEvent, handlers: ShortcutHandlers): ShortcutAction | undefined {
-  if (event.ctrlKey || event.metaKey || event.altKey || targetOwnsKey(event.target, event.key)) {
+  if (!handlers.areShortcutsEnabled() || event.ctrlKey || event.metaKey || event.altKey || targetOwnsKey(event.target, event.key)) {
     return undefined
   }
   return actionFor(event.key.toLowerCase(), handlers)

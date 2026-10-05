@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { DEFAULT_VIEW, router, STUDIO_VIEWS } from '../router'
 import { clearScopeThemeCache } from '../theme/waveform'
-import { STORAGE_KEYS } from '../utils/storage'
+import { STORAGE_KEYS, usePersistedState } from '../utils/storage'
 import { usePlaybackStore } from './playback'
 
 export const useUiStore = defineStore('ui', () => {
@@ -20,6 +20,11 @@ export const useUiStore = defineStore('ui', () => {
   /** Active view ID derived from current route name */
   const activeView = computed<ViewId>(() => (router.currentRoute.value.name as ViewId | undefined) ?? DEFAULT_VIEW)
   const isShortcutsSheetOpen = ref(false)
+  const areShortcutsEnabled = usePersistedState(
+    STORAGE_KEYS.shortcuts,
+    true,
+    raw => (typeof raw === 'boolean' ? raw : true),
+  )
 
   watch(isDark, (dark) => {
     // Invalidates cached CSS token colors used by oscilloscope
@@ -70,6 +75,7 @@ export const useUiStore = defineStore('ui', () => {
     activeView,
     views: STUDIO_VIEWS,
     isShortcutsSheetOpen,
+    areShortcutsEnabled,
     showView,
     showViewAt,
     toggleTheme,

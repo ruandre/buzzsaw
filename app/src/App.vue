@@ -37,6 +37,7 @@ useKeyboardShortcuts({
   onRandomizeCreator: () => creator.randomize(),
   onAuditionCreator: () => playback.preview(creator.definition),
   isCreatorActive: () => ui.activeView === 'creator',
+  areShortcutsEnabled: () => ui.areShortcutsEnabled,
 })
 
 async function focusSearch(): Promise<void> {

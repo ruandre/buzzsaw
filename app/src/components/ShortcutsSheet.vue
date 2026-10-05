@@ -21,10 +21,18 @@ const groups = computed(() => {
   <Modal
     :open="ui.isShortcutsSheetOpen"
     title="Keyboard shortcuts"
-    description="Shortcuts work anywhere outside text fields"
+    :description="ui.areShortcutsEnabled ? 'Shortcuts work anywhere outside text fields' : 'Single-key shortcuts are off'"
     @update:open="ui.setShortcutsSheetOpen($event)"
   >
     <div class="px-6 py-4.5 space-y-4">
+      <label class="flex cursor-pointer items-center justify-between gap-4 border border-line rounded-lg bg-surface px-3.5 py-2.5 text-xs shadow-card sm:text-sm">
+        <span class="text-ink font-sans">
+          Single-key shortcuts
+          <span class="block text-xs text-ink-muted">Turn off if they clash with speech input or screen reader keys</span>
+        </span>
+        <input v-model="ui.areShortcutsEnabled" type="checkbox" role="switch" class="h-4 w-4 shrink-0 cursor-pointer accent-accent">
+      </label>
+
       <section v-for="[group, shortcuts] in groups" :key="group" class="space-y-1.5">
         <h3 class="heading-section">
           {{ group }}
