@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import type { AudioContextLike, AudioContextState } from '../webAudio.js'
 import { vi } from 'vitest'
 
@@ -5,11 +6,11 @@ export function createMockAudioContext(options: MockAudioContextOptions = {}): M
   return buildMockAudioContext(options) as unknown as MockAudioContext
 }
 
-function buildMockAudioContext(options: MockAudioContextOptions) {
+function buildMockAudioContext(options: MockAudioContextOptions): MockAudioContextMembers {
   const gainNodes: MockGainNode[] = []
   const oscillators: MockOscillatorNode[] = []
 
-  const context = {
+  const context: MockAudioContextMembers = {
     createAnalyser: vi.fn(() => createMockAnalyser()),
     createDynamicsCompressor: vi.fn(() => createMockCompressor()),
     createGain: vi.fn(() => {
@@ -25,7 +26,7 @@ function buildMockAudioContext(options: MockAudioContextOptions) {
     createPeriodicWave: vi.fn((real: Float32Array, imag: Float32Array) => ({ real, imag })),
     currentTime: options.currentTime ?? 0,
     destination: { connect: vi.fn(), disconnect: vi.fn() },
-    state: 'running' as AudioContextState,
+    state: 'running',
     resume: vi.fn(async () => {
       context.state = 'running'
     }),
@@ -43,13 +44,67 @@ export interface MockAudioContextOptions {
   currentTime?: number
 }
 
+// Explicit types: vitest 4 `Mock` is an alias over unexported types, so inferred returns fail declaration emit (TS2742)
+interface MockAudioContextMembers {
+  createAnalyser: Mock<() => MockAnalyserNode>
+  createDynamicsCompressor: Mock<() => MockCompressorNode>
+  createGain: Mock<() => MockGainNode>
+  createOscillator: Mock<() => MockOscillatorNode>
+  createPeriodicWave: Mock<(real: Float32Array, imag: Float32Array) => { real: Float32Array, imag: Float32Array }>
+  currentTime: number
+  destination: MockConnectable
+  state: AudioContextState
+  resume: Mock<() => Promise<void>>
+  close: Mock<() => Promise<void>>
+  gainNodes: MockGainNode[]
+  oscillators: MockOscillatorNode[]
+}
+
 // Mock members stay visible, so optional factories such as createAnalyser read as defined
-export type MockAudioContext = AudioContextLike & ReturnType<typeof buildMockAudioContext>
+export type MockAudioContext = AudioContextLike & MockAudioContextMembers
 
-export type MockGainNode = ReturnType<typeof createMockGain>
-export type MockOscillatorNode = ReturnType<typeof createMockOscillator>
+interface MockConnectable {
+  connect: Mock
+  disconnect: Mock
+}
 
-function createMockAudioParam(value: number) {
+interface MockAudioParam {
+  cancelScheduledValues: Mock
+  exponentialRampToValueAtTime: Mock
+  linearRampToValueAtTime: Mock
+  setTargetAtTime: Mock
+  setValueAtTime: Mock
+  value: number
+}
+
+export interface MockGainNode extends MockConnectable {
+  gain: MockAudioParam
+}
+
+export interface MockOscillatorNode extends MockConnectable {
+  frequency: MockAudioParam
+  onended: (() => void) | null
+  setPeriodicWave: Mock
+  start: Mock
+  stop: Mock
+  type: OscillatorType
+}
+
+interface MockCompressorNode extends MockConnectable {
+  attack: MockAudioParam
+  knee: MockAudioParam
+  ratio: MockAudioParam
+  release: MockAudioParam
+  threshold: MockAudioParam
+}
+
+interface MockAnalyserNode extends MockConnectable {
+  fftSize: number
+  smoothingTimeConstant: number
+  getFloatTimeDomainData: Mock
+}
+
+function createMockAudioParam(value: number): MockAudioParam {
   return {
     cancelScheduledValues: vi.fn(),
     exponentialRampToValueAtTime: vi.fn(),
@@ -60,7 +115,7 @@ function createMockAudioParam(value: number) {
   }
 }
 
-function createMockGain() {
+function createMockGain(): MockGainNode {
   return {
     connect: vi.fn(),
     disconnect: vi.fn(),
@@ -68,20 +123,20 @@ function createMockGain() {
   }
 }
 
-function createMockOscillator() {
+function createMockOscillator(): MockOscillatorNode {
   return {
     connect: vi.fn(),
     disconnect: vi.fn(),
     frequency: createMockAudioParam(440),
-    onended: null as (() => void) | null,
+    onended: null,
     setPeriodicWave: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
-    type: 'sine' as OscillatorType,
+    type: 'sine',
   }
 }
 
-function createMockCompressor() {
+function createMockCompressor(): MockCompressorNode {
   return {
     connect: vi.fn(),
     disconnect: vi.fn(),
@@ -93,7 +148,7 @@ function createMockCompressor() {
   }
 }
 
-function createMockAnalyser() {
+function createMockAnalyser(): MockAnalyserNode {
   return {
     connect: vi.fn(),
     disconnect: vi.fn(),
