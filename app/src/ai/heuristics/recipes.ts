@@ -77,6 +77,8 @@ export const SOUND_RECIPES: readonly SoundRecipe[] = [
     name: 'powerLevelUp',
     description: 'Major-triad arpeggio on a warm triangle for celebratory affirmation.',
     match: ['power up', 'powerup', 'level up', 'levelup', 'victory', 'win', 'triumph'],
+    // 'win' is a substring of these; they belong to the chime and sparkle recipes
+    unless: ['wind', 'twinkl', 'window', 'swing'],
     definition: {
       waveType: 'triangle',
       frequency: {

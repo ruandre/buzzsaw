@@ -41,6 +41,12 @@ describe('findRecipe', () => {
   it('lets a vetoed keyword fall through to a later recipe', () => {
     expect(findRecipe('8-bit explosion')?.name).toBe('arcadeExplosion')
   })
+
+  it('does not let "win" capture wind chimes or twinkles', () => {
+    expect(findRecipe('wind chime')?.name).toBe('crystalBellChime')
+    expect(findRecipe('twinkle sparkle')?.name).toBe('magicSparkle')
+    expect(findRecipe('you win fanfare')?.name).toBe('powerLevelUp')
+  })
 })
 
 describe('editHeuristicPatch', () => {
