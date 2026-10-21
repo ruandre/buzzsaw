@@ -88,6 +88,16 @@ describe('wavExporter', () => {
     expect(globalThis.document.body.appendChild).toHaveBeenCalledWith(mockAnchor)
   })
 
+  it('falls back to the default filename when the given one is blank', async () => {
+    const blob = new Blob([new ArrayBuffer(100)], { type: 'audio/wav' })
+    const mockAnchor = { click: vi.fn(), download: '', href: '', style: {} }
+    vi.mocked(globalThis.document.createElement).mockReturnValue(mockAnchor as unknown as HTMLElement)
+
+    await WavExporter.downloadWav(blob, '   ')
+
+    expect(mockAnchor.download).toBe('sound.wav')
+  })
+
   it('downloads a blob from another realm as-is instead of rendering it as a sound', async () => {
     // Shape of a Blob made in an iframe or worker, which fails `instanceof Blob` here
     const foreignBlob = {

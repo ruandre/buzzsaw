@@ -48,7 +48,7 @@ export class WavExporter {
 }
 
 function toWavFilename(filename?: string): string {
-  const base = (filename || DEFAULT_FILENAME).trim().replace(/[/\\?%*:|"<>]/g, '_')
+  const base = (filename?.trim() || DEFAULT_FILENAME).replace(/[/\\?%*:|"<>]/g, '_')
   return base.endsWith('.wav') ? base : `${base}.wav`
 }
 
