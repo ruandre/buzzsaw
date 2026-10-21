@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import type { WaveType } from '@rjvr/buzzsaw'
 import { computed } from 'vue'
 import { getWaveIcon } from '../../theme/waveform'
 
 const props = defineProps<{
-  waveType?: OscillatorType
+  waveType?: WaveType
 }>()
 
 const label = computed(() => props.waveType ?? 'sine')

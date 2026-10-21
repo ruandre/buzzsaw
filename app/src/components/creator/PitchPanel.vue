@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { PitchName } from '../../audio/pitches'
+import { computed } from 'vue'
 import { KEYBOARD_PITCHES, MAX_PITCH_HZ, MIN_PITCH_HZ, MUSICAL_PITCHES } from '../../audio/pitches'
 import { CREATOR_LIMITS, useCreatorStore } from '../../stores'
 import ModulePanel from '../ui/ModulePanel.vue'
@@ -10,6 +12,15 @@ const creator = useCreatorStore()
 
 // Usable slider drag range for base pitch
 const PITCH_SLIDER = { min: 50, max: 3000, step: 5 } as const
+
+/** Note button matching the fixed pitch, if any */
+const activeNote = computed<PitchName | undefined>(() => {
+  if (creator.state.frequencyMode !== 'fixed') {
+    return undefined
+  }
+  const pitch = Math.round(creator.state.fixedFrequency)
+  return KEYBOARD_PITCHES.find(note => Math.round(MUSICAL_PITCHES[note]) === pitch)
+})
 </script>
 
 <template>
@@ -50,7 +61,7 @@ const PITCH_SLIDER = { min: 50, max: 3000, step: 5 } as const
             :key="note"
             type="button"
             class="btn-secondary justify-center px-1 py-1 text-center text-xs font-bold font-mono transition-all duration-fast"
-            :class="creator.state.frequencyMode === 'fixed' && Math.round(creator.state.fixedFrequency) === Math.round(MUSICAL_PITCHES[note])
+            :class="activeNote === note
               ? 'bg-control border-accent text-accent-ink shadow-raised ring-1 ring-accent'
               : 'text-ink'"
             :aria-label="`Set pitch to ${note}, ${MUSICAL_PITCHES[note]} hertz`"

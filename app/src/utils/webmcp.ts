@@ -1,4 +1,4 @@
-import type { SoundDefinition } from '@rjvr/buzzsaw'
+import type { SoundDefinition, WaveType } from '@rjvr/buzzsaw'
 import { validateSoundDefinition } from '@rjvr/buzzsaw'
 import { getSoundCategory, SOUND_CATEGORIES } from '../audio/categories'
 import { isValidSoundName, SOUND_NAME_RULE, toCustomSoundName } from '../audio/soundName'
@@ -136,7 +136,7 @@ export function registerWebMcpTools(): (() => void) | null {
         // Remaining fields are checked by validateSoundDefinition
         const input = readInput(rawInput) as {
           name?: unknown
-          waveType?: OscillatorType
+          waveType?: WaveType
           frequency: number
           duration: number
           attack?: number

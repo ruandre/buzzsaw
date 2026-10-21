@@ -1,4 +1,4 @@
-import type { EnvelopeDefinition, EnvelopeInterpolation, SoundDefinition, SoundStep } from '@rjvr/buzzsaw'
+import type { EnvelopeDefinition, EnvelopeInterpolation, SoundDefinition, SoundStep, WaveType } from '@rjvr/buzzsaw'
 import type { Archetype } from '../audio/archetypes'
 import {
   clamp,
@@ -20,7 +20,7 @@ export type ParameterMode = 'fixed' | 'steps'
 // Retains both fixed and envelope values across mode toggles
 export interface CreatorState {
   name: string
-  waveType: OscillatorType
+  waveType: WaveType
   /** Harmonics from AI patches; editor does not expose partials directly */
   partials?: number[]
   frequencyMode: ParameterMode
@@ -174,7 +174,7 @@ export const useCreatorStore = defineStore('creator', () => {
 
   /** Generates random musically coherent patch */
   function randomize(): void {
-    const waveType = pickRandom<OscillatorType>(['sine', 'square', 'sawtooth', 'triangle'])
+    const waveType = pickRandom<WaveType>(['sine', 'square', 'sawtooth', 'triangle'])
     const duration = round(0.05 + Math.random() * 0.55, 2)
     const useContour = Math.random() > 0.35
     const startPitch = pickRandom(RANDOMISER_PITCHES)

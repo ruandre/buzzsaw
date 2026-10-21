@@ -1,4 +1,5 @@
 // @unocss-include
+import type { WaveType } from '@rjvr/buzzsaw'
 
 // Waveform oscilloscope theme resolved from CSS custom properties
 
@@ -14,7 +15,7 @@ const WAVE_ICONS: Record<string, string> = {
   triangle: 'i-ph-wave-triangle-bold',
 }
 
-export function getWaveIcon(waveType?: OscillatorType): string {
+export function getWaveIcon(waveType?: WaveType): string {
   return WAVE_ICONS[waveType ?? 'sine'] ?? WAVE_ICONS.sine
 }
 

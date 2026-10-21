@@ -53,6 +53,8 @@ const CARD_ACTIONS = [
 
 const ANNOUNCE_SETTLE_MS = 500
 
+const presetCount = computed(() => Object.keys(library.presets).length)
+
 type Entry = [string, SoundDefinition]
 
 // Preset sort comparator functions
@@ -136,7 +138,7 @@ function handleAction(actionId: string, name: string, definition: SoundDefinitio
           Preset Library
         </h1>
         <p class="text-lede">
-          {{ Object.keys(library.presets).length }} synthesized effects. Audition one, then take it as code or a WAV file.
+          {{ presetCount }} synthesized effects. Audition one, then take it as code or a WAV file.
         </p>
       </div>
 

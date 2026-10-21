@@ -1,4 +1,4 @@
-import type { SoundDefinition } from '@rjvr/buzzsaw'
+import type { SoundDefinition, WaveType } from '@rjvr/buzzsaw'
 import { MUSICAL_PITCHES } from '../../audio/pitches'
 
 interface Descriptor<T> {
@@ -10,7 +10,7 @@ function pick<T>(prompt: string, table: readonly Descriptor<T>[], fallback: T): 
   return table.find(({ keywords }) => keywords.some(word => prompt.includes(word)))?.value ?? fallback
 }
 
-const TIMBRES: readonly Descriptor<OscillatorType>[] = [
+const TIMBRES: readonly Descriptor<WaveType>[] = [
   { keywords: ['sharp', 'bright', 'harsh', 'distort', 'raspy'], value: 'sawtooth' },
   { keywords: ['retro', 'arcade', 'digital', 'hollow', 'bleep'], value: 'square' },
   { keywords: ['warm', 'soft', 'mellow', 'smooth', 'gentle'], value: 'triangle' },

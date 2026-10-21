@@ -1,4 +1,4 @@
-import type { EnvelopeDefinition, SoundDefinition, SoundStep } from '@rjvr/buzzsaw'
+import type { EnvelopeDefinition, SoundDefinition, SoundStep, WaveType } from '@rjvr/buzzsaw'
 import { clamp, cloneSoundDefinition, validateSoundDefinition, WAVE_TYPES } from '@rjvr/buzzsaw'
 import { MAX_PITCH_HZ } from '../audio/pitches'
 
@@ -17,7 +17,7 @@ const LIMITS = {
 } as const
 
 const DEFAULTS = {
-  waveType: 'sine' as OscillatorType,
+  waveType: 'sine' as WaveType,
   frequency: 440,
   gain: 0.4,
   duration: 0.3,
@@ -132,7 +132,7 @@ function normalizeSteps(raw: unknown, range: Range, duration: number): SoundStep
 }
 
 interface Timbre {
-  waveType: OscillatorType
+  waveType: WaveType
   partials?: number[]
 }
 
@@ -146,10 +146,10 @@ function normalizeTimbre(rawWaveType: unknown, rawPartials: unknown): Timbre {
   return partials ? { waveType, partials } : { waveType: DEFAULTS.waveType }
 }
 
-function normalizeWaveType(raw: unknown): OscillatorType {
+function normalizeWaveType(raw: unknown): WaveType {
   const candidate = typeof raw === 'string' ? raw.toLowerCase() : ''
   return GENERATIVE_WAVE_TYPES.includes(candidate)
-    ? (candidate as OscillatorType)
+    ? (candidate as WaveType)
     : DEFAULTS.waveType
 }
 
@@ -171,14 +171,14 @@ function clampNumber(raw: unknown, range: Range, fallback: number): number {
   return clamp(value, range.min, range.max)
 }
 
-function normalizeName(raw: unknown, waveType: OscillatorType): string {
+function normalizeName(raw: unknown, waveType: WaveType): string {
   const cleaned = typeof raw === 'string' ? raw.trim().replace(/[^\w-]/g, '') : ''
   return cleaned || `ai_${waveType}_${Math.floor(Math.random() * 1000)}`
 }
 
 function normalizeDescription(
   raw: unknown,
-  waveType: OscillatorType,
+  waveType: WaveType,
   frequency: number | EnvelopeDefinition,
 ): string {
   if (typeof raw === 'string' && raw.trim()) {
