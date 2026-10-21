@@ -243,3 +243,111 @@ describe('wavEncoder', () => {
     expect(WavEncoder.decodeHeader(truncated)).toBeNull()
   })
 })
+
+describe('wavEncoder header decoding on malformed input', () => {
+  const encoded = () => new Uint8Array(WavEncoder.encode([new Float32Array(2)], { sampleRate: 8000 }))
+
+  it('returns null for a buffer shorter than the RIFF preamble', () => {
+    expect(WavEncoder.decodeHeader(new ArrayBuffer(11))).toBeNull()
+  })
+
+  it('returns null for a WAVE file with no fmt chunk', () => {
+    const bytes = encoded()
+    bytes.set([...'junk'].map(char => char.charCodeAt(0)), 12)
+
+    expect(WavEncoder.decodeHeader(bytes.buffer)).toBeNull()
+  })
+
+  it('returns null for a WAVE file with no data chunk', () => {
+    const bytes = encoded()
+    bytes.set([...'junk'].map(char => char.charCodeAt(0)), 36)
+
+    expect(WavEncoder.decodeHeader(bytes.buffer)).toBeNull()
+  })
+
+  it('returns null when the fmt chunk is too short to hold the PCM fields', () => {
+    const bytes = encoded()
+    new DataView(bytes.buffer).setUint32(16, 12, true)
+
+    expect(WavEncoder.decodeHeader(bytes.buffer)).toBeNull()
+  })
+
+  it('returns null when a chunk size runs past the end of the buffer', () => {
+    const bytes = encoded()
+    new DataView(bytes.buffer).setUint32(16, 0xFFFFFFF0, true)
+
+    expect(WavEncoder.decodeHeader(bytes.buffer)).toBeNull()
+  })
+
+  it('skips the pad byte of an odd-sized chunk that precedes the data chunk', () => {
+    const pcm = encoded()
+    const list = [...'LIST', 5, 0, 0, 0, ...'INFOa', 0].map(value => typeof value === 'string' ? value.charCodeAt(0) : value)
+    const withList = Uint8Array.from([...pcm.slice(0, 36), ...list, ...pcm.slice(36)])
+
+    expect(WavEncoder.decodeHeader(withList.buffer)?.dataSize).toBe(4)
+  })
+
+  it('reports a zero duration rather than dividing by a zero byte rate', () => {
+    const bytes = encoded()
+    new DataView(bytes.buffer).setUint32(28, 0, true)
+
+    expect(WavEncoder.decodeHeader(bytes.buffer)?.duration).toBe(0)
+  })
+
+  it('derives duration, byteRate and blockAlign from the layout', () => {
+    const header = WavEncoder.decodeHeader(WavEncoder.encode([new Float32Array(4000)], { sampleRate: 8000, bitDepth: 24, numChannels: 2 }).slice(0))
+
+    expect(header).toMatchObject({ blockAlign: 6, byteRate: 48000, duration: 0.5 })
+  })
+})
+
+describe('wavEncoder multichannel layouts', () => {
+  it('duplicates a mono source into every channel of a 24-bit stereo file', () => {
+    const arrayBuffer = WavEncoder.encode([new Float32Array([0.5, -0.5])], { bitDepth: 24, numChannels: 2, sampleRate: 8000 })
+    const data = new Uint8Array(arrayBuffer, 44)
+
+    expect(arrayBuffer.byteLength).toBe(44 + 2 * 2 * 3)
+    expect([...data.slice(0, 3)]).toEqual([...data.slice(3, 6)])
+    expect([...data.slice(6, 9)]).toEqual([...data.slice(9, 12)])
+  })
+
+  it('writes the frame count, not the sample count, into the float fact chunk', () => {
+    const arrayBuffer = WavEncoder.encode([new Float32Array(7)], { bitDepth: 32, numChannels: 2 })
+
+    expect(new DataView(arrayBuffer).getUint32(46, true)).toBe(7)
+  })
+
+  it('interleaves distinct channels frame by frame', () => {
+    const left = new Float32Array([0.25, 0.5])
+    const right = new Float32Array([-0.25, -0.5])
+    const view = new DataView(WavEncoder.encode([left, right], { bitDepth: 16, sampleRate: 8000 }))
+
+    expect([44, 46, 48, 50].map(offset => view.getInt16(offset, true))).toEqual([8192, -8192, 16384, -16384])
+  })
+
+  it('writes silence for a channel shorter than the first', () => {
+    const view = new DataView(WavEncoder.encode([new Float32Array([0.5, 0.5]), new Float32Array([0.5])], { bitDepth: 16, sampleRate: 8000 }))
+
+    expect(view.getInt16(50, true)).toBe(0)
+  })
+
+  it('writes a zero pad byte after an odd-sized data chunk', () => {
+    const arrayBuffer = WavEncoder.encode([new Float32Array([1, 1, 1])], { bitDepth: 8, sampleRate: 8000 })
+
+    expect(new Uint8Array(arrayBuffer).at(-1)).toBe(0)
+    expect(arrayBuffer.byteLength % 2).toBe(0)
+  })
+
+  it('encodes an empty channel list as a header-only file', () => {
+    const arrayBuffer = WavEncoder.encode([], { sampleRate: 8000 })
+
+    expect(arrayBuffer.byteLength).toBe(44)
+    expect(WavEncoder.decodeHeader(arrayBuffer)?.dataSize).toBe(0)
+  })
+
+  it('writes non-finite samples as silence', () => {
+    const view = new DataView(WavEncoder.encode([new Float32Array([Number.NaN, Infinity])], { bitDepth: 16, sampleRate: 8000 }))
+
+    expect([view.getInt16(44, true), view.getInt16(46, true)]).toEqual([0, 0])
+  })
+})
