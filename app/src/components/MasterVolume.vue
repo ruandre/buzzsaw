@@ -61,6 +61,7 @@ const speakerIcon = computed(() => {
       </SliderTrack>
       <SliderThumb
         aria-label="Master volume"
+        :aria-valuetext="percentLabel"
         class="volume-knob slider-thumb relative block h-4 w-4 border rounded-full shadow-control transition-transform duration-fast active:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         :class="variant === 'full' ? 'h-5 w-5' : ''"
       >

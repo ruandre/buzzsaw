@@ -46,7 +46,6 @@ watch(() => props.open, (open, wasOpen) => {
     <DialogPortal>
       <DialogOverlay class="modal-scrim fixed inset-0 z-50 bg-scrim/60" />
       <DialogContent
-        closedby="any"
         class="modal fixed inset-0 z-50 m-auto h-fit max-h-[90vh] w-[92vw] flex flex-col overflow-hidden border border-line rounded-xl bg-surface shadow-popover sm:w-full"
         :class="WIDTHS[size]"
       >

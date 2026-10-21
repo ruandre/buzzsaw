@@ -39,7 +39,7 @@ const readout = computed(() =>
   <div class="font-mono space-y-1.5">
     <div v-if="label" class="flex items-center justify-between text-xs sm:text-sm">
       <span class="select-none text-ink-muted font-semibold tracking-wide">{{ label }}</span>
-      <output class="min-w-[3.75rem] border border-line-control rounded-md bg-surface-sunken px-2 py-0.5 text-right text-xs text-accent-ink font-bold font-mono tabular-nums shadow-inset sm:text-sm">
+      <output aria-live="off" class="min-w-[3.75rem] border border-line-control rounded-md bg-surface-sunken px-2 py-0.5 text-right text-xs text-accent-ink font-bold font-mono tabular-nums shadow-inset sm:text-sm">
         {{ readout }}
       </output>
     </div>
@@ -58,6 +58,7 @@ const readout = computed(() =>
 
       <SliderThumb
         :aria-label="ariaLabel || label || 'Slider'"
+        :aria-valuetext="readout"
         class="slider-knob thumb slider-thumb relative block h-5 w-5 cursor-grab border rounded-full shadow-control transition-transform duration-fast active:scale-105 active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
       >
         <span class="pointer-events-none absolute inset-0 m-auto h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_2px_rgb(var(--bs-accent))]" />

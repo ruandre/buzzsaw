@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SoundDefinition } from '@rjvr/buzzsaw'
+import { refDebounced } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useStudioActions, useTransientFlag } from '../composables'
@@ -26,6 +27,7 @@ const registerSnippets = computed(() =>
   isRegisterCodeOpen.value ? [buildRegisterAllSnippet(library.customSounds)] : [])
 
 const CONFIRM_WINDOW_MS = 4000
+const ANNOUNCE_SETTLE_MS = 500
 
 const {
   isRaised: isConfirmingClear,
@@ -45,6 +47,10 @@ const visibleSounds = computed(() => {
     .filter(([name]) => !query || name.toLowerCase().includes(query))
     .sort(([a], [b]) => a.localeCompare(b))
 })
+
+const resultSummary = computed(() => `${visibleSounds.value.length} of ${library.customSoundCount}`)
+// Debounces live region summary to avoid announcing per keystroke
+const announcedSummary = refDebounced(resultSummary, ANNOUNCE_SETTLE_MS)
 
 function handleAction(actionId: string, name: string, definition: SoundDefinition): void {
   switch (actionId) {
@@ -244,7 +250,7 @@ function clearAll(): void {
             >
           </div>
           <span class="select-none text-sm text-ink-muted font-semibold font-mono" role="status" aria-live="polite">
-            {{ visibleSounds.length }} of {{ library.customSoundCount }}
+            {{ announcedSummary }}
           </span>
         </div>
 
