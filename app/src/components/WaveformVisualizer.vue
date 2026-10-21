@@ -346,7 +346,8 @@ function stopAnimation(): void {
 
 watch(() => props.isPlaying, (playing) => {
   stopAnimation()
-  if (playing) {
+  // Without a playhead each frame would repaint the same image
+  if (playing && reducedMotion.value !== 'reduce') {
     playStartedAt = performance.now()
     animate()
   }
