@@ -7,6 +7,9 @@ services:
     working_dir: /work
     read_only: true
     init: true
+    # SELinux hosts deny the bind mount otherwise; Docker ignores the option
+    security_opt:
+      - label=disable
     environment:
       HOME: /tmp
       NPM_CONFIG_CACHE: /tmp/npm

@@ -6,6 +6,8 @@ trustPolicy: no-downgrade
 trustPolicyExclude:
   - undici-types@6.21.0
 
+# Keep the virtual store inside node_modules: Vite's dev server and the consumer container read it from there
+enableGlobalVirtualStore: false
 shellEmulator: true
 
 packages:
