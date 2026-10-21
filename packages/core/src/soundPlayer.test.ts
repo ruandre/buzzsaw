@@ -527,3 +527,160 @@ describe('sampleGainAtTime against scheduled playback', () => {
     expect(automatedValueAt(gain, 0.0999)).toBeCloseTo(0.8, 2)
   })
 })
+
+describe('playSoundFromDefinition option validation', () => {
+  it.each([
+    ['a negative volume', { volume: -0.1 }],
+    ['a NaN volume', { volume: Number.NaN }],
+    ['a zero pitchScale', { pitchScale: 0 }],
+    ['a negative pitchScale', { pitchScale: -1 }],
+    ['an infinite pitchScale', { pitchScale: Infinity }],
+  ])('throws RangeError for %s before touching the context', (_, options) => {
+    const context = createMockAudioContext()
+
+    expect(() => playSoundFromDefinition(context, { frequency: 440 }, options)).toThrow(RangeError)
+    expect(context.createOscillator).not.toHaveBeenCalled()
+  })
+
+  it('floors a scaled frequency at the audible minimum', () => {
+    const context = createMockAudioContext()
+
+    playSoundFromDefinition(context, { frequency: 440 }, { pitchScale: 0.0001 })
+
+    expect(context.oscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(1, 0)
+  })
+})
+
+describe('stepped frequency scheduling', () => {
+  it('jumps between steps with setValueAtTime instead of ramping', () => {
+    const context = createMockAudioContext()
+
+    playSoundFromDefinition(context, {
+      frequency: { start: 440, steps: [{ value: 880, time: 0.1 }], interpolation: 'step' },
+      duration: 0.3,
+    })
+
+    const { frequency } = context.oscillators[0]
+    expect(frequency.setValueAtTime.mock.calls).toEqual([[440, 0], [880, 0.1]])
+    expect(frequency.linearRampToValueAtTime).not.toHaveBeenCalled()
+  })
+
+  it('applies pitchScale to the start and every step', () => {
+    const context = createMockAudioContext()
+
+    playSoundFromDefinition(context, {
+      frequency: { start: 440, steps: [{ value: 880, time: 0.1 }] },
+      duration: 0.3,
+    }, { pitchScale: 2 })
+
+    const { frequency } = context.oscillators[0]
+    expect(frequency.setValueAtTime).toHaveBeenCalledWith(880, 0)
+    expect(frequency.linearRampToValueAtTime).toHaveBeenCalledWith(1760, 0.1)
+  })
+})
+
+describe('stop fade', () => {
+  it('fades the gain from its current level to silence over the stop window, then stops the oscillator', () => {
+    const context = createMockAudioContext({ currentTime: 2 })
+    const handle = playSoundFromDefinition(context, { frequency: 440, duration: 1 })
+    const { gain } = context.gainNodes[0]
+    const oscillator = context.oscillators[0]
+    gain.value = 0.3
+    gain.setValueAtTime.mockClear()
+
+    handle.stop()
+
+    expect(gain.cancelScheduledValues).toHaveBeenCalledWith(2)
+    expect(gain.setValueAtTime).toHaveBeenCalledWith(0.3, 2)
+    expect(gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(0.0001, 2.005)
+    expect(oscillator.stop).toHaveBeenLastCalledWith(2.006)
+  })
+
+  it('settles the playback promise on stop', async () => {
+    const context = createMockAudioContext()
+    const handle = playSoundFromDefinition(context, { frequency: 440, duration: 1 })
+
+    handle.stop()
+
+    await expect(handle.promise).resolves.toBeUndefined()
+  })
+
+  it('ignores a second stop', () => {
+    const context = createMockAudioContext()
+    const handle = playSoundFromDefinition(context, { frequency: 440, duration: 1 })
+    const { gain } = context.gainNodes[0]
+
+    handle.stop()
+    handle.stop()
+
+    expect(gain.cancelScheduledValues).toHaveBeenCalledOnce()
+  })
+
+  it('still disconnects when the context rejects the fade', () => {
+    const context = createMockAudioContext()
+    const handle = playSoundFromDefinition(context, { frequency: 440, duration: 1 })
+    const voiceGain = context.gainNodes[0]
+    voiceGain.gain.cancelScheduledValues.mockImplementation(() => {
+      throw new Error('closed')
+    })
+
+    handle.stop()
+
+    expect(voiceGain.disconnect).toHaveBeenCalledOnce()
+    expect(handle.isPlaying).toBe(false)
+  })
+})
+
+describe('voice lifecycle', () => {
+  it('settles the promise and releases the nodes when the oscillator ends on its own', async () => {
+    const context = createMockAudioContext()
+    const handle = playSoundFromDefinition(context, { frequency: 440, duration: 0.2 })
+    const oscillator = context.oscillators[0]
+
+    oscillator.onended?.()
+
+    expect(handle.isPlaying).toBe(false)
+    expect(oscillator.disconnect).toHaveBeenCalledOnce()
+    await expect(handle.promise).resolves.toBeUndefined()
+  })
+
+  it('finishes through the fallback timer when onended never fires', () => {
+    vi.useFakeTimers()
+    try {
+      const context = createMockAudioContext()
+      const handle = playSoundFromDefinition(context, { frequency: 440, duration: 0.2 })
+
+      vi.advanceTimersByTime(301)
+
+      expect(handle.isPlaying).toBe(false)
+      expect(context.gainNodes[0].disconnect).toHaveBeenCalledOnce()
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reports a failed start and settles the handle', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const context = createMockAudioContext()
+      // Built on a donor context so the mock-typed node is reachable
+      const donor = createMockAudioContext()
+      donor.createOscillator()
+      const oscillator = donor.oscillators[0]
+      oscillator.start.mockImplementation(() => {
+        throw new Error('InvalidStateError')
+      })
+      context.createOscillator.mockReturnValueOnce(oscillator)
+
+      const handle = playSoundFromDefinition(context, { frequency: 440, duration: 0.2 })
+
+      expect(handle.isPlaying).toBe(false)
+      expect(consoleError).toHaveBeenCalledOnce()
+      await expect(handle.promise).resolves.toBeUndefined()
+    }
+    finally {
+      consoleError.mockRestore()
+    }
+  })
+})
