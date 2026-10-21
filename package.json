@@ -26,23 +26,18 @@
     "changeset:version": "changeset version",
     "changeset:status": "changeset status --since=origin/main"
   },
-  "dependencies": {
-    "@fontsource-variable/geist-mono": "^5.3.0",
-    "@fontsource-variable/instrument-sans": "^5.3.0"
-  },
   "devDependencies": {
-    "@antfu/eslint-config": "^9.3.0",
-    "@changesets/cli": "3.0.1",
-    "@iconify-json/ph": "^1.2.2",
-    "@types/node": "^22.20.1",
-    "@unocss/eslint-plugin": "^66.8.1",
-    "eslint": "^10.9.1",
-    "eslint-plugin-format": "^2.0.1",
-    "eslint-plugin-no-unsanitized": "^4.1.5",
-    "eslint-plugin-security": "^4.2.0",
-    "lefthook": "2.1.12",
-    "rolldown": "^1.2.6",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.11"
+    "@antfu/eslint-config": "catalog:",
+    "@changesets/cli": "catalog:",
+    "@types/node": "catalog:",
+    "@unocss/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-format": "catalog:",
+    "eslint-plugin-no-unsanitized": "catalog:",
+    "eslint-plugin-security": "catalog:",
+    "lefthook": "catalog:",
+    "rolldown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -56,8 +56,8 @@
   },
   "devDependencies": {
     "@rjvr/buzzsaw": "workspace:^",
-    "rolldown": "^1.2.6",
-    "typescript": "^5.7.3",
-    "vitest": "^4.1.11"
+    "rolldown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
