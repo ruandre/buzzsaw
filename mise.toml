@@ -13,6 +13,7 @@ node = "26.12.0"
 aube = "2.8.1"
 hk = "2.8.0"
 pkl = "0.32.1"
+pinact = "5.0.0"
 
 [env]
 _.path = [ "{{config_root}}/node_modules/.bin" ]
@@ -70,6 +71,27 @@ run = "aube exec vitest run"
 [tasks."test:watch"]
 description = "Run the tests in watch mode"
 run = "aube exec vitest watch"
+
+[tasks."actions:check"]
+description = "Verify every GitHub Actions pin names its real version and meets the minimum age (GitHub API; set GITHUB_TOKEN)"
+run = "pinact run --check --verify-comment --verify-min-age"
+
+[tasks."actions:update"]
+description = "Pin GitHub Actions to their newest release older than the minimum age, then verify the comments"
+run = "pinact run --update --verify-comment"
+
+[tasks."changeset:check"]
+description = "Fail when a library changed since a base (default origin/main) without a changeset"
+usage = 'arg "[base]" help="Branch or commit to compare against" default="origin/main"'
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+if git diff --quiet "$usage_base" -- packages; then
+  echo "no library changes since $usage_base"
+  exit 0
+fi
+aube exec changeset status --since="$usage_base"
+"""
 
 [tasks.check]
 description = "Quality gate before a commit: lint, typecheck, test"

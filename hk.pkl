@@ -30,6 +30,8 @@ hooks {
     stash = "git"
     steps {
       ...linters
+      // Resolves each pin through the GitHub API, so it runs only on staged workflow files (CI covers them all)
+      ["pinact"] = Builtins.pinact
       // Whole workspace: an edit can break cross-file types or tests
       ["typecheck"] {
         glob = verifyGlob

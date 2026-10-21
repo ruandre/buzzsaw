@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same branch or pull request supersedes a running check
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # Install exactly what mise.lock records (checksums included)
   MISE_LOCKED: 1
@@ -21,12 +26,26 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The changeset gate compares a pull request against its base branch
+          fetch-depth: 0
 
-      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+      - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
 
       - run: aube install --frozen-lockfile
 
+      - name: Check the GitHub Actions pins
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: mise run actions:check
+
       - run: mise run ci
+
+      # A release commit deletes changesets by design, so only pull requests are gated
+      - if: github.event_name == 'pull_request'
+        name: Require a changeset for library changes
+        env:
+          BASE: ${{ github.base_ref }}
+        run: mise run changeset:check "origin/$BASE"
 
       - if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

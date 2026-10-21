@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/suzuki-shunsuke/pinact/v5.0.0/json-schema/pinact.json
+version: 3
+# A release must be a week old before an update may pin it
+min_age:
+  value: 7
