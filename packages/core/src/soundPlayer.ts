@@ -15,8 +15,6 @@ import { finiteOr } from './numeric.js'
 import { applyWaveShape } from './oscillator.js'
 import { calculateEffectiveDuration, resolveEnvelopeTiming } from './utils.js'
 
-export { validateSoundDefinition } from './validation.js'
-
 // Absolute AudioContext timestamps for playback phases
 interface PlaybackSchedule {
   start: number

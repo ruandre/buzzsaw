@@ -1,9 +1,10 @@
 import type { MockAudioContext, MockGainNode } from './testing/mockAudioContext.js'
 import type { SoundDefinition } from './types.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { playSoundFromDefinition, validateSoundDefinition } from './soundPlayer.js'
+import { playSoundFromDefinition } from './soundPlayer.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
 import { sampleFrequencyAtTime, sampleGainAtTime } from './utils.js'
+import { validateSoundDefinition } from './validation.js'
 
 describe('soundPlayer validateSoundDefinition', () => {
   it('returns errors for non-objects or null', () => {
