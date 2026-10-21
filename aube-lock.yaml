@@ -214,7 +214,7 @@ importers:
   packages/wav:
     devDependencies:
       '@rjvr/buzzsaw':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../core
       rolldown:
         specifier: 'catalog:'
