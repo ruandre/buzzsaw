@@ -87,6 +87,23 @@ depends = [
   "verify-consumer"
 ]
 
+[tasks.outdated]
+description = "Report available updates for tools and npm packages (changes nothing)"
+run = [
+  "mise outdated --bump --local",
+  # Exit status 1 only means updates exist
+  "aube outdated --recursive || [ $? -eq 1 ]"
+]
+
+[tasks."deps:update"]
+description = "Re-resolve every npm dependency to the newest version its range allows, then reinstall"
+# A clean resolve instead of `aube update`: that command rewrites the workspace link entries
+# (link:../packages/core) with the importer directory prepended, which breaks the links
+run = [
+  "rm -rf node_modules app/node_modules packages/*/node_modules aube-lock.yaml",
+  "aube install"
+]
+
 [tasks.verify-consumer]
 description = "Pack both libraries and typecheck + run them as a Node ESM consumer, in a throwaway container"
 run = "docker compose -f test/consumer/compose.yaml run --rm verify"
