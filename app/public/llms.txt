@@ -34,7 +34,7 @@ The READMEs cover these in full. Repeated here because they are the details most
 
 - Annotate object literals as `SoundDefinition` (or use `satisfies`). Without it TypeScript widens `waveType: 'sawtooth'` to `string` and the object stops matching.
 - `attack` and `decay` are carved out of `duration`; neither extends it. Only an envelope step scheduled past `duration` extends a sound, and then only to that step plus a 10 ms tail.
-- The attack ramps up linearly from a 0.0001 silence floor; the decay ramps back down to it exponentially. Both apply to an envelope gain, where the attack ramps in to the envelope's `start`. `gain: 0` therefore renders as that floor, not true zero.
+- The attack ramps up linearly from a 0.0001 silence floor; the decay ramps back down to it exponentially. Both apply to an envelope gain, where the attack ramps in to the envelope's own level at attack end (`start` under step interpolation, the line toward the first step under linear). `gain: 0` therefore renders as that floor, not true zero.
 - Frequency envelopes ramp linearly between steps; gain envelopes hold each value until the next. Set `interpolation` to `'linear'` or `'step'` to override either default.
 - `register` and `registerAll` return the manager, widened over the names just added, so `play` rejects typos at compile time. Chain them rather than calling them as separate statements. Use `new SoundManager<string>()` for dynamic names.
 - `play()` resolves when the voice is scheduled, not when it ends. Await `handle.promise` for completion. It rejects when no `AudioContext` can be created or resumed, so guard with `isAudioContextSupported()` or catch the rejection.
@@ -61,7 +61,7 @@ A flat `{ [name: string]: SoundDefinition }` map is also accepted on import.
 
 ## Studio tools for in-browser agents
 
-In a WebMCP-capable browser, the Studio registers tools on `document.modelContext` and `navigator.modelContext`:
+In a WebMCP-capable browser, the Studio registers tools on `document.modelContext`, or on `navigator.modelContext` where that is absent:
 
 - `list_sound_presets`: lists built-in presets. Arguments: `{ category?: string, search?: string }`.
 - `get_sound_definition`: returns the JSON definition of a sound. Arguments: `{ name: string }`.

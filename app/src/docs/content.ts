@@ -170,8 +170,10 @@ handle?.stop() // fades out over 5ms rather than cutting`,
       {
         kind: 'code',
         language: 'typescript',
-        code: `// Fundamental plus odd harmonics: hollow, clarinet-like
-const reed = {
+        code: `import type { SoundDefinition } from '@rjvr/buzzsaw'
+
+// Fundamental plus odd harmonics: hollow, clarinet-like
+const reed: SoundDefinition = {
   waveType: 'custom',
   partials: [1, 0, 0.33, 0, 0.2, 0, 0.14],
   frequency: 330,
@@ -331,7 +333,7 @@ for (const [name, definition] of Object.entries(DEFAULT_SOUNDS)) {
     label: 'Reference',
     icon: 'i-ph-code-bold',
     title: 'Type reference',
-    intro: 'The full shape of a sound. Every field except `frequency` has a default.',
+    intro: 'The full shape of a sound. Every field except `frequency` has a default, apart from `partials`, which only a `custom` wave needs.',
     blocks: [
       {
         kind: 'code',
