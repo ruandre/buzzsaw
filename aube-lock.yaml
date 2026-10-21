@@ -57,9 +57,6 @@ catalogs:
     eslint-plugin-security:
       specifier: ^4.2.0
       version: 4.2.0
-    lefthook:
-      specifier: 2.1.12
-      version: 2.1.12
     microlighter:
       specifier: ^2.1.0
       version: 2.1.0
@@ -97,15 +94,13 @@ catalogs:
 overrides:
   brace-expansion@>=4.0.0 <5.0.12: ^5.0.12
 
-pnpmfileChecksum: sha256-LU3jyDNmuFvAlsxc74eSpESsrdqd1xCVMoBfpAjFEXk=
-
 importers:
 
   .:
     devDependencies:
       '@antfu/eslint-config':
         specifier: 'catalog:'
-        version: 9.3.0(@typescript-eslint/typescript-estree@8.68.0(typescript@5.9.3))(@typescript-eslint/utils@8.68.0(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3))(@unocss/eslint-plugin@66.8.1(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.42)(eslint-plugin-format@2.0.1(eslint@10.9.1(jiti@2.7.0)))(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.11(@types/node@22.20.1)(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(yaml@2.9.0)))
+        version: 9.3.0(@unocss/eslint-plugin@66.8.1)(eslint-plugin-format@2.0.1(eslint@10.9.1(jiti@2.7.0)))(eslint@10.9.1(jiti@2.7.0))
       '@changesets/cli':
         specifier: 'catalog:'
         version: 3.0.1
@@ -127,9 +122,6 @@ importers:
       eslint-plugin-security:
         specifier: 'catalog:'
         version: 4.2.0
-      lefthook:
-        specifier: 'catalog:'
-        version: 2.1.12
       rolldown:
         specifier: 'catalog:'
         version: 1.2.6
@@ -196,7 +188,7 @@ importers:
         version: 5.9.3
       unocss:
         specifier: 'catalog:'
-        version: 66.8.1(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(yaml@2.9.0))
+        version: 66.8.1
       vite:
         specifier: 'catalog:'
         version: 6.4.3(@types/node@22.20.1)(jiti@2.7.0)(yaml@2.9.0)
@@ -2252,60 +2244,6 @@ packages:
   launch-editor@2.14.1:
     resolution: {integrity: sha512-QWBrQsMpH7gPr965dsKD/3cKWiNoTjpATQf++Xq63N6sKRGMwlVXz41O1IZTMfZQgBctD/K5Zt06+/I6pP6+HA==}
 
-  lefthook-darwin-arm64@2.1.12:
-    resolution: {integrity: sha512-GSUjqaCuxAYlPOovbjXEWE3HAIa/xOQkTTmZ937zieQldjPLTaC7+s5FHoxKywn+D9riBlofkDqG7Z4f5zzmPA==}
-    cpu: [arm64]
-    os: [darwin]
-
-  lefthook-darwin-x64@2.1.12:
-    resolution: {integrity: sha512-qAUHSSw/7Afi5wxkoLkxORxSicCeTBXyVLnRgD6YZra6udviozpK3Aok9Z6FIWeKc5FBijRMSNDxGPTREhsjcQ==}
-    cpu: [x64]
-    os: [darwin]
-
-  lefthook-freebsd-arm64@2.1.12:
-    resolution: {integrity: sha512-FHZRfKliFNbyz54zsoGdVe9muq67cNjBTZ6jrPPUjI7xUuyCwSpzA+1OpiwJT00L9pP5ZGONBqnGZKnrpC+7Uw==}
-    cpu: [arm64]
-    os: [freebsd]
-
-  lefthook-freebsd-x64@2.1.12:
-    resolution: {integrity: sha512-HYQZPGy2DDEx7dbuotusJpujY5q9igOLgx36qeeQcNQuvvdGHPj2ZGSIsGKhoJ0dw5Qa4knKJoPAHEZQWdV/og==}
-    cpu: [x64]
-    os: [freebsd]
-
-  lefthook-linux-arm64@2.1.12:
-    resolution: {integrity: sha512-ipjOri2PB/sk4noPrHQuM5fcpNBjmlKo4qMtXyLnxeOxGYHWZzf0Xi0OtrXHQ//tOprcv40ADvhUuSdcGqigLw==}
-    cpu: [arm64]
-    os: [linux]
-
-  lefthook-linux-x64@2.1.12:
-    resolution: {integrity: sha512-DmU6xfvqVoFdW+STyc70YI4Ry8vkHGKHx+IJ1Js/Gacq5dv+fiwNzwle3bi28EkL6P8xY67B/CfQfRj4SRU4tg==}
-    cpu: [x64]
-    os: [linux]
-
-  lefthook-openbsd-arm64@2.1.12:
-    resolution: {integrity: sha512-vb0J7bElLvoaCWQmna3HntsvoNqMsGAhfjjC99ss1OdCteufZKM3RxCVoMBEbD50Itv2c1Ua2AFVToltVFTy1Q==}
-    cpu: [arm64]
-    os: [openbsd]
-
-  lefthook-openbsd-x64@2.1.12:
-    resolution: {integrity: sha512-QOmhDWqPPK4+99scanfEmbJjUR+JYC93qhr/0bp5Dj3LaR3kVFNWc6zOQUsOTPy/LC6PG759Lej/mr/BtjUL2Q==}
-    cpu: [x64]
-    os: [openbsd]
-
-  lefthook-windows-arm64@2.1.12:
-    resolution: {integrity: sha512-eErEyr9AHkRFj6TxpCQeKGd0s6IrtL/VEIZ/ssg8dNfG+ycR4jAW/IAlrJSw6/ZQXb3WtWLaQ6QA5c+TLh7vmg==}
-    cpu: [arm64]
-    os: [win32]
-
-  lefthook-windows-x64@2.1.12:
-    resolution: {integrity: sha512-0h+WmDVdDriTjloD/UbjPq/ZtqaaJlPAdGcVwMCEdAxfbF0FTgDbKX3igui9g2U/qG2y6QpVhtz1jeiRe7ctaw==}
-    cpu: [x64]
-    os: [win32]
-
-  lefthook@2.1.12:
-    resolution: {integrity: sha512-2uOexfsrrRhCiTUWdGyDySxVHHhOFJ8MQejs27dM3hugrQB48/z1ZVlaNoxpZ1SnzQ1GaDIbO5rAvicwyiknYQ==}
-    hasBin: true
-
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
@@ -3081,7 +3019,7 @@ packages:
 
 snapshots:
 
-  '@antfu/eslint-config@9.3.0(@typescript-eslint/typescript-estree@8.68.0(typescript@5.9.3))(@typescript-eslint/utils@8.68.0(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3))(@unocss/eslint-plugin@66.8.1(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3))(@vue/compiler-sfc@3.5.42)(eslint-plugin-format@2.0.1(eslint@10.9.1(jiti@2.7.0)))(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.11(@types/node@22.20.1)(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(yaml@2.9.0)))':
+  '@antfu/eslint-config@9.3.0(@unocss/eslint-plugin@66.8.1)(eslint-plugin-format@2.0.1(eslint@10.9.1(jiti@2.7.0)))(eslint@10.9.1(jiti@2.7.0))':
     dependencies:
       '@antfu/install-pkg': 2.0.1
       '@clack/prompts': 1.7.0
@@ -3105,7 +3043,7 @@ snapshots:
       eslint-plugin-jsonc: 3.4.2(eslint@10.9.1(jiti@2.7.0))
       eslint-plugin-n: 18.3.0(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3)
       eslint-plugin-no-only-tests: 3.4.0
-      eslint-plugin-perfectionist: 5.10.1(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3)
+      eslint-plugin-perfectionist: 5.10.1(eslint@10.9.1(jiti@2.7.0))
       eslint-plugin-pnpm: 1.8.0(eslint@10.9.1(jiti@2.7.0))
       eslint-plugin-regexp: 3.2.0(eslint@10.9.1(jiti@2.7.0))
       eslint-plugin-toml: 1.5.0(eslint@10.9.1(jiti@2.7.0))
@@ -3125,14 +3063,9 @@ snapshots:
       eslint-plugin-format: 2.0.1(eslint@10.9.1(jiti@2.7.0))
     transitivePeerDependencies:
       - '@eslint/json'
-      - '@typescript-eslint/typescript-estree'
-      - '@typescript-eslint/utils'
-      - '@vue/compiler-sfc'
       - oxlint
       - supports-color
       - ts-declaration-location
-      - typescript
-      - vitest
 
   '@antfu/install-pkg@1.1.0':
     dependencies:
@@ -3484,7 +3417,6 @@ snapshots:
       vue-demi: 0.14.10(vue@3.5.42(typescript@5.9.3))
     transitivePeerDependencies:
       - '@vue/composition-api'
-      - vue
 
   '@fontsource-variable/geist-mono@5.3.0': {}
 
@@ -4027,9 +3959,7 @@ snapshots:
       magic-string: 1.2.3
       synckit: 0.11.13
     transitivePeerDependencies:
-      - eslint
       - supports-color
-      - typescript
 
   '@unocss/extractor-arbitrary-variants@66.8.1':
     dependencies:
@@ -4305,8 +4235,6 @@ snapshots:
       '@vueuse/metadata': 12.8.2
       '@vueuse/shared': 12.8.2(typescript@5.9.3)
       vue: 3.5.42(typescript@5.9.3)
-    transitivePeerDependencies:
-      - typescript
 
   '@vueuse/core@14.4.0(vue@3.5.42(typescript@5.9.3))':
     dependencies:
@@ -4322,8 +4250,6 @@ snapshots:
   '@vueuse/shared@12.8.2(typescript@5.9.3)':
     dependencies:
       vue: 3.5.42(typescript@5.9.3)
-    transitivePeerDependencies:
-      - typescript
 
   '@vueuse/shared@14.4.0(vue@3.5.42(typescript@5.9.3))':
     dependencies:
@@ -4639,14 +4565,13 @@ snapshots:
     dependencies:
       eslint: 10.9.1(jiti@2.7.0)
 
-  eslint-plugin-perfectionist@5.10.1(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3):
+  eslint-plugin-perfectionist@5.10.1(eslint@10.9.1(jiti@2.7.0)):
     dependencies:
       '@typescript-eslint/utils': 8.68.0(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3)
       eslint: 10.9.1(jiti@2.7.0)
       natural-orderby: 5.0.0
     transitivePeerDependencies:
       - supports-color
-      - typescript
 
   eslint-plugin-pnpm@1.8.0(eslint@10.9.1(jiti@2.7.0)):
     dependencies:
@@ -4987,49 +4912,6 @@ snapshots:
     dependencies:
       picocolors: 1.1.1
       shell-quote: 1.10.0
-
-  lefthook-darwin-arm64@2.1.12:
-    optional: true
-
-  lefthook-darwin-x64@2.1.12:
-    optional: true
-
-  lefthook-freebsd-arm64@2.1.12:
-    optional: true
-
-  lefthook-freebsd-x64@2.1.12:
-    optional: true
-
-  lefthook-linux-arm64@2.1.12:
-    optional: true
-
-  lefthook-linux-x64@2.1.12:
-    optional: true
-
-  lefthook-openbsd-arm64@2.1.12:
-    optional: true
-
-  lefthook-openbsd-x64@2.1.12:
-    optional: true
-
-  lefthook-windows-arm64@2.1.12:
-    optional: true
-
-  lefthook-windows-x64@2.1.12:
-    optional: true
-
-  lefthook@2.1.12:
-    optionalDependencies:
-      lefthook-darwin-arm64: 2.1.12
-      lefthook-darwin-x64: 2.1.12
-      lefthook-freebsd-arm64: 2.1.12
-      lefthook-freebsd-x64: 2.1.12
-      lefthook-linux-arm64: 2.1.12
-      lefthook-linux-x64: 2.1.12
-      lefthook-openbsd-arm64: 2.1.12
-      lefthook-openbsd-x64: 2.1.12
-      lefthook-windows-arm64: 2.1.12
-      lefthook-windows-x64: 2.1.12
 
   levn@0.4.1:
     dependencies:
@@ -5863,7 +5745,7 @@ snapshots:
       unist-util-is: 6.0.1
       unist-util-visit-parents: 6.0.2
 
-  unocss@66.8.1(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(yaml@2.9.0)):
+  unocss@66.8.1:
     dependencies:
       '@unocss/cli': 66.8.1
       '@unocss/core': 66.8.1
@@ -5882,8 +5764,6 @@ snapshots:
       '@unocss/transformer-directives': 66.8.1
       '@unocss/transformer-variant-group': 66.8.1
       '@unocss/vite': 66.8.1(vite@6.4.3(@types/node@22.20.1)(jiti@2.7.0)(yaml@2.9.0))
-    transitivePeerDependencies:
-      - vite
 
   unplugin-utils@0.3.2:
     dependencies:

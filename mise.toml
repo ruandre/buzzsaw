@@ -1,0 +1,120 @@
+# Single source of truth for toolchain, environment and tasks.
+# Machine-specific overrides go in mise.local.toml (gitignored).
+min_version = "2026.9.17"
+
+# Tools that ship an agent skill (aube, hk) link it into .agents/skills for the version installed here.
+[settings]
+skills.dir = ".agents/skills"
+skills.auto_sync = true
+skills.prune = true
+
+[tools]
+node = "26.12.0"
+aube = "2.8.1"
+hk = "2.8.0"
+pkl = "0.32.1"
+
+[env]
+_.path = [ "{{config_root}}/node_modules/.bin" ]
+
+# Hooks resolve tools through mise, so they use the versions pinned above
+HK_MISE = "1"
+
+# Tasks are the project's command interface: `mise tasks` lists them, `mise run <task> --help` explains one.
+
+# --- Develop ---
+
+[tasks.setup]
+description = "First-time setup: toolchain, dependencies, git hooks"
+run = [
+  "mise install",
+  "aube install",
+  "hk install --mise"
+]
+
+[tasks.dev]
+description = "Start the app dev server"
+run = "aube -F @rjvr/buzzsaw-app run dev"
+
+[tasks.build]
+description = "Build every library and the app, in dependency order"
+run = "aube -r run build"
+
+[tasks.preview]
+description = "Build, then serve the app with the real security headers"
+depends = [ "build" ]
+run = "aube -F @rjvr/buzzsaw-app run preview"
+
+[tasks.clean]
+description = "Remove build artifacts and caches"
+run = "rm -rf app/dist packages/*/dist node_modules/.vite"
+
+# --- Verify ---
+
+[tasks.lint]
+description = "Run every linter and formatter check"
+run = "hk check --all"
+
+[tasks.fix]
+description = "Auto-fix lint and formatting issues"
+run = "hk fix --all"
+
+[tasks.typecheck]
+description = "Type-check every workspace package"
+run = "aube -r run typecheck"
+
+[tasks.test]
+description = "Run the tests, optionally filtered (`mise run test wav`)"
+run = "aube exec vitest run"
+
+[tasks."test:watch"]
+description = "Run the tests in watch mode"
+run = "aube exec vitest watch"
+
+[tasks.check]
+description = "Quality gate before a commit: lint, typecheck, test"
+depends = [
+  "lint",
+  "typecheck",
+  "test"
+]
+
+[tasks.ci]
+description = "Everything CI runs: check, build, consumer verification"
+depends = [
+  "check",
+  "build",
+  "verify-consumer"
+]
+
+[tasks.verify-consumer]
+description = "Pack both libraries and typecheck + run them as a Node ESM consumer, in a throwaway container"
+run = "docker compose -f test/consumer/compose.yaml run --rm verify"
+
+# --- Release ---
+
+[tasks.changeset]
+description = "Describe a library change and the version bump it deserves (interactive)"
+raw = true
+run = "aube exec changeset"
+
+[tasks."changeset:status"]
+description = "Show which libraries have pending changesets on this branch"
+run = "aube exec changeset status --since=origin/main"
+
+[tasks.version]
+description = "Apply every pending changeset: bump manifests, rewrite CHANGELOGs"
+run = [
+  "aube exec changeset version",
+  "aube install --lockfile-only"
+]
+
+[tasks.pack]
+description = "Build and pack both libraries in a throwaway container, printing what the tarballs contain"
+run = """
+docker compose -f test/consumer/compose.yaml run --rm verify sh -c \
+  'sh /repo/scripts/container/pack-libs.sh && tar -tzf /work/tarballs/core.tgz && tar -tzf /work/tarballs/wav.tgz'
+"""
+
+[tasks.pre-commit]
+run = "hk run pre-commit"

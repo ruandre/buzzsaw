@@ -19,9 +19,9 @@ Nothing leaves the browser. Synthesis, rendering, and sound design all run on-de
 Run from the repository root:
 
 ```bash
-just dev     # start the dev server
-just build   # typecheck and build every workspace
-just ci      # lint, typecheck, test, build
+mise run dev     # start the dev server
+mise run build   # typecheck and build every workspace
+mise run ci      # lint, typecheck, test, build, consumer check
 ```
 
 Vite and `vue-tsc` resolve `@rjvr/buzzsaw` and `@rjvr/buzzsaw-wav` to package **source**, not `dist`, so library edits hot-reload without a rebuild.

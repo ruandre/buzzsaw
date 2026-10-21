@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-.pnpm-store/
 
 # Production & Build outputs
 dist/
@@ -19,6 +18,8 @@ coverage/
 .env.*
 !.env.example
 *.local
+mise.local.toml
+mise.*.local.toml
 
 # System & IDE
 .DS_Store

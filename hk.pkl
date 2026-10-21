@@ -1,0 +1,67 @@
+amends "package://github.com/jdx/hk/releases/download/v2.8.0/hk@2.8.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.8.0/hk@2.8.0#/Builtins.pkl"
+
+// Tools resolve through mise (HK_MISE=1), so hooks use the versions pinned in mise.toml.
+
+exclude = List("aube-lock.yaml", "mise.lock")
+
+local linters = new Mapping<String, Step> {
+  // antfu's config lints and formats TS/JS/Vue plus JSON, YAML, TOML, Markdown, CSS and HTML.
+  ["eslint"] = (Builtins.eslint) {
+    glob = List("**/*.{js,mjs,cjs,ts,mts,cts,vue,json,jsonc,yaml,yml,toml,md,css,html}")
+    // Staged ignored files (dist, generated) must not fail the hook on warnings
+    check = "eslint --no-warn-ignored {{files}}"
+    fix = "eslint --no-warn-ignored --fix {{files}}"
+  }
+}
+
+// Manifests, lockfile and tsconfig included: dependency bumps can break types and tests without touching source
+local verifyGlob = List(
+  "**/*.{ts,vue}",
+  "**/package.json",
+  "aube-lock.yaml",
+  "pnpm-workspace.yaml",
+  "**/tsconfig*.json"
+)
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps {
+      ...linters
+      // Whole workspace: an edit can break cross-file types or tests
+      ["typecheck"] {
+        glob = verifyGlob
+        depends = "eslint"
+        check = "mise run typecheck"
+      }
+      ["test"] {
+        glob = verifyGlob
+        depends = "eslint"
+        check = "mise run test"
+      }
+    }
+  }
+  ["commit-msg"] {
+    steps {
+      ["conventional-commit"] = Builtins.check_conventional_commit
+    }
+  }
+  // Deferred to pre-push to keep local commits fast
+  ["pre-push"] {
+    steps {
+      ["build"] {
+        check = "mise run build"
+        exclusive = true
+      }
+    }
+  }
+  ["check"] {
+    steps = linters
+  }
+  ["fix"] {
+    fix = true
+    steps = linters
+  }
+}

@@ -1,4 +1,4 @@
-// Applies the beforePacking transform on disk, so `npm pack` here matches `pnpm pack` in CI
+// Strips development-only fields on disk before packing; the release workflow does the same before `aube pack`
 import { readFileSync, writeFileSync } from 'node:fs'
 import process from 'node:process'
 import { toPublishManifest } from '../publish-manifest.mjs'
