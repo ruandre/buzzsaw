@@ -26,6 +26,9 @@ const playback = usePlaybackStore()
 const { openInCreator, exportWav } = useStudioActions()
 
 const refinement = ref('')
+// Runs this panel started; the store's error and busy state are shared with the composer
+const isAwaitingOwnRun = ref(false)
+const hasOwnRunFailed = ref(false)
 const refinementInput = ref<HTMLInputElement | null>(null)
 const isSnippetOpen = ref(false)
 
@@ -67,20 +70,26 @@ function refine(instruction = refinement.value): void {
     return
   }
   ai.dismissError()
+  hasOwnRunFailed.value = false
+  isAwaitingOwnRun.value = true
   emit('refine', text)
 }
 
-// Retains refinement input on failure for retry; clears on success
+// Keeps the draft on failure for retry, clears it on success; post flush, since the input stays disabled until the DOM updates
 watch(() => ai.isGenerating, (running, wasRunning) => {
-  if (running || !wasRunning) {
+  if (running || !wasRunning || !isAwaitingOwnRun.value) {
     return
   }
-  if (ai.lastError) {
+  isAwaitingOwnRun.value = false
+  hasOwnRunFailed.value = Boolean(ai.lastError)
+  if (hasOwnRunFailed.value) {
     refinementInput.value?.focus()
     return
   }
   refinement.value = ''
-})
+}, { flush: 'post' })
+
+const refineError = computed(() => (hasOwnRunFailed.value ? ai.lastError : null))
 </script>
 
 <template>
@@ -158,8 +167,8 @@ watch(() => ai.isGenerating, (running, wasRunning) => {
             spellcheck="false"
             placeholder="Make it punchier with a pitch dive..."
             :disabled="ai.isGenerating"
-            :aria-invalid="ai.lastError ? 'true' : undefined"
-            :aria-errormessage="ai.lastError ? 'refinement-error' : undefined"
+            :aria-invalid="refineError ? 'true' : undefined"
+            :aria-errormessage="refineError ? 'refinement-error' : undefined"
             class="input-base flex-1 bg-surface-muted font-sans"
             @input="ai.dismissError()"
           >
@@ -170,13 +179,13 @@ watch(() => ai.isGenerating, (running, wasRunning) => {
         </form>
 
         <p
-          v-if="ai.lastError"
+          v-if="refineError"
           id="refinement-error"
           class="flex items-start gap-1.5 text-xs text-danger-ink font-sans"
           role="alert"
         >
           <span class="i-ph-warning-circle-bold mt-px shrink-0 text-sm leading-none" aria-hidden="true" />
-          <span>{{ ai.lastError }} The patch is unchanged. Adjust the wording and try again.</span>
+          <span>{{ refineError }} The patch is unchanged. Adjust the wording and try again.</span>
         </p>
 
         <div class="flex flex-wrap gap-1.5" role="group" aria-label="One-click edits">

@@ -10,11 +10,12 @@ import SoundResultPanel from './ai/SoundResultPanel.vue'
 const ai = useAiStore()
 const playback = usePlaybackStore()
 
-const selected = ref<GeneratedSound | null>(null)
+const selectedId = ref<string | null>(null)
 
 let inFlight: AbortController | null = null
 
-const active = computed(() => selected.value ?? ai.latest)
+// Resolved through history so a removed entry cannot linger in the result panel
+const active = computed(() => ai.history.find(entry => entry.id === selectedId.value) ?? ai.latest)
 
 function beginRun(): AbortSignal {
   inFlight?.abort()
@@ -24,7 +25,7 @@ function beginRun(): AbortSignal {
 
 async function generate(prompt: string): Promise<void> {
   try {
-    selected.value = await ai.generate(prompt, { signal: beginRun() })
+    selectedId.value = (await ai.generate(prompt, { signal: beginRun() })).id
   }
   catch {
     // Failure reason announced by ai store
@@ -40,12 +41,13 @@ async function refine(instruction: string): Promise<void> {
   }
 
   try {
-    selected.value = await ai.edit(
+    const edited = await ai.edit(
       active.value.definition,
       active.value.name,
       instruction,
       { signal: beginRun() },
     )
+    selectedId.value = edited.id
   }
   catch {
     // Failure reason announced by ai store
@@ -69,7 +71,7 @@ function cancel(): void {
 }
 
 function replay(entry: GeneratedSound): void {
-  selected.value = entry
+  selectedId.value = entry.id
   playback.audition(entry.name, entry.definition)
 }
 

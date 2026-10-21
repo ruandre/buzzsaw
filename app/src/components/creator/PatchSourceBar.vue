@@ -34,12 +34,15 @@ const PROMPT_COPY: Record<'describe' | 'refine', { placeholder: string, action: 
 const source = ref<Source>('describe')
 const prompt = ref('')
 const promptInput = ref<HTMLInputElement | null>(null)
+// The store's error is shared with the AI view; only a failure of this bar's own run is shown here
+const hasOwnRunFailed = ref(false)
 
 // Leaving the panel cancels the run, so a late result cannot pull the user back to the synth
 let inFlight: AbortController | null = null
 
 const isTemplateMode = computed(() => source.value === 'template')
 const copy = computed(() => PROMPT_COPY[source.value === 'refine' ? 'refine' : 'describe'])
+const promptError = computed(() => (hasOwnRunFailed.value ? ai.lastError : null))
 
 const hint = computed(() => {
   if (source.value === 'template') {
@@ -61,6 +64,7 @@ async function submit(instruction = prompt.value): Promise<void> {
   }
 
   ai.dismissError()
+  hasOwnRunFailed.value = false
   const run = new AbortController()
   inFlight = run
 
@@ -79,6 +83,7 @@ async function submit(instruction = prompt.value): Promise<void> {
   }
   catch {
     // Retains prompt on failure for rewording
+    hasOwnRunFailed.value = true
     promptInput.value?.focus()
   }
   finally {
@@ -137,8 +142,8 @@ onUnmounted(() => inFlight?.abort())
             spellcheck="false"
             :placeholder="copy.placeholder"
             :disabled="ai.isGenerating"
-            :aria-invalid="ai.lastError ? 'true' : undefined"
-            :aria-errormessage="ai.lastError && !ai.isGenerating ? 'creator-ai-error' : undefined"
+            :aria-invalid="promptError ? 'true' : undefined"
+            :aria-errormessage="promptError ? 'creator-ai-error' : undefined"
             class="input-base flex-1 bg-surface-muted font-sans"
             @input="ai.dismissError()"
           >
@@ -157,13 +162,13 @@ onUnmounted(() => inFlight?.abort())
         </p>
 
         <p
-          v-if="ai.lastError && !ai.isGenerating"
+          v-if="promptError"
           id="creator-ai-error"
           class="flex items-start gap-1.5 text-xs text-danger-ink font-sans"
           role="alert"
         >
           <span class="i-ph-warning-circle-bold mt-px shrink-0 text-sm leading-none" aria-hidden="true" />
-          <span>{{ ai.lastError }} The patch is unchanged. Adjust the wording and try again.</span>
+          <span>{{ promptError }} The patch is unchanged. Adjust the wording and try again.</span>
         </p>
 
         <div
