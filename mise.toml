@@ -81,8 +81,9 @@ description = "Pin GitHub Actions to their newest release older than the minimum
 run = "pinact run --update --verify-comment"
 
 [tasks."changeset:check"]
-description = "Fail when a library changed since a base (default origin/main) without a changeset"
+description = "Fail when a library changed since a base (default origin/main) and the branch adds no changeset"
 usage = 'arg "[base]" help="Branch or commit to compare against" default="origin/main"'
+# `changeset status` alone passes as long as any changeset exists, so the branch's own diff must add one
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
@@ -90,6 +91,12 @@ if git diff --quiet "$usage_base" -- packages; then
   echo "no library changes since $usage_base"
   exit 0
 fi
+added=$(git diff --name-only --diff-filter=A "$usage_base" -- '.changeset/*.md' ':!.changeset/README.md')
+if [[ -z "$added" ]]; then
+  echo "libraries changed since $usage_base but this branch adds no changeset; run: mise run changeset" >&2
+  exit 1
+fi
+echo "changesets added: $added"
 aube exec changeset status --since="$usage_base"
 """
 
