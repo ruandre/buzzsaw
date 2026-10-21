@@ -55,7 +55,7 @@ const announcedSummary = refDebounced(resultSummary, ANNOUNCE_SETTLE_MS)
 function handleAction(actionId: string, name: string, definition: SoundDefinition): void {
   switch (actionId) {
     case 'duplicate':
-      library.save(`${name}_copy`, definition)
+      library.duplicate(name)
       break
     case 'code':
       playback.cue('open')

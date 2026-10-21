@@ -140,6 +140,22 @@ describe('library store', () => {
     expect(library.customSounds).toEqual({})
   })
 
+  it('duplicates a sound under the first free copy name', () => {
+    const library = useLibraryStore()
+    library.save('blip', { frequency: 440 })
+
+    expect(library.duplicate('blip')).toBe('blip_copy')
+    expect(library.duplicate('blip')).toBe('blip_copy2')
+    expect(Object.keys(library.customSounds)).toEqual(['blip', 'blip_copy', 'blip_copy2'])
+  })
+
+  it('refuses to duplicate a sound that is not in the library', () => {
+    const library = useLibraryStore()
+
+    expect(library.duplicate('missing')).toBeNull()
+    expect(library.customSounds).toEqual({})
+  })
+
   it('stops offering a deleted sound for playback', () => {
     const library = useLibraryStore()
     library.save('mine', { frequency: 440 })

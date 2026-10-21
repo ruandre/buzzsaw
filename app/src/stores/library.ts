@@ -82,6 +82,14 @@ export const useLibraryStore = defineStore('library', () => {
     return soundName
   }
 
+  /** Saves a copy of a library sound under the first free `_copy` name; returns it, or null if `name` is not in the library */
+  function duplicate(name: string): string | null {
+    if (!Object.hasOwn(customSounds.value, name)) {
+      return null
+    }
+    return save(nextCopyName(name, Object.keys(customSounds.value)), customSounds.value[name])
+  }
+
   function remove(name: string): void {
     const { [name]: removed, ...rest } = customSounds.value
     if (!removed) {
@@ -172,12 +180,21 @@ export const useLibraryStore = defineStore('library', () => {
     isFavorite,
     toggleFavorite,
     save,
+    duplicate,
     remove,
     clear,
     exportPack,
     importPack,
   }
 })
+
+function nextCopyName(name: string, taken: readonly string[]): string {
+  let candidate = `${name}_copy`
+  for (let ordinal = 2; taken.includes(candidate); ordinal++) {
+    candidate = `${name}_copy${ordinal}`
+  }
+  return candidate
+}
 
 function findSaveError(name: string, definition: SoundDefinition): string | undefined {
   if (!isValidSoundName(name)) {
