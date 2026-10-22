@@ -17,11 +17,12 @@ function handlers(overrides: Partial<ShortcutHandlers> = {}): ShortcutHandlers {
   }
 }
 
-function element(tagName: string, { role = null as string | null, isContentEditable = false } = {}): EventTarget {
+function element(tagName: string, { role = null as string | null, isContentEditable = false, isInModal = false } = {}): EventTarget {
   return {
     tagName,
     isContentEditable,
     getAttribute: (name: string) => (name === 'role' ? role : null),
+    closest: (selector: string) => (isInModal && selector.includes('dialog') ? {} : null),
   } as unknown as EventTarget
 }
 
@@ -31,12 +32,26 @@ function keydown(key: string, overrides: Partial<ShortcutEvent> = {}): ShortcutE
     ctrlKey: false,
     metaKey: false,
     altKey: false,
+    repeat: false,
+    defaultPrevented: false,
     target: element('BODY'),
     ...overrides,
   }
 }
 
 describe('resolveShortcut', () => {
+  it('ignores a held key auto-repeating, so R randomizes once per press', () => {
+    expect(resolveShortcut(keydown('r', { repeat: true }), handlers())).toBeUndefined()
+  })
+
+  it('ignores a keystroke another handler already consumed', () => {
+    expect(resolveShortcut(keydown('2', { defaultPrevented: true }), handlers())).toBeUndefined()
+  })
+
+  it.each(['1', 'm', 's', '?'])('leaves %j to an open dialog that has focus', (key) => {
+    expect(resolveShortcut(keydown(key, { target: element('BUTTON', { isInModal: true }) }), handlers())).toBeUndefined()
+  })
+
   it.each(['1', '/', '?', 'm', 's', 'r', ' '])('leaves %j to the page while shortcuts are turned off', (key) => {
     expect(resolveShortcut(keydown(key), handlers({ areShortcutsEnabled: () => false }))).toBeUndefined()
   })

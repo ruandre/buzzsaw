@@ -32,7 +32,7 @@ export interface ShortcutHandlers {
   areShortcutsEnabled: () => boolean
 }
 
-export type ShortcutEvent = Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'target'>
+export type ShortcutEvent = Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'repeat' | 'defaultPrevented' | 'target'>
 export type ShortcutAction = () => void
 
 const TEXT_ENTRY_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
@@ -41,6 +41,8 @@ const TYPEAHEAD_ROLES = new Set(['combobox', 'option', 'menuitem'])
 const ACTIVATABLE_TAGS = new Set(['BUTTON', 'A'])
 const ACTIVATABLE_ROLES = new Set(['button', 'checkbox', 'radio', 'switch', 'tab', 'slider'])
 const NAVIGATION_KEYS = new Set(['1', '2', '3', '4', '5'])
+// Shortcuts would act on the page hidden behind an open dialog
+const DIALOG_SELECTOR = '[role="dialog"], [role="alertdialog"]'
 
 /** Binds global keyboard shortcuts; cancels default only for keystrokes a shortcut handled */
 export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
@@ -60,7 +62,10 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
  * @returns Action to run, or `undefined` when keystroke belongs to browser or focused control.
  */
 export function resolveShortcut(event: ShortcutEvent, handlers: ShortcutHandlers): ShortcutAction | undefined {
-  if (!handlers.areShortcutsEnabled() || event.ctrlKey || event.metaKey || event.altKey || targetOwnsKey(event.target, event.key)) {
+  const isChord = event.ctrlKey || event.metaKey || event.altKey
+  // Auto-repeat would re-run an action per repeat, such as randomizing many times while R is held
+  const isHandledElsewhere = event.repeat || event.defaultPrevented
+  if (!handlers.areShortcutsEnabled() || isChord || isHandledElsewhere || targetOwnsKey(event.target, event.key)) {
     return undefined
   }
   return actionFor(event.key.toLowerCase(), handlers)
@@ -89,6 +94,9 @@ function targetOwnsKey(target: EventTarget | null, key: string): boolean {
   }
   const role = element.getAttribute('role') ?? ''
   if (TEXT_ENTRY_TAGS.has(element.tagName) || element.isContentEditable || TYPEAHEAD_ROLES.has(role)) {
+    return true
+  }
+  if (element.closest?.(DIALOG_SELECTOR)) {
     return true
   }
   return key === ' ' && (ACTIVATABLE_TAGS.has(element.tagName) || ACTIVATABLE_ROLES.has(role))
