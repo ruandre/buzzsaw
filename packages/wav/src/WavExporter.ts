@@ -49,7 +49,7 @@ export class WavExporter {
 
 function toWavFilename(filename?: string): string {
   const base = (filename?.trim() || DEFAULT_FILENAME).replace(/[/\\?%*:|"<>]/g, '_')
-  return base.endsWith('.wav') ? base : `${base}.wav`
+  return base.toLowerCase().endsWith('.wav') ? base : `${base}.wav`
 }
 
 function saveBlob(doc: Document, blob: BlobLike, filename: string): void {

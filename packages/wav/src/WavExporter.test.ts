@@ -107,6 +107,16 @@ describe('wavExporter', () => {
     expect(globalThis.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
   })
 
+  it('keeps an upper-case .WAV extension instead of appending another', async () => {
+    const blob = new Blob([new ArrayBuffer(100)], { type: 'audio/wav' })
+    const mockAnchor = { click: vi.fn(), download: '', href: '', style: {} }
+    vi.mocked(globalThis.document.createElement).mockReturnValue(mockAnchor as unknown as HTMLElement)
+
+    await WavExporter.downloadWav(blob, 'Take1.WAV')
+
+    expect(mockAnchor.download).toBe('Take1.WAV')
+  })
+
   it('falls back to the default filename when the given one is blank', async () => {
     const blob = new Blob([new ArrayBuffer(100)], { type: 'audio/wav' })
     const mockAnchor = { click: vi.fn(), download: '', href: '', style: {} }
