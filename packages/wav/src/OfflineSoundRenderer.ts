@@ -48,11 +48,26 @@ export class OfflineSoundRenderer {
     const length = Math.max(1, Math.ceil(calculateEffectiveDuration(definition) * sampleRate))
 
     const offlineCtx = new OfflineContextClass(numChannels, length, sampleRate)
+    // Speaker up-mixing would put a mono voice in the centre of 5.1 and leave quad surrounds silent
+    useDiscreteMixing(offlineCtx.destination)
     playSoundFromDefinition(offlineCtx, definition, {
       volume: options.volume,
       pitchScale: options.pitchScale,
     })
 
-    return offlineCtx.startRendering()
+    return copyFirstChannelToAll(await offlineCtx.startRendering())
   }
+}
+
+// Not on core's minimal node surface; Web Audio lets a destination's interpretation change
+function useDiscreteMixing(destination: object): void {
+  (destination as { channelInterpretation?: string }).channelInterpretation = 'discrete'
+}
+
+function copyFirstChannelToAll(buffer: AudioBufferLike): AudioBufferLike {
+  const voice = buffer.getChannelData(0)
+  for (let channel = 1; channel < buffer.numberOfChannels; channel++) {
+    buffer.getChannelData(channel).set(voice)
+  }
+  return buffer
 }

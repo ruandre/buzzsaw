@@ -16,7 +16,7 @@ export interface WavEncodingOptions {
   sampleRate?: number
   /**
    * Channel count in the encoded file. Defaults to the input's channel count.
-   * Buzzsaw synthesis is mono, so 2 writes the same samples to both channels.
+   * Buzzsaw synthesis is mono, so every channel holds the same samples.
    */
   numChannels?: number
   /** Bit depth: 8, 16, 24 integer PCM or 32 IEEE float. Defaults to 16 */
