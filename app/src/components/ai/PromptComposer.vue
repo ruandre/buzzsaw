@@ -14,6 +14,8 @@ const emit = defineEmits<{
 const ai = useAiStore()
 const playback = usePlaybackStore()
 
+const IME_PROCESS_KEY_CODE = 229
+
 const description = ref('')
 const composer = useTemplateRef<HTMLElement>('composer')
 const descriptionInput = useTemplateRef<HTMLTextAreaElement>('descriptionInput')
@@ -27,6 +29,15 @@ function submit(text = description.value): void {
   }
   description.value = prompt
   emit('submit', prompt)
+}
+
+// Enter also confirms an IME candidate; Safari reports that keystroke as keyCode 229 instead of isComposing
+function submitOnEnter(event: KeyboardEvent): void {
+  if (event.isComposing || event.keyCode === IME_PROCESS_KEY_CODE) {
+    return
+  }
+  event.preventDefault()
+  submit()
 }
 
 function surpriseMe(): void {
@@ -50,7 +61,7 @@ function surpriseMe(): void {
           placeholder="A crystal bell chime with a long resonant tail..."
           :readonly="ai.isGenerating"
           class="input-base resize-y bg-surface-muted leading-relaxed font-sans"
-          @keydown.enter.exact.prevent="submit()"
+          @keydown.enter.exact="submitOnEnter"
         />
 
         <div class="flex items-center gap-2">

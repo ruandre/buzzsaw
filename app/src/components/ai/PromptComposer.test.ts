@@ -65,6 +65,24 @@ describe('promptComposer', () => {
     expect(document.activeElement).toBe(wrapper.get('textarea').element)
   })
 
+  it('lets Enter confirm an IME composition instead of submitting the half-typed prompt', async () => {
+    const wrapper = mount(PromptComposer, { attachTo: document.body, global: { stubs } })
+    await wrapper.get('textarea').setValue('ねこ')
+
+    await wrapper.get('textarea').trigger('keydown', { key: 'Enter', isComposing: true })
+
+    expect(wrapper.emitted('submit')).toBeUndefined()
+  })
+
+  it('submits on Enter outside a composition', async () => {
+    const wrapper = mount(PromptComposer, { attachTo: document.body, global: { stubs } })
+    await wrapper.get('textarea').setValue('laser')
+
+    await wrapper.get('textarea').trigger('keydown', { key: 'Enter' })
+
+    expect(wrapper.emitted('submit')).toEqual([['laser']])
+  })
+
   it('leaves focus alone when it was outside the composer', async () => {
     const outside = document.createElement('button')
     document.body.append(outside)
