@@ -11,7 +11,6 @@ import {
 } from 'reka-ui'
 import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { viewBadge } from '../router'
 import { usePlaybackStore, useUiStore } from '../stores'
 import MasterVolume from './MasterVolume.vue'
 import ShortcutsSheet from './ShortcutsSheet.vue'
@@ -153,10 +152,6 @@ function toggleDrawer(): void {
                 <span :class="[view.icon, view.accent ? 'text-accent' : '']" class="shrink-0 text-sm leading-none" aria-hidden="true" />
                 <span class="leading-none">{{ view.label }}</span>
               </span>
-              <span
-                v-if="viewBadge(view)"
-                :class="ui.activeView === view.id ? 'badge-count-active' : 'badge-count'"
-              >{{ viewBadge(view) }}</span>
             </RouterLink>
           </nav>
 

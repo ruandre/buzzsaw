@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { viewBadge } from '../router'
 import { useUiStore } from '../stores'
 
 const ui = useUiStore()
@@ -26,11 +25,6 @@ const ui = useUiStore()
           aria-hidden="true"
         />
         <span class="inline-flex items-center leading-none">{{ view.label }}</span>
-        <span
-          v-if="viewBadge(view)"
-          class="ml-0.5"
-          :class="ui.activeView === view.id ? 'badge-count-active' : 'badge-count'"
-        >{{ viewBadge(view) }}</span>
       </RouterLink>
     </div>
   </nav>

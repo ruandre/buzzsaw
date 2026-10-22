@@ -10,8 +10,6 @@ vi.mock('@vueuse/core', async importOriginal => ({
   ...await importOriginal<typeof import('@vueuse/core')>(),
   useMediaQuery: () => isDesktop,
 }))
-// The real router module pulls in every view
-vi.mock('../router', () => ({ viewBadge: () => undefined }))
 vi.mock('../stores/ui', () => ({
   useUiStore: () => ({ activeView: 'browser', isDark: false, setShortcutsSheetOpen: vi.fn(), toggleTheme: vi.fn() }),
 }))

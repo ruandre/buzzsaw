@@ -8,8 +8,6 @@ export interface StudioView {
   path: string
   label: string
   icon: string
-  /** Static badge text */
-  badge?: string
   /** Highlight with accent color in navigation */
   accent?: boolean
 }
@@ -23,8 +21,3 @@ export const STUDIO_VIEWS: readonly StudioView[] = [
 ]
 
 export const DEFAULT_VIEW: ViewId = 'browser'
-
-/** Returns badge text for navigation item */
-export function viewBadge(view: StudioView): string | undefined {
-  return view.badge
-}

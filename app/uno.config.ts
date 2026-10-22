@@ -37,7 +37,6 @@ const colors = {
     DEFAULT: token('ink'),
     muted: token('ink-muted'),
     subtle: token('ink-subtle'),
-    badge: token('ink-badge'),
   },
 
   line: {
@@ -140,8 +139,6 @@ export default defineConfig({
       'badge-base': 'inline-flex items-center whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-mono font-semibold uppercase tracking-wider leading-none border',
       'badge-wave': 'badge-base text-ink-muted bg-surface-sunken border-line-control',
       'badge-taupe': 'badge-base text-taupe bg-taupe/10 border-taupe/20',
-      'badge-count': 'inline-flex items-center whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-mono font-bold leading-none transition-colors duration-100 bg-surface-sunken text-ink-badge',
-      'badge-count-active': 'inline-flex items-center whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-mono font-bold leading-none transition-colors duration-100 bg-accent/12 text-accent-ink-strong',
 
       'step-row': 'flex items-center gap-2 p-2.5 bg-surface-muted rounded-lg border border-line text-sm font-mono transition-colors duration-100',
       'code-block': 'min-w-0 font-mono text-sm leading-relaxed bg-surface-muted border border-line rounded-xl p-4 overflow-x-auto',
