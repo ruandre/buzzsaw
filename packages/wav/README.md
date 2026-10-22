@@ -143,9 +143,9 @@ interface WavExportOptions {
 
 Out-of-range values throw a `RangeError` naming the offending value rather than being silently clamped: a `sampleRate` option under 8000 or non-integer, an audio buffer whose own `sampleRate` is not finite or rounds below 1 Hz, a `numChannels` below 1 or non-integer, a `sampleRate` or `numChannels` too large for its header field at the chosen `bitDepth`, a negative `volume`, a `pitchScale` of zero or less, an unsupported `bitDepth`.
 
-### Exported audio is not limited
+### Exported audio is not soft-clipped
 
-`SoundManager` inserts a brickwall limiter on its master bus by default; this package renders the definition raw. A definition that plays cleanly through a manager can therefore export hotter than it sounds, and a `volume` above 1 clips outright in integer PCM (32-bit float keeps samples past full scale for the player or editor to handle). Keep `volume` at or below 1, or leave headroom in the definition's `gain`, when the two outputs need to match.
+`SoundManager` soft-clips its master bus above -3 dBFS by default; this package renders the definition raw. Below -3 dBFS the two outputs match. Above it, playback bends peaks toward full scale while the export keeps them, and a `volume` above 1 clips outright in integer PCM (32-bit float keeps samples past full scale for the player or editor to handle). Keep `volume` at or below 1, or leave headroom in the definition's `gain`, when the two outputs need to match.
 
 Buzzsaw synthesis is mono. A higher `numChannels` therefore writes the same samples to every channel: `2` doubles the file size and adds no stereo information. There is no pan or width parameter.
 

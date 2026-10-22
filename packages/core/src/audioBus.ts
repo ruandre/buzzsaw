@@ -1,13 +1,8 @@
-import type {
-  AnalyserNodeLike,
-  AudioNodeLike,
-  BaseAudioContextLike,
-  DynamicsCompressorNodeLike,
-  GainNodeLike,
-} from './webAudio.js'
-import { LIMITER_THRESHOLD_DB, MASTER_VOLUME_GLIDE_S, SILENT_GAIN } from './constants.js'
+import type { AnalyserNodeLike, AudioNodeLike, BaseAudioContextLike, GainNodeLike } from './webAudio.js'
+import { MASTER_VOLUME_GLIDE_S, SILENT_GAIN, SOFT_CLIP_HEADROOM } from './constants.js'
+import { createSoftClipCurve } from './softClip.js'
 
-/** Master output stage: fader, optional brickwall limiter, and peak meter tap */
+/** Master output stage: fader, optional soft clipper, and peak meter tap */
 export class AudioBus {
   private readonly gainNode: GainNodeLike
   private readonly analyserNode: AnalyserNodeLike | null
@@ -20,9 +15,8 @@ export class AudioBus {
     this.gainNode.gain.value = Math.max(0, initialVolume)
     this.nodes = [this.gainNode]
 
-    const limiterNode = limiter ? createLimiter(audioContext) : null
-    if (limiterNode) {
-      this.nodes.push(limiterNode)
+    if (limiter) {
+      this.nodes.push(...createSoftClipper(audioContext))
     }
 
     this.analyserNode = createAnalyser(audioContext)
@@ -83,17 +77,19 @@ export class AudioBus {
   }
 }
 
-function createLimiter(audioContext: BaseAudioContextLike): DynamicsCompressorNodeLike | null {
-  if (typeof audioContext.createDynamicsCompressor !== 'function') {
-    return null
+// Stateless by design: DynamicsCompressorNode detection differs per browser, and Firefox's crushes harmonic-rich voices
+function createSoftClipper(audioContext: BaseAudioContextLike): AudioNodeLike[] {
+  if (typeof audioContext.createWaveShaper !== 'function') {
+    return []
   }
-  const limiter = audioContext.createDynamicsCompressor()
-  limiter.threshold.value = LIMITER_THRESHOLD_DB
-  limiter.knee.value = 0
-  limiter.ratio.value = 20
-  limiter.attack.value = 0.002
-  limiter.release.value = 0.1
-  return limiter
+  // Curve input is clamped to [-1, 1]; attenuating first lets the curve cover hotter levels
+  const headroom = audioContext.createGain()
+  headroom.gain.value = 1 / SOFT_CLIP_HEADROOM
+  const shaper = audioContext.createWaveShaper()
+  shaper.curve = createSoftClipCurve()
+  // Oversampling filters would color the unity region and differ per browser
+  shaper.oversample = 'none'
+  return [headroom, shaper]
 }
 
 function createAnalyser(audioContext: BaseAudioContextLike): AnalyserNodeLike | null {

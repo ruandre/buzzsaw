@@ -12,7 +12,6 @@ function buildMockAudioContext(options: MockAudioContextOptions): MockAudioConte
 
   const context: MockAudioContextMembers = {
     createAnalyser: vi.fn(() => createMockAnalyser()),
-    createDynamicsCompressor: vi.fn(() => createMockCompressor()),
     createGain: vi.fn(() => {
       const node = createMockGain()
       gainNodes.push(node)
@@ -24,6 +23,7 @@ function buildMockAudioContext(options: MockAudioContextOptions): MockAudioConte
       return node
     }),
     createPeriodicWave: vi.fn((real: Float32Array, imag: Float32Array) => ({ real, imag })),
+    createWaveShaper: vi.fn(() => createMockWaveShaper()),
     currentTime: options.currentTime ?? 0,
     destination: { connect: vi.fn(), disconnect: vi.fn() },
     state: 'running',
@@ -47,10 +47,10 @@ export interface MockAudioContextOptions {
 // Explicit types: vitest 4 `Mock` is an alias over unexported types, so inferred returns fail declaration emit (TS2742)
 interface MockAudioContextMembers {
   createAnalyser: Mock<() => MockAnalyserNode>
-  createDynamicsCompressor: Mock<() => MockCompressorNode>
   createGain: Mock<() => MockGainNode>
   createOscillator: Mock<() => MockOscillatorNode>
   createPeriodicWave: Mock<(real: Float32Array, imag: Float32Array) => { real: Float32Array, imag: Float32Array }>
+  createWaveShaper: Mock<() => MockWaveShaperNode>
   currentTime: number
   destination: MockConnectable
   state: AudioContextState
@@ -90,12 +90,9 @@ export interface MockOscillatorNode extends MockConnectable {
   type: OscillatorType
 }
 
-interface MockCompressorNode extends MockConnectable {
-  attack: MockAudioParam
-  knee: MockAudioParam
-  ratio: MockAudioParam
-  release: MockAudioParam
-  threshold: MockAudioParam
+interface MockWaveShaperNode extends MockConnectable {
+  curve: Float32Array<ArrayBuffer> | null
+  oversample: OverSampleType
 }
 
 interface MockAnalyserNode extends MockConnectable {
@@ -136,15 +133,12 @@ function createMockOscillator(): MockOscillatorNode {
   }
 }
 
-function createMockCompressor(): MockCompressorNode {
+function createMockWaveShaper(): MockWaveShaperNode {
   return {
     connect: vi.fn(),
     disconnect: vi.fn(),
-    attack: createMockAudioParam(0),
-    knee: createMockAudioParam(0),
-    ratio: createMockAudioParam(1),
-    release: createMockAudioParam(0),
-    threshold: createMockAudioParam(0),
+    curve: null,
+    oversample: 'none',
   }
 }
 

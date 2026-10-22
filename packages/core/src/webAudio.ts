@@ -46,12 +46,9 @@ export interface AnalyserNodeLike extends AudioNodeLike {
   getFloatTimeDomainData(array: Float32Array): void
 }
 
-export interface DynamicsCompressorNodeLike extends AudioNodeLike {
-  readonly threshold: AudioParamLike
-  readonly knee: AudioParamLike
-  readonly ratio: AudioParamLike
-  readonly attack: AudioParamLike
-  readonly release: AudioParamLike
+export interface WaveShaperNodeLike extends AudioNodeLike {
+  curve: Float32Array<ArrayBuffer> | null
+  oversample: 'none' | '2x' | '4x'
 }
 
 export type PeriodicWaveLike = object
@@ -71,9 +68,9 @@ export interface BaseAudioContextLike {
   readonly destination: AudioNodeLike
   createOscillator(): OscillatorNodeLike
   createGain(): GainNodeLike
-  createDynamicsCompressor?(): DynamicsCompressorNodeLike
   createAnalyser?(): AnalyserNodeLike
   createPeriodicWave?(real: Float32Array, imag: Float32Array): PeriodicWaveLike
+  createWaveShaper?(): WaveShaperNodeLike
 }
 
 export interface AudioContextLike extends BaseAudioContextLike {

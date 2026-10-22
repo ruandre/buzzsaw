@@ -83,7 +83,7 @@ export interface SoundManagerOptions {
   masterVolume?: number
   /** Resumed before each play like the shared context. Defaults to the shared singleton */
   audioContext?: AudioContextLike
-  /** Inserts brickwall limiter on master bus. Defaults to true */
+  /** Soft-clips master bus above -3 dBFS; quieter audio passes unchanged. Defaults to true */
   limiter?: boolean
   /** Called when `play` is given an unregistered name. Defaults to logging an error */
   onMissing?: (name: string) => void

@@ -51,7 +51,7 @@ Annotate definitions with `SoundDefinition` (or use `satisfies SoundDefinition`)
 
 ### Manage sound collections
 
-`SoundManager` groups sounds under a shared master volume, limiter, and audio context. `register` and `registerAll` return the manager, so chaining both registers the sounds and teaches `play` their names:
+`SoundManager` groups sounds under a shared master volume, soft clipper, and audio context. `register` and `registerAll` return the manager, so chaining both registers the sounds and teaches `play` their names:
 
 ```ts
 import { SoundManager } from '@rjvr/buzzsaw'
@@ -251,7 +251,7 @@ interface SoundManagerOptions {
   /** Custom AudioContext, resumed before each play like the shared one. When omitted, uses the shared singleton context */
   audioContext?: AudioContextLike
 
-  /** Inserts a brickwall limiter (-3 dBFS threshold) on the master bus. Defaults to true */
+  /** Soft-clips the master bus above -3 dBFS; quieter audio passes unchanged. Defaults to true */
   limiter?: boolean
 
   /** Called when play() is given an unregistered name. Defaults to logging an error */

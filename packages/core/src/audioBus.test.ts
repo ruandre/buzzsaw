@@ -1,6 +1,8 @@
 import type { MockAudioContext } from './testing/mockAudioContext.js'
 import { describe, expect, it, vi } from 'vitest'
 import { AudioBus } from './audioBus.js'
+import { SOFT_CLIP_HEADROOM } from './constants.js'
+import { createSoftClipCurve } from './softClip.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
 
 describe('audioBus', () => {
@@ -8,20 +10,41 @@ describe('audioBus', () => {
     const ctx = createMockAudioContext()
     const bus = new AudioBus(ctx)
 
-    expect(ctx.createDynamicsCompressor).not.toHaveBeenCalled()
+    expect(ctx.createWaveShaper).not.toHaveBeenCalled()
     expect(bus.input).toBe(ctx.gainNodes[0])
     expect(ctx.gainNodes[0].connect).toHaveBeenCalledWith(vi.mocked(ctx.createAnalyser).mock.results[0].value)
   })
 
-  it('inserts the limiter between fader and meter when asked', () => {
+  it('inserts the soft clipper between fader and meter when asked', () => {
     const ctx = createMockAudioContext()
     const bus = new AudioBus(ctx, true)
 
-    expect(bus.input).toBe(ctx.gainNodes[0])
-    const limiter = vi.mocked(ctx.createDynamicsCompressor).mock.results[0].value
-    expect(ctx.gainNodes[0].connect).toHaveBeenCalledWith(limiter)
-    expect(limiter.threshold.value).toBe(-3)
-    expect(limiter.ratio.value).toBe(20)
+    const [fader, headroom] = ctx.gainNodes
+    const shaper = vi.mocked(ctx.createWaveShaper).mock.results[0].value
+    const analyser = vi.mocked(ctx.createAnalyser).mock.results[0].value
+    expect(bus.input).toBe(fader)
+    expect(fader.connect).toHaveBeenCalledWith(headroom)
+    expect(headroom.connect).toHaveBeenCalledWith(shaper)
+    expect(shaper.connect).toHaveBeenCalledWith(analyser)
+  })
+
+  it('clips through a stateless curve, so one sound never ducks the next', () => {
+    const ctx = createMockAudioContext()
+    void new AudioBus(ctx, true)
+
+    const shaper = vi.mocked(ctx.createWaveShaper).mock.results[0].value
+    expect(ctx.gainNodes[1].gain.value).toBe(1 / SOFT_CLIP_HEADROOM)
+    expect(shaper.curve).toEqual(createSoftClipCurve())
+    expect(shaper.oversample).toBe('none')
+  })
+
+  it('still passes audio unclipped on a context that offers no wave shaper', () => {
+    const ctx = createMockAudioContext()
+    Reflect.deleteProperty(ctx, 'createWaveShaper')
+    void new AudioBus(ctx, true)
+
+    expect(ctx.gainNodes).toHaveLength(1)
+    expect(ctx.gainNodes[0].connect).toHaveBeenCalledWith(vi.mocked(ctx.createAnalyser).mock.results[0].value)
   })
 
   it('glides to a new level instead of stepping, so a drag does not zipper', () => {
@@ -80,7 +103,8 @@ describe('audioBus', () => {
     bus.dispose()
 
     expect(ctx.gainNodes[0].disconnect).toHaveBeenCalled()
-    expect(vi.mocked(ctx.createDynamicsCompressor).mock.results[0].value.disconnect).toHaveBeenCalled()
+    expect(ctx.gainNodes[1].disconnect).toHaveBeenCalled()
+    expect(vi.mocked(ctx.createWaveShaper).mock.results[0].value.disconnect).toHaveBeenCalled()
   })
 })
 

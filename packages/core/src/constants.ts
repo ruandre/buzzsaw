@@ -39,4 +39,9 @@ export const MAX_PARTIALS = 64
 // Prevents zipper noise on volume changes
 export const MASTER_VOLUME_GLIDE_S = 0.015
 
-export const LIMITER_THRESHOLD_DB = -3
+// Master bus soft clip: unity gain up to -3 dBFS
+export const SOFT_CLIP_THRESHOLD = 10 ** (-3 / 20)
+// Curve spans input up to +12 dBFS; hotter input holds at its ceiling
+export const SOFT_CLIP_HEADROOM = 4
+// Odd length puts a curve sample at exactly zero input
+export const SOFT_CLIP_CURVE_LENGTH = 8193

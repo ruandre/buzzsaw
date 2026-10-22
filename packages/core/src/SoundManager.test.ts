@@ -112,7 +112,8 @@ describe('soundManager', () => {
     const handle = await manager.play('pop')
 
     expect(handle).not.toBeNull()
-    const [busFader, voiceGain] = mockCtx.gainNodes
+    const busFader = mockCtx.gainNodes[0]
+    const voiceGain = mockCtx.gainNodes[mockCtx.gainNodes.length - 1]
     expect(busFader.gain.value).toBe(0.8)
     expect(voiceGain.connect).toHaveBeenCalledWith(busFader)
     expect(voiceGain.connect).not.toHaveBeenCalledWith(mockCtx.destination)
@@ -131,9 +132,11 @@ describe('soundManager', () => {
     const manager = new SoundManager({ audioContext: mockCtx }).register('pop', { duration: 0.1, frequency: 600 })
 
     await manager.play('pop')
+    const nodesAfterFirstPlay = mockCtx.gainNodes.length
     await manager.play('pop')
 
-    expect(mockCtx.gainNodes).toHaveLength(3)
+    expect(mockCtx.gainNodes).toHaveLength(nodesAfterFirstPlay + 1)
+    expect(mockCtx.gainNodes[nodesAfterFirstPlay].connect).toHaveBeenCalledWith(mockCtx.gainNodes[0])
     expect(manager.dispose).toBeInstanceOf(Function)
   })
 
