@@ -108,10 +108,15 @@ depends = [
   "test"
 ]
 
+[tasks.audit]
+description = "Fail on a high or critical advisory against the installed dependencies (npm registry)"
+run = "aube audit --audit-level high"
+
 [tasks.ci]
-description = "Everything CI runs: check, build, consumer verification"
+description = "Everything CI runs: check, audit, build, consumer verification"
 depends = [
   "check",
+  "audit",
   "build",
   "verify-consumer"
 ]
