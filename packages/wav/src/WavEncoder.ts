@@ -6,6 +6,7 @@ import {
   MAX_UINT32,
   requireBitDepth,
   requireChannelCount,
+  requireHeaderSampleRate,
   requireSampleRate,
 } from './options.js'
 
@@ -148,7 +149,7 @@ function readSource(
     )
     return {
       channels,
-      sampleRate: sampleRateOverride ?? input.sampleRate,
+      sampleRate: sampleRateOverride ?? requireHeaderSampleRate(input.sampleRate),
       numSamples: input.length,
     }
   }

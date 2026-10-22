@@ -19,6 +19,17 @@ export function requireSampleRate(sampleRate: number | undefined): number {
   return sampleRate
 }
 
+/** No 8000 Hz floor: browsers make valid buffers from 3000 Hz, and at fractional rates */
+export function requireHeaderSampleRate(sampleRate: number): number {
+  const rounded = Math.round(sampleRate)
+  if (!Number.isFinite(sampleRate) || rounded < 1) {
+    throw new RangeError(
+      `Invalid audio buffer sampleRate: ${sampleRate}. Must be a finite number of at least 1 Hz after rounding.`,
+    )
+  }
+  return rounded
+}
+
 export function requireChannelCount(numChannels: number | undefined, fallback = 1): number {
   if (numChannels === undefined) {
     return fallback

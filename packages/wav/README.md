@@ -119,7 +119,8 @@ interface WavExportOptions {
 
   /**
    * Sample rate in whole Hz, at least 8000. Rendering synthesizes at this rate; encoding writes it to
-   * the header without resampling. Defaults to an audio buffer's own rate, otherwise 44100
+   * the header without resampling. Defaults to an audio buffer's own rate, as is but rounded to whole Hz,
+   * otherwise 44100
    */
   sampleRate?: number
 
@@ -140,7 +141,7 @@ interface WavExportOptions {
 }
 ```
 
-Out-of-range values throw a `RangeError` naming the offending value rather than being silently clamped: a `sampleRate` under 8000 or non-integer, a `numChannels` below 1 or non-integer, a `sampleRate` or `numChannels` too large for its header field at the chosen `bitDepth`, a negative `volume`, a `pitchScale` of zero or less, an unsupported `bitDepth`.
+Out-of-range values throw a `RangeError` naming the offending value rather than being silently clamped: a `sampleRate` option under 8000 or non-integer, an audio buffer whose own `sampleRate` is not finite or rounds below 1 Hz, a `numChannels` below 1 or non-integer, a `sampleRate` or `numChannels` too large for its header field at the chosen `bitDepth`, a negative `volume`, a `pitchScale` of zero or less, an unsupported `bitDepth`.
 
 ### Exported audio is not limited
 

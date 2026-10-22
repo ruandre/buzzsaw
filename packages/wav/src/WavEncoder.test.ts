@@ -187,6 +187,24 @@ describe('wavEncoder', () => {
     expect(header?.sampleRate).toBe(48000)
   })
 
+  it('keeps an audio buffer\'s own rate below the 8000 Hz option floor, as browsers make such buffers', () => {
+    const audioBuffer = { numberOfChannels: 1, length: 4, sampleRate: 4000, duration: 0.001, getChannelData: () => new Float32Array(4) }
+
+    expect(WavEncoder.decodeHeader(WavEncoder.encode(audioBuffer))?.sampleRate).toBe(4000)
+  })
+
+  it('rounds an audio buffer\'s fractional rate to whole Hz for the integer header field', () => {
+    const audioBuffer = { numberOfChannels: 1, length: 4, sampleRate: 22050.5, duration: 0, getChannelData: () => new Float32Array(4) }
+
+    expect(WavEncoder.decodeHeader(WavEncoder.encode(audioBuffer))?.sampleRate).toBe(22051)
+  })
+
+  it.each([Number.NaN, 0, -1])('rejects an audio buffer whose own rate is %s instead of writing an unplayable header', (sampleRate) => {
+    const audioBuffer = { numberOfChannels: 1, length: 4, sampleRate, duration: 0, getChannelData: () => new Float32Array(4) }
+
+    expect(() => WavEncoder.encode(audioBuffer)).toThrow(RangeError)
+  })
+
   it('writes 44100 Hz for raw channels when no sample rate is given', () => {
     const header = WavEncoder.decodeHeader(WavEncoder.encode([new Float32Array(4)]))
 
