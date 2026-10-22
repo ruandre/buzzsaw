@@ -13,4 +13,5 @@ npm install --no-save --no-audit --no-fund --no-package-lock --ignore-scripts \
 
 node /repo/node_modules/typescript/bin/tsc -p tsconfig.json
 node --experimental-strip-types src/consumer.ts
+node src/require-check.cjs
 echo 'consumer check passed'

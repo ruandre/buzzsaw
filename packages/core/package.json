@@ -30,12 +30,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./sounds": {
       "types": "./dist/sounds.d.ts",
-      "import": "./dist/sounds.js"
-    }
+      "default": "./dist/sounds.js"
+    },
+    "./package.json": "./package.json"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
