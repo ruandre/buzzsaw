@@ -29,6 +29,7 @@ const refinement = ref('')
 // Runs this panel started; the store's error and busy state are shared with the composer
 const isAwaitingOwnRun = ref(false)
 const hasOwnRunFailed = ref(false)
+let latestIdAtRunStart: string | undefined
 const refinementInput = ref<HTMLInputElement | null>(null)
 const isSnippetOpen = ref(false)
 
@@ -71,11 +72,12 @@ function refine(instruction = refinement.value): void {
   }
   ai.dismissError()
   hasOwnRunFailed.value = false
+  latestIdAtRunStart = ai.latest?.id
   isAwaitingOwnRun.value = true
   emit('refine', text)
 }
 
-// Keeps the draft on failure for retry, clears it on success; post flush, since the input stays disabled until the DOM updates
+// Keeps the draft on failure or cancel for retry, clears it on success; post flush, since the input stays disabled until the DOM updates
 watch(() => ai.isGenerating, (running, wasRunning) => {
   if (running || !wasRunning || !isAwaitingOwnRun.value) {
     return
@@ -86,7 +88,10 @@ watch(() => ai.isGenerating, (running, wasRunning) => {
     refinementInput.value?.focus()
     return
   }
-  refinement.value = ''
+  // Only a successful run produces a new latest sound; a cancelled one sets no error either
+  if (ai.latest?.id !== latestIdAtRunStart) {
+    refinement.value = ''
+  }
 }, { flush: 'post' })
 
 const refineError = computed(() => (hasOwnRunFailed.value ? ai.lastError : null))

@@ -93,6 +93,16 @@ describe('soundResultPanel', () => {
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
+  it('keeps the draft when its own run is cancelled', async () => {
+    redesignSound.mockRejectedValueOnce(new DOMException('The user aborted a request.', 'AbortError'))
+    const wrapper = mountPanel()
+
+    await refineWith(wrapper, 'punchier')
+
+    expect(wrapper.get<HTMLInputElement>('#refinement').element.value).toBe('punchier')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
   it('ignores the outcome of a run started elsewhere', async () => {
     const wrapper = mountPanel()
     await wrapper.get('#refinement').setValue('punchier')

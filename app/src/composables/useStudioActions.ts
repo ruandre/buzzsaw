@@ -70,10 +70,15 @@ export function useStudioActions() {
     notifications.announce(`Auditioning "${name}"`, 'info', 'polite', 2000)
   }
 
-  /** Applies AI edit instruction to creator patch; an aborted run leaves the patch unchanged */
+  /** Applies AI edit instruction to creator patch; an aborted run, or edits made while it ran, leave the patch unchanged */
   async function refineCreatorPatchWithAi(instruction: string, signal?: AbortSignal): Promise<void> {
+    const patchAtStart = JSON.stringify(creator.state)
     const result = await ai.edit(creator.definition, creator.state.name, instruction, { signal })
     if (signal?.aborted) {
+      return
+    }
+    if (JSON.stringify(creator.state) !== patchAtStart) {
+      notifications.announce(`Kept your edits; "${result.name}" is in the AI history`, 'info', 'polite')
       return
     }
     creator.load(result.name, result.definition)
