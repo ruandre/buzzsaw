@@ -50,9 +50,9 @@ function discardAll(): void {
         <button
           type="button"
           class="min-w-0 flex-1 cursor-pointer border-0 rounded bg-transparent py-0.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-          :aria-label="`Show and play ${entry.name}`"
           @click="emit('select', entry)"
         >
+          <span class="sr-only">Show and play </span>
           <span class="block truncate text-sm text-ink font-semibold leading-snug font-sans">{{ entry.name }}</span>
           <span class="block truncate text-xs text-ink-subtle leading-tight font-mono">{{ entry.prompt }}</span>
         </button>

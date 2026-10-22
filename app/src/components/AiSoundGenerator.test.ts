@@ -37,7 +37,8 @@ describe('aiSoundGenerator', () => {
     ai.latest = ai.history[0] ?? null
     const wrapper = mount(AiSoundGenerator, { global: { stubs } })
 
-    await wrapper.get('[aria-label="Show and play older"]').trigger('click')
+    const showOlder = wrapper.findAll('button').find(button => button.text().startsWith('Show and play older'))
+    await showOlder?.trigger('click')
     expect(wrapper.get('h3').text()).toBe('older')
 
     await wrapper.get('[aria-label="Remove older from history"]').trigger('click')
