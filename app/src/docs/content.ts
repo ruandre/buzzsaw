@@ -165,7 +165,7 @@ handle?.stop() // fades out over 5ms rather than cutting`,
       { kind: 'examples' },
       {
         kind: 'prose',
-        text: 'A `custom` waveType takes a `partials` array: entry *n* is the relative amplitude of harmonic *n + 1*. The series is normalized to unit peak, so only the ratios matter.',
+        text: 'A `custom` waveType takes a `partials` array: entry `n` is the relative amplitude of harmonic `n + 1`. The series is normalized to unit peak, so only the ratios matter.',
       },
       {
         kind: 'code',
