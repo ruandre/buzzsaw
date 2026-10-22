@@ -298,7 +298,22 @@ describe('soundManager play awaiting a suspended context', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
+  })
+
+  it('drops the play when the context never resumes', async () => {
+    vi.useFakeTimers()
+    const { context } = suspendedContext()
+    const onMissing = vi.fn()
+    const manager = new SoundManager({ audioContext: context, onMissing }).register('drone', { duration: 5, frequency: 100 })
+
+    const pending = manager.play('drone')
+    await vi.advanceTimersByTimeAsync(501)
+
+    expect(await pending).toBeNull()
+    expect(context.oscillators).toHaveLength(0)
+    expect(onMissing).not.toHaveBeenCalled()
   })
 
   it('starts the voice once the context resumes', async () => {

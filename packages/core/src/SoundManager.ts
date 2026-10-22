@@ -7,7 +7,7 @@ import type {
   SoundPlaybackOptions,
 } from './types.js'
 import { AudioBus } from './audioBus.js'
-import { ensureAudioContextReady, peekAudioContextInstance } from './audioManager.js'
+import { ensureAudioContextReady, isAudioContextRunning, peekAudioContextInstance } from './audioManager.js'
 import { MASTER_VOLUME_MAX, MASTER_VOLUME_MIN } from './constants.js'
 import { Sound, stopGenerationOf } from './Sound.js'
 
@@ -165,8 +165,10 @@ export class SoundManager<Name extends string = never> {
 
   /**
    * Plays through the master bus. Resolves to null, via `onMissing`, if the name is unregistered.
-   * Resolves to null without `onMissing` if, while the context resumes, the name is unregistered
-   * or replaced, or the sound is stopped by `stopAll` or its own `stop`.
+   * Resolves to null without `onMissing` if the context is still not running about 500 ms after
+   * the call, as before a user gesture; the play is dropped, not queued. Also resolves to null if,
+   * while the context resumes, the name is unregistered or replaced, or the sound is stopped
+   * by `stopAll` or its own `stop`.
    */
   async play(name: PlayableName<Name>, options?: SoundPlaybackOptions): Promise<PlaybackHandle | null> {
     const sound = this.#lookup(name)
@@ -178,6 +180,9 @@ export class SoundManager<Name extends string = never> {
     // Unregister, replace, stopAll and a direct `Sound.stop` all stop the sound
     const stopGeneration = stopGenerationOf(sound)
     const audioContext = await ensureAudioContextReady(this.#audioContext ?? undefined)
+    if (!isAudioContextRunning(audioContext)) {
+      return null
+    }
     if (this.#lookup(name) !== sound || stopGenerationOf(sound) !== stopGeneration) {
       return null
     }

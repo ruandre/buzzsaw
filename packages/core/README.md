@@ -105,6 +105,8 @@ import { ensureAudioContextReady } from '@rjvr/buzzsaw'
 window.addEventListener('pointerdown', () => ensureAudioContextReady(), { once: true })
 ```
 
+A play made before the context can start is dropped, not queued. If the context is still suspended about 500 ms after the call, `SoundManager.play` resolves `null` and `Sound.play` resolves a handle that never plays. A queued sound would otherwise start late, in a burst, at the first interaction. `Sound.play` with your own `audioContext` in the options plays in any state, so an `OfflineAudioContext` still renders.
+
 ## Sound definitions
 
 Every sound is described by a `SoundDefinition` object. Only `frequency` is required.
@@ -284,7 +286,7 @@ const chained = new SoundManager().registerAll(DEFAULT_SOUNDS) // play accepts a
 - `unregister(name)`: stops any active playback of the sound and removes it. Returns `true` if removed.
 - `get(name)`: returns the `Sound` instance, or `undefined`.
 - `has(name)`: returns `true` if registered.
-- `play(name, options?)`: plays through the master bus. Returns `Promise<PlaybackHandle | null>`: `null` if unregistered, or if the name is unregistered or replaced, or `stopAll()` runs, while the context resumes. Options are `volume` and `pitchScale`; routing belongs to the manager, so use `Sound.play` if you need a custom `destination`.
+- `play(name, options?)`: plays through the master bus. Returns `Promise<PlaybackHandle | null>`: `null` if unregistered, if the context is still not running about 500 ms after the call (see [Browser autoplay](#browser-autoplay)), or if the name is unregistered or replaced, or `stopAll()` runs, while the context resumes. Options are `volume` and `pitchScale`; routing belongs to the manager, so use `Sound.play` if you need a custom `destination`.
 - `stopAll()`: immediately stops all playing voices across the registry, and cancels plays still waiting for the context to resume.
 - `clear()`: stops all sounds and empties the registry.
 - `dispose()`: clears the registry and disconnects the master audio bus.

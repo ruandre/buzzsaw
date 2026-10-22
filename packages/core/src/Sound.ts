@@ -1,5 +1,5 @@
-import type { PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types.js'
-import { ensureAudioContextReady } from './audioManager.js'
+import type { AudioContextLike, PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types.js'
+import { ensureAudioContextReady, isAudioContextRunning } from './audioManager.js'
 import { playSoundFromDefinition } from './soundPlayer.js'
 import { SoundValidationError } from './SoundValidationError.js'
 import { calculateEffectiveDuration, cloneSoundDefinition, freezeSoundDefinition } from './utils.js'
@@ -58,13 +58,15 @@ export class Sound {
   }
 
   /**
-   * Initializes and resumes the shared AudioContext when options omit one
-   * Resolves to never-played handle if `stop` runs while context resumes
+   * Initializes and resumes the shared AudioContext when options omit one.
+   * Resolves to a never-played handle if `stop` runs while the context resumes, or if the
+   * shared context is still not running about 500 ms after the call, as before a user gesture;
+   * the play is dropped, not queued. A context passed in options plays in any state.
    */
   async play(options?: StandaloneSoundOptions): Promise<PlaybackHandle> {
     const stopGeneration = stopGenerationOf(this)
-    const ctx = options?.audioContext ?? await ensureAudioContextReady()
-    if (stopGenerationOf(this) !== stopGeneration) {
+    const ctx = options?.audioContext ?? await this.#awaitSharedContext()
+    if (!ctx || stopGenerationOf(this) !== stopGeneration) {
       return STOPPED_HANDLE
     }
     const handle = playSoundFromDefinition(ctx, this.#definition, options)
@@ -75,6 +77,12 @@ export class Sound {
     })
 
     return handle
+  }
+
+  // A caller's own context may be an OfflineAudioContext, suspended by design until rendering starts
+  async #awaitSharedContext(): Promise<AudioContextLike | null> {
+    const ctx = await ensureAudioContextReady()
+    return isAudioContextRunning(ctx) ? ctx : null
   }
 
   /** Also cancels plays still awaiting the context */

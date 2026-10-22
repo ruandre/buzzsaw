@@ -72,6 +72,11 @@ export async function closeAudioContext(): Promise<void> {
   }
 }
 
+/** Package-internal; deliberately not exported from the entry point. Safari's `interrupted` counts as not running */
+export function isAudioContextRunning(ctx: AudioContextLike): boolean {
+  return ctx.state === 'running'
+}
+
 /** Resumes suspended AudioContext; concurrent calls share pending attempt */
 export function ensureAudioContextReady(customCtx?: AudioContextLike): Promise<AudioContextLike> {
   const ctx = customCtx ?? getAudioContextInstance()

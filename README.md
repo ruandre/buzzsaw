@@ -72,7 +72,7 @@ await new Sound('laser', definition).play()
 
 Annotate definitions with `SoundDefinition` (or `satisfies SoundDefinition`). Without it, TypeScript widens `waveType: 'sawtooth'` to `string` and the object no longer matches.
 
-Browsers block audio playback until the user interacts with the page. Unlock the audio context on the first user gesture:
+Browsers block audio playback until the user interacts with the page. A play made before then is dropped, not queued. Unlock the audio context on the first user gesture:
 
 ```ts
 import { ensureAudioContextReady } from '@rjvr/buzzsaw'

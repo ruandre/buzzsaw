@@ -137,7 +137,29 @@ describe('sound play awaiting the shared suspended context', () => {
 
   afterEach(() => {
     setAudioContextInstance(null)
+    vi.useRealTimers()
     vi.restoreAllMocks()
+  })
+
+  it('resolves a handle that never plays when the context never resumes', async () => {
+    vi.useFakeTimers()
+    const { context } = suspendedSharedContext()
+    const sound = new Sound('drone', { duration: 5, frequency: 100 })
+
+    const pending = sound.play()
+    await vi.advanceTimersByTimeAsync(501)
+
+    expect((await pending).isPlaying).toBe(false)
+    expect(context.oscillators).toHaveLength(0)
+  })
+
+  it('plays on a suspended context passed explicitly, as an offline render does', async () => {
+    const context = Object.assign(createMockAudioContext(), { state: 'suspended' as const })
+    const sound = new Sound('drone', { duration: 5, frequency: 100 })
+
+    await sound.play({ audioContext: context })
+
+    expect(context.oscillators).toHaveLength(1)
   })
 
   it('starts the voice once the context resumes', async () => {
