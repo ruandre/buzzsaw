@@ -6,6 +6,7 @@ import {
   TooltipRoot,
   TooltipTrigger,
 } from 'reka-ui'
+import { shallowRef } from 'vue'
 
 withDefaults(defineProps<{
   content: string
@@ -20,14 +21,21 @@ withDefaults(defineProps<{
   delayDuration: 200,
   shortcut: '',
 })
+
+// Closed portals still mount anchors into body; deferring them keeps large grids cheap to mount
+const hasOpened = shallowRef(false)
+
+function trackFirstOpen(isOpen: boolean): void {
+  hasOpened.value ||= isOpen
+}
 </script>
 
 <template>
-  <TooltipRoot :delay-duration="delayDuration">
+  <TooltipRoot :delay-duration="delayDuration" @update:open="trackFirstOpen">
     <TooltipTrigger as-child>
       <slot />
     </TooltipTrigger>
-    <TooltipPortal>
+    <TooltipPortal v-if="hasOpened">
       <TooltipContent
         :side="side"
         :side-offset="sideOffset"
