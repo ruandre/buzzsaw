@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { forEachYielding, yieldToMain } from './scheduler'
+import { forEachYielding, whenIdle, yieldToMain } from './scheduler'
 
-const scope = globalThis as { scheduler?: { yield?: () => Promise<void> } }
+const scope = globalThis as {
+  scheduler?: { yield?: () => Promise<void> }
+  requestIdleCallback?: (callback: () => void) => number
+}
 
 function installYieldSpy(): ReturnType<typeof vi.fn> {
   const spy = vi.fn(async () => {})
@@ -11,7 +14,9 @@ function installYieldSpy(): ReturnType<typeof vi.fn> {
 
 afterEach(() => {
   delete scope.scheduler
+  delete scope.requestIdleCallback
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 describe('yieldToMain', () => {
@@ -65,5 +70,34 @@ describe('forEachYielding', () => {
 
     expect(task).not.toHaveBeenCalled()
     expect(spy).not.toHaveBeenCalled()
+  })
+})
+
+describe('whenIdle', () => {
+  it('runs the task in an idle callback when the host provides one', () => {
+    const idleCallbacks: (() => void)[] = []
+    scope.requestIdleCallback = (callback) => {
+      idleCallbacks.push(callback)
+      return idleCallbacks.length
+    }
+    const task = vi.fn()
+
+    whenIdle(task)
+    expect(task).not.toHaveBeenCalled()
+    idleCallbacks.forEach(callback => callback())
+
+    expect(task).toHaveBeenCalledOnce()
+  })
+
+  it('falls back to a one-second timer without it', () => {
+    vi.useFakeTimers()
+    const task = vi.fn()
+
+    whenIdle(task)
+    vi.advanceTimersByTime(999)
+    expect(task).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+
+    expect(task).toHaveBeenCalledOnce()
   })
 })

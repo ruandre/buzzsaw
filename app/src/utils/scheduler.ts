@@ -1,5 +1,7 @@
 // INP threshold for long tasks
 const LONG_TASK_BUDGET_MS = 50
+// Hosts without requestIdleCallback wait this long instead, past first render
+const IDLE_FALLBACK_DELAY_MS = 1000
 
 interface SchedulerApi {
   yield?: () => Promise<void>
@@ -29,4 +31,13 @@ export async function forEachYielding<T>(
       sliceStart = performance.now()
     }
   }
+}
+
+/** Runs low-priority work once the main thread is idle, or after a delay where idle callbacks are missing */
+export function whenIdle(task: () => void): void {
+  if (typeof globalThis.requestIdleCallback === 'function') {
+    globalThis.requestIdleCallback(() => task())
+    return
+  }
+  setTimeout(task, IDLE_FALLBACK_DELAY_MS)
 }
