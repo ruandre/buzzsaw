@@ -120,7 +120,6 @@ function toggleDrawer(): void {
         <DialogOverlay class="drawer-scrim fixed inset-0 z-40 bg-scrim/35 lg:hidden" />
         <DialogContent
           id="studio-drawer"
-          closedby="any"
           class="drawer fixed bottom-0 right-0 top-14 z-50 max-w-[21rem] w-[88%] flex flex-col overflow-y-auto border-l border-line bg-chrome lg:hidden"
         >
           <DialogTitle class="sr-only">
@@ -209,9 +208,13 @@ function toggleDrawer(): void {
   animation: drawer-in var(--duration-modal) var(--ease-spring);
 }
 
-.drawer-scrim[data-state='closed'],
+/* Exit keyframes need their own names: reka-ui keeps the content mounted only for an animation that differs from the entry one */
+.drawer-scrim[data-state='closed'] {
+  animation: scrim-out var(--duration-fast) var(--ease-out) forwards;
+}
+
 .drawer[data-state='closed'] {
-  animation-direction: reverse;
+  animation: drawer-out var(--duration-fast) var(--ease-out) forwards;
 }
 
 @keyframes scrim-in {
@@ -224,6 +227,12 @@ function toggleDrawer(): void {
   }
 }
 
+@keyframes scrim-out {
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes drawer-in {
   from {
     opacity: 0;
@@ -233,6 +242,13 @@ function toggleDrawer(): void {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes drawer-out {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
   }
 }
 

@@ -86,11 +86,13 @@ watch(() => props.open, (open, wasOpen) => {
   animation: modal-in var(--duration-base) var(--ease-out);
 }
 
-.modal-scrim[data-state='closed'],
+/* Exit keyframes need their own names: reka-ui keeps the content mounted only for an animation that differs from the entry one */
+.modal-scrim[data-state='closed'] {
+  animation: scrim-out var(--duration-fast) var(--ease-out) forwards;
+}
+
 .modal[data-state='closed'] {
-  animation-direction: reverse;
-  animation-duration: var(--duration-fast);
-  animation-fill-mode: forwards;
+  animation: modal-out var(--duration-fast) var(--ease-out) forwards;
 }
 
 @keyframes scrim-in {
@@ -103,6 +105,12 @@ watch(() => props.open, (open, wasOpen) => {
   }
 }
 
+@keyframes scrim-out {
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes modal-in {
   from {
     opacity: 0;
@@ -112,6 +120,13 @@ watch(() => props.open, (open, wasOpen) => {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes modal-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
   }
 }
 
