@@ -218,45 +218,6 @@ html {
   top: 1rem;
 }
 
-::view-transition-old(root) {
-  animation: view-out var(--duration-base) var(--ease-out) both;
-}
-
-::view-transition-new(root) {
-  animation: view-in var(--duration-base) var(--ease-out) both;
-}
-
-@keyframes view-out {
-  to {
-    opacity: 0;
-    transform: translateY(-2px) scale(0.995);
-  }
-}
-
-@keyframes view-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px) scale(0.99);
-  }
-}
-
-.view-enter-active,
-.view-leave-active {
-  transition:
-    opacity var(--duration-base) var(--ease-out),
-    transform var(--duration-base) var(--ease-out);
-}
-
-.view-enter-from {
-  opacity: 0;
-  transform: translateY(4px) scale(0.99);
-}
-
-.view-leave-to {
-  opacity: 0;
-  transform: translateY(-2px) scale(0.995);
-}
-
 .stagger-card {
   animation: card-in var(--duration-modal) var(--ease-out) both;
 }
@@ -315,20 +276,10 @@ html {
     scroll-behavior: auto !important;
   }
 
-  .view-enter-from,
-  .view-leave-to,
-  .stagger-card {
-    transform: none !important;
-  }
-
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none !important;
-  }
-
   .stagger-card {
     animation: none !important;
     opacity: 1 !important;
+    transform: none !important;
   }
 }
 

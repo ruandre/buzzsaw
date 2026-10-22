@@ -6,7 +6,6 @@ import NoticeStack from './components/NoticeStack.vue'
 import StudioFooter from './components/StudioFooter.vue'
 import StudioHeader from './components/StudioHeader.vue'
 import { useAriaInvalidSync, useKeyboardShortcuts } from './composables'
-import { supportsViewTransitions } from './router'
 import { useAiStore, useCreatorStore, usePlaybackStore, useUiStore } from './stores'
 import { registerWebMcpTools } from './utils/webmcp'
 
@@ -70,10 +69,7 @@ onUnmounted(() => releaseWebMcpTools?.())
           class="layout-container min-w-0 flex-1 py-6 sm:py-8 focus:outline-none"
         >
           <RouterView v-slot="{ Component, route: currentRoute }">
-            <component :is="Component" v-if="supportsViewTransitions" :key="currentRoute.name" />
-            <Transition v-else name="view" mode="out-in">
-              <component :is="Component" :key="currentRoute.name" />
-            </Transition>
+            <component :is="Component" :key="currentRoute.name" />
           </RouterView>
         </main>
 
