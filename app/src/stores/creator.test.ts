@@ -1,5 +1,6 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 import { DEFAULT_ATTACK_S, DEFAULT_DECAY_S, DEFAULT_DURATION_S, isValidSoundDefinition } from '@rjvr/buzzsaw'
+import { airRaidSiren } from '@rjvr/buzzsaw/sounds'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
@@ -27,11 +28,30 @@ describe('creator store definition', () => {
     expect(creator.definition.gain).toEqual({ start: 1, steps: [{ value: 1, time: 0.1 }] })
     expect(isValidSoundDefinition(creator.definition)).toBe(true)
   })
+
+  it('caps typed step times at the longest sound the editor makes', () => {
+    const creator = useCreatorStore()
+    creator.state.frequencyMode = 'steps'
+    creator.state.frequencySteps = [{ value: 880, time: 100 }]
+    creator.state.gainMode = 'steps'
+    creator.state.gainSteps = [{ value: 0.5, time: 100 }]
+
+    expect(creator.definition.frequency).toMatchObject({ steps: [{ time: CREATOR_LIMITS.duration.max }] })
+    expect(creator.definition.gain).toMatchObject({ steps: [{ time: CREATOR_LIMITS.duration.max }] })
+  })
 })
 
 describe('creator store load', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+  })
+
+  it('compiles a preset longer than the duration slider back to its source', () => {
+    const creator = useCreatorStore()
+
+    creator.load('airRaidSiren', airRaidSiren)
+
+    expect(creator.definition).toMatchObject(airRaidSiren)
   })
 
   it('compiles an untouched sound back to its source with core timing defaults', () => {

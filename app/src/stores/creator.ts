@@ -105,16 +105,20 @@ export const useCreatorStore = defineStore('creator', () => {
   /** Compiles editable state into valid SoundDefinition */
   const definition = computed<SoundDefinition>(() => {
     const s = state.value
+    // Core extends a sound to its last step, so a typo such as 100 for 0.1 would play for 100 s
+    const maxStepTime = Math.max(CREATOR_LIMITS.duration.max, timing.value.duration)
+    const clampSteps = (steps: SoundStep[], clampValue: (value: number) => number) =>
+      steps.map(step => ({ value: clampValue(step.value), time: clamp(step.time || 0, 0, maxStepTime) }))
 
     return {
       ...resolveTimbre(s),
       ...timing.value,
       frequency: s.frequencyMode === 'fixed'
         ? clampFrequency(s.fixedFrequency)
-        : toEnvelope(clampFrequency(s.frequencyStart), s.frequencySteps.map(clampFrequencyStep), s.frequencyInterpolation),
+        : toEnvelope(clampFrequency(s.frequencyStart), clampSteps(s.frequencySteps, clampFrequency), s.frequencyInterpolation),
       gain: s.gainMode === 'fixed'
         ? clampGain(s.fixedGain, MIN_GAIN)
-        : toEnvelope(clampGain(s.gainStart, MIN_GAIN), s.gainSteps.map(clampGainStep), s.gainInterpolation),
+        : toEnvelope(clampGain(s.gainStart, MIN_GAIN), clampSteps(s.gainSteps, value => clampGain(value, 0)), s.gainInterpolation),
     }
   })
 
@@ -302,10 +306,6 @@ function clampFrequency(hz: number): number {
   return hz > 0 ? Math.min(hz, MAX_FREQUENCY_HZ) : DEFAULT_CREATOR_STATE.fixedFrequency
 }
 
-function clampFrequencyStep(step: SoundStep): SoundStep {
-  return { value: clampFrequency(step.value), time: Math.max(0, step.time || 0) }
-}
-
 function toEnvelope(start: number, steps: SoundStep[], interpolation?: EnvelopeInterpolation): EnvelopeDefinition {
   return interpolation ? { start, steps, interpolation } : { start, steps }
 }
@@ -313,10 +313,6 @@ function toEnvelope(start: number, steps: SoundStep[], interpolation?: EnvelopeI
 // Number inputs accept typed values beyond their max attribute
 function clampGain(value: number, min: number): number {
   return clamp(value || 0, min, CREATOR_LIMITS.gain.max)
-}
-
-function clampGainStep(step: SoundStep): SoundStep {
-  return { value: clampGain(step.value, 0), time: Math.max(0, step.time || 0) }
 }
 
 // Mutates in place: step editor keys rows by step identity
