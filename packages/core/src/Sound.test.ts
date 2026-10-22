@@ -1,6 +1,7 @@
 import type { MockAudioContext } from './testing/mockAudioContext.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setAudioContextInstance } from './audioManager.js'
+import { GECKO_START_LEAD_S } from './constants.js'
 import { Sound } from './Sound.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
 
@@ -186,5 +187,47 @@ describe('sound play awaiting the shared suspended context', () => {
     await expect(handle.promise).resolves.toBeUndefined()
     expect(context.oscillators).toHaveLength(0)
     expect(sound.isPlaying).toBe(false)
+  })
+})
+
+describe('sound play start time', () => {
+  const firefox = 'Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0'
+
+  beforeEach(() => {
+    vi.stubGlobal('navigator', { userAgent: firefox })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('starts a live voice past the stale Firefox clock', async () => {
+    const context = createMockAudioContext({ currentTime: 3 })
+    const sound = new Sound('pop', { duration: 0.1, frequency: 600 })
+
+    await sound.play({ audioContext: context })
+
+    expect(context.oscillators[0].start).toHaveBeenCalledWith(3 + GECKO_START_LEAD_S)
+  })
+
+  it('schedules an offline voice at once and at the render clock, so startRendering may follow play directly', () => {
+    const context = Object.assign(createMockAudioContext({ currentTime: 0 }), { startRendering: vi.fn() })
+    const sound = new Sound('pop', { duration: 0.1, frequency: 600 })
+
+    void sound.play({ audioContext: context })
+
+    expect(context.oscillators).toHaveLength(1)
+    expect(context.oscillators[0].start).toHaveBeenCalledWith(0)
+  })
+
+  it('cancels a live play on stop while it waits for a fresh clock', async () => {
+    const context = createMockAudioContext()
+    const sound = new Sound('drone', { duration: 5, frequency: 100 })
+
+    const pending = sound.play({ audioContext: context })
+    sound.stop()
+
+    expect((await pending).isPlaying).toBe(false)
+    expect(context.oscillators).toHaveLength(0)
   })
 })

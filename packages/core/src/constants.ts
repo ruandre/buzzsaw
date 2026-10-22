@@ -30,6 +30,9 @@ export const SILENT_GAIN = 0.0001
 // Prevents clicks when stopping playback early
 export const STOP_FADE_S = 0.005
 
+// Gecko's currentTime can trail one render callback (10.7 ms at 512 frames, 48 kHz; longer on some backends)
+export const GECKO_START_LEAD_S = 0.025
+
 export const MASTER_VOLUME_MIN = 0
 export const MASTER_VOLUME_MAX = 2
 

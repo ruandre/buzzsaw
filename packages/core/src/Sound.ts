@@ -1,6 +1,7 @@
 import type { AudioContextLike, PlaybackHandle, SoundDefinition, StandaloneSoundOptions } from './types.js'
 import { ensureAudioContextReady, isAudioContextRunning } from './audioManager.js'
-import { playSoundFromDefinition } from './soundPlayer.js'
+import { isOfflineContext, resolveLiveStartTime } from './contextClock.js'
+import { playSoundAt } from './soundPlayer.js'
 import { SoundValidationError } from './SoundValidationError.js'
 import { calculateEffectiveDuration, cloneSoundDefinition, freezeSoundDefinition } from './utils.js'
 import { validateSoundDefinition } from './validation.js'
@@ -59,17 +60,23 @@ export class Sound {
 
   /**
    * Initializes and resumes the shared AudioContext when options omit one.
-   * Resolves to a never-played handle if `stop` runs while the context resumes, or if the
+   * Resolves to a never-played handle if `stop` runs before the voice is scheduled, or if the
    * shared context is still not running about 500 ms after the call, as before a user gesture;
    * the play is dropped, not queued. A context passed in options plays in any state.
+   * A live context schedules after one task, so it reads a fresh clock; an offline one
+   * schedules before `play` returns, so `startRendering` may follow it directly.
    */
   async play(options?: StandaloneSoundOptions): Promise<PlaybackHandle> {
     const stopGeneration = stopGenerationOf(this)
     const ctx = options?.audioContext ?? await this.#awaitSharedContext()
-    if (!ctx || stopGenerationOf(this) !== stopGeneration) {
+    if (!ctx) {
       return STOPPED_HANDLE
     }
-    const handle = playSoundFromDefinition(ctx, this.#definition, options)
+    const startTime = isOfflineContext(ctx) ? ctx.currentTime : await resolveLiveStartTime(ctx)
+    if (stopGenerationOf(this) !== stopGeneration) {
+      return STOPPED_HANDLE
+    }
+    const handle = playSoundAt(ctx, this.#definition, startTime, options)
     this.#activeHandles.push(handle)
 
     handle.promise.finally(() => {

@@ -217,7 +217,7 @@ const powerDown: SoundDefinition = {
 
 ## Playback handles
 
-Calling `play()` on a `Sound` or `SoundManager` schedules the voice immediately and returns a `PlaybackHandle`:
+Calling `play()` on a `Sound` or `SoundManager` schedules the voice and resolves a `PlaybackHandle`. On a live context it first waits one task, so it reads a fresh `currentTime`; in Firefox, which updates that clock only between tasks, the voice also starts 25 ms ahead, so a busy page cannot cut its attack. An `OfflineAudioContext` schedules before `play` returns, at its current render time:
 
 ```ts
 interface PlaybackHandle {

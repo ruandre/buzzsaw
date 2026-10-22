@@ -1,7 +1,7 @@
 import type { MockAudioContext, MockGainNode } from './testing/mockAudioContext.js'
 import type { SoundDefinition } from './types.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { playSoundFromDefinition } from './soundPlayer.js'
+import { playSoundAt, playSoundFromDefinition } from './soundPlayer.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
 import { sampleFrequencyAtTime, sampleGainAtTime } from './utils.js'
 import { validateSoundDefinition } from './validation.js'
@@ -686,6 +686,23 @@ describe('voice lifecycle', () => {
 
       expect(handle.isPlaying).toBe(false)
       expect(context.gainNodes[0].disconnect).toHaveBeenCalledOnce()
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('times the fallback from the scheduled end, so a voice starting later is not cut short', () => {
+    vi.useFakeTimers()
+    try {
+      const context = createMockAudioContext()
+      const handle = playSoundAt(context, { frequency: 440, duration: 0.2 }, 0.5)
+
+      vi.advanceTimersByTime(301)
+      expect(handle.isPlaying).toBe(true)
+
+      vi.advanceTimersByTime(500)
+      expect(handle.isPlaying).toBe(false)
     }
     finally {
       vi.useRealTimers()

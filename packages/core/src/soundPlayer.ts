@@ -10,6 +10,7 @@ import {
   SILENT_GAIN,
   STOP_FADE_S,
 } from './constants.js'
+import { isOfflineContext } from './contextClock.js'
 import { isEnvelope, orderedSteps, resolveInterpolation, sampleEnvelope } from './envelope.js'
 import { finiteOr } from './numeric.js'
 import { applyWaveShape } from './oscillator.js'
@@ -32,10 +33,20 @@ export function playSoundFromDefinition(
   soundDefinition: SoundDefinition,
   options: StandaloneSoundOptions = {},
 ): PlaybackHandle {
+  return playSoundAt(audioContext, soundDefinition, audioContext.currentTime, options)
+}
+
+/** Package-internal; deliberately not exported from the entry point. `startTime` is in context seconds */
+export function playSoundAt(
+  audioContext: BaseAudioContextLike,
+  soundDefinition: SoundDefinition,
+  startTime: number,
+  options: StandaloneSoundOptions = {},
+): PlaybackHandle {
   const volume = requireNonNegative(options.volume, 1, 'volume')
   const pitchScale = requirePositive(options.pitchScale, 1, 'pitchScale')
 
-  const schedule = resolveSchedule(soundDefinition, audioContext.currentTime)
+  const schedule = resolveSchedule(soundDefinition, startTime)
 
   const oscillator = audioContext.createOscillator()
   const gainNode = audioContext.createGain()
@@ -238,10 +249,9 @@ function startPlayback(
     }
   }
 
-  const durationSec = Math.max(0, schedule.end - schedule.start)
   let safetyTimeout: ReturnType<typeof setTimeout> | undefined
   // Offline render outpaces wall clock; fallback timer would outlive it
-  const isOffline = 'startRendering' in audioContext
+  const isOffline = isOfflineContext(audioContext)
   const armFallback = (callback: () => void, delayMs: number) =>
     isOffline ? undefined : setTimeout(callback, delayMs)
 
@@ -265,7 +275,7 @@ function startPlayback(
     }
     finish()
   }
-  safetyTimeout = armFallback(finishUnlessSuspended, toFallbackDelayMs(durationSec))
+  safetyTimeout = armFallback(finishUnlessSuspended, toFallbackDelayMs(schedule.end - audioContext.currentTime))
 
   oscillator.onended = finish
 

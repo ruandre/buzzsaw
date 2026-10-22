@@ -1,6 +1,7 @@
 import type { MockAudioContext } from './testing/mockAudioContext.js'
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { setAudioContextInstance } from './audioManager.js'
+import { GECKO_START_LEAD_S } from './constants.js'
 import { Sound } from './Sound.js'
 import { SoundManager } from './SoundManager.js'
 import { createMockAudioContext } from './testing/mockAudioContext.js'
@@ -216,6 +217,30 @@ describe('soundManager', () => {
       samples[0] = 0.6
     })
     expect(manager.outputLevel).toBeCloseTo(0.6)
+  })
+
+  it('starts voices past the stale Firefox clock', async () => {
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0' })
+    onTestFinished(() => {
+      vi.unstubAllGlobals()
+    })
+    mockCtx.currentTime = 3
+    const manager = new SoundManager({ audioContext: mockCtx }).register('pop', { duration: 0.1, frequency: 600 })
+
+    await manager.play('pop')
+
+    expect(mockCtx.oscillators[0].start).toHaveBeenCalledWith(3 + GECKO_START_LEAD_S)
+  })
+
+  it('cancels a play on stopAll while it waits for a fresh clock', async () => {
+    const manager = new SoundManager({ audioContext: mockCtx }).register('pop', { duration: 0.1, frequency: 600 })
+
+    const pending = manager.play('pop')
+    await Promise.resolve()
+    manager.stopAll()
+
+    expect((await pending)?.isPlaying ?? false).toBe(false)
+    expect(mockCtx.oscillators).toHaveLength(0)
   })
 
   it('releases the bus on dispose so it stops feeding the destination', async () => {
