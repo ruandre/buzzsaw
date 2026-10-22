@@ -11,11 +11,18 @@ const STOPPED_HANDLE: PlaybackHandle = Object.freeze({
   promise: Promise.resolve(),
 })
 
+// Bumped by `stop`; module-scoped so SoundManager can cancel a play it holds while awaiting the context
+const stopGenerations = new WeakMap<Sound, number>()
+
+/** Package-internal; deliberately not exported from the entry point */
+export function stopGenerationOf(sound: Sound): number {
+  return stopGenerations.get(sound) ?? 0
+}
+
 export class Sound {
   readonly #name: string
   #definition: Readonly<SoundDefinition>
   #activeHandles: PlaybackHandle[] = []
-  #stopGeneration = 0
 
   /** Throws SoundValidationError if the definition is malformed */
   constructor(name: string, definition: SoundDefinition) {
@@ -55,9 +62,9 @@ export class Sound {
    * Resolves to never-played handle if `stop` runs while context resumes
    */
   async play(options?: StandaloneSoundOptions): Promise<PlaybackHandle> {
-    const stopGeneration = this.#stopGeneration
+    const stopGeneration = stopGenerationOf(this)
     const ctx = options?.audioContext ?? await ensureAudioContextReady()
-    if (this.#stopGeneration !== stopGeneration) {
+    if (stopGenerationOf(this) !== stopGeneration) {
       return STOPPED_HANDLE
     }
     const handle = playSoundFromDefinition(ctx, this.#definition, options)
@@ -72,7 +79,7 @@ export class Sound {
 
   /** Also cancels plays still awaiting the context */
   stop(): void {
-    this.#stopGeneration++
+    stopGenerations.set(this, stopGenerationOf(this) + 1)
     for (const handle of this.#activeHandles) {
       handle.stop()
     }

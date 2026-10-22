@@ -333,6 +333,18 @@ describe('soundManager play awaiting a suspended context', () => {
     expect(await pending).toBeNull()
     expect(context.oscillators).toHaveLength(0)
   })
+
+  it('cancels the play when its sound is stopped directly before the context resumes', async () => {
+    const { context, finishResume } = suspendedContext()
+    const manager = new SoundManager({ audioContext: context }).register('drone', { duration: 5, frequency: 100 })
+
+    const pending = manager.play('drone')
+    manager.get('drone')?.stop()
+    finishResume()
+
+    expect(await pending).toBeNull()
+    expect(context.oscillators).toHaveLength(0)
+  })
 })
 
 describe('soundManager audioContext getter', () => {

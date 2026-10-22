@@ -9,7 +9,7 @@ import type {
 import { AudioBus } from './audioBus.js'
 import { ensureAudioContextReady, peekAudioContextInstance } from './audioManager.js'
 import { MASTER_VOLUME_MAX, MASTER_VOLUME_MIN } from './constants.js'
-import { Sound } from './Sound.js'
+import { Sound, stopGenerationOf } from './Sound.js'
 
 /** Sounds a manager can be given, keyed by the names `play` will accept */
 export type SoundRegistrations = Record<string, SoundDefinition | Sound>
@@ -36,7 +36,6 @@ export class SoundManager<Name extends string = never> {
   readonly #onMissing: (name: string) => void
   #bus: AudioBus | null = null
   #busContext: BaseAudioContextLike | null = null
-  #stopGeneration = 0
 
   constructor(options: SoundManagerOptions = {}) {
     this.#masterVolume = requireMasterVolume(options.masterVolume)
@@ -170,7 +169,7 @@ export class SoundManager<Name extends string = never> {
   /**
    * Plays through the master bus. Resolves to null, via `onMissing`, if the name is unregistered.
    * Resolves to null without `onMissing` if, while the context resumes, the name is unregistered
-   * or replaced, or `stopAll` runs.
+   * or replaced, or the sound is stopped by `stopAll` or its own `stop`.
    */
   async play(name: PlayableName<Name>, options?: SoundPlaybackOptions): Promise<PlaybackHandle | null> {
     const sound = this.#lookup(name)
@@ -179,9 +178,10 @@ export class SoundManager<Name extends string = never> {
       return null
     }
 
-    const stopGeneration = this.#stopGeneration
+    // Unregister, replace, stopAll and a direct `Sound.stop` all stop the sound
+    const stopGeneration = stopGenerationOf(sound)
     const audioContext = await ensureAudioContextReady(this.#audioContext ?? undefined)
-    if (this.#lookup(name) !== sound || this.#stopGeneration !== stopGeneration) {
+    if (this.#lookup(name) !== sound || stopGenerationOf(sound) !== stopGeneration) {
       return null
     }
 
@@ -211,7 +211,6 @@ export class SoundManager<Name extends string = never> {
 
   /** Also cancels plays still awaiting the context */
   stopAll(): void {
-    this.#stopGeneration++
     for (const sound of this.#sounds.values()) {
       sound.stop()
     }
