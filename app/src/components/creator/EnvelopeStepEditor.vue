@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SoundStep } from '@rjvr/buzzsaw'
+import NumberInput from '../ui/NumberInput.vue'
 
 withDefaults(defineProps<{
   steps: SoundStep[]
@@ -25,12 +26,9 @@ const emit = defineEmits<{
   (e: 'update', index: number, patch: Partial<SoundStep>): void
 }>()
 
-// A cleared or partial number leaves the step at its last valid value
-function emitField(index: number, field: keyof SoundStep, event: Event): void {
-  const value = (event.target as HTMLInputElement).valueAsNumber
-  if (Number.isFinite(value)) {
-    emit('update', index, { [field]: value })
-  }
+function updateTime(index: number, time: number): void {
+  emit('update', index, { time })
+  emit('sort')
 }
 
 // Keyed by step identity, not position, so a row and its focus follow a step that sorting moves
@@ -56,17 +54,15 @@ function keyOf(step: SoundStep): number {
         <label :for="`${idPrefix}-value-${index}`" class="sr-only">
           {{ valueLabel }} for step {{ index + 1 }}
         </label>
-        <input
+        <NumberInput
           :id="`${idPrefix}-value-${index}`"
-          :value="step.value"
-          type="number"
-          inputmode="decimal"
+          :model-value="step.value"
           :min="valueMin"
           :max="valueMax"
           :step="valueStep"
-          class="w-16 border border-line-control rounded-md bg-control px-2 py-1 text-xs text-ink font-bold shadow-inset transition-colors duration-fast sm:w-20 focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-          @input="emitField(index, 'value', $event)"
-        >
+          class="w-16 bg-control px-2 py-1 text-xs text-ink font-bold sm:w-20"
+          @update:model-value="value => emit('update', index, { value })"
+        />
         <span v-if="valueUnit" class="select-none text-xs text-ink-subtle font-semibold">{{ valueUnit }}</span>
 
         <span class="select-none text-xs text-ink-subtle font-semibold" aria-hidden="true">@</span>
@@ -74,18 +70,15 @@ function keyOf(step: SoundStep): number {
         <label :for="`${idPrefix}-time-${index}`" class="sr-only">
           Time in seconds for step {{ index + 1 }}
         </label>
-        <input
+        <NumberInput
           :id="`${idPrefix}-time-${index}`"
-          :value="step.time"
-          type="number"
-          inputmode="decimal"
-          min="0"
+          :model-value="step.time"
+          :min="0"
           :max="timeMax"
-          step="0.01"
-          class="w-16 border border-line-control rounded-md bg-control px-2 py-1 text-xs text-ink font-bold shadow-inset transition-colors duration-fast sm:w-18 focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-          @input="emitField(index, 'time', $event)"
-          @change="emit('sort')"
-        >
+          :step="0.01"
+          class="w-16 bg-control px-2 py-1 text-xs text-ink font-bold sm:w-18"
+          @update:model-value="time => updateTime(index, time)"
+        />
         <span class="select-none text-xs text-ink-subtle font-semibold">s</span>
 
         <button

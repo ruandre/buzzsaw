@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import { KEYBOARD_PITCHES, MAX_PITCH_HZ, MIN_PITCH_HZ, MUSICAL_PITCHES } from '../../audio/pitches'
 import { CREATOR_LIMITS, useCreatorStore } from '../../stores'
 import ModulePanel from '../ui/ModulePanel.vue'
+import NumberInput from '../ui/NumberInput.vue'
 import Slider from '../ui/Slider.vue'
 import EnvelopeStepEditor from './EnvelopeStepEditor.vue'
 import ParameterModeSwitch from './ParameterModeSwitch.vue'
@@ -93,16 +94,14 @@ const activeNote = computed<PitchName | undefined>(() => {
       <div v-else class="space-y-3">
         <div class="flex items-center gap-2.5">
           <label for="pitch-start" class="w-24 select-none text-sm text-ink-muted font-semibold font-mono">Start</label>
-          <input
+          <NumberInput
             id="pitch-start"
-            v-model.number="creator.state.frequencyStart"
-            type="number"
-            inputmode="numeric"
+            v-model="creator.state.frequencyStart"
             :min="MIN_PITCH_HZ"
             :max="MAX_PITCH_HZ"
             :step="CREATOR_LIMITS.frequency.step"
-            class="w-28 border border-line-control rounded-md bg-surface-muted px-2.5 py-1 text-sm text-ink font-bold font-mono shadow-inset transition-colors duration-fast focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-          >
+            class="w-28 bg-surface-muted px-2.5 py-1 text-sm text-ink font-bold font-mono"
+          />
           <span class="select-none text-xs text-ink-subtle font-semibold font-mono">Hz at t = 0s</span>
         </div>
 

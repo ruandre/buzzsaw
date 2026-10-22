@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { CREATOR_LIMITS, useCreatorStore } from '../../stores'
 import ModulePanel from '../ui/ModulePanel.vue'
+import NumberInput from '../ui/NumberInput.vue'
 import Slider from '../ui/Slider.vue'
 import EnvelopeStepEditor from './EnvelopeStepEditor.vue'
 import ParameterModeSwitch from './ParameterModeSwitch.vue'
@@ -57,16 +58,14 @@ const asPercent = (gain: number) => `${Math.round(gain * 100)}%`
         <div v-else class="space-y-2.5">
           <div class="flex items-center gap-2.5">
             <label for="gain-start" class="w-24 select-none text-sm text-ink-muted font-semibold font-mono">Start</label>
-            <input
+            <NumberInput
               id="gain-start"
-              v-model.number="creator.state.gainStart"
-              type="number"
-              inputmode="decimal"
-              min="0"
+              v-model="creator.state.gainStart"
+              :min="CREATOR_LIMITS.gain.min"
               :max="CREATOR_LIMITS.gain.max"
-              step="0.05"
-              class="w-24 border border-line-control rounded-md bg-surface-muted px-2.5 py-1 text-sm text-ink font-bold font-mono shadow-inset transition-colors duration-fast focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-            >
+              :step="CREATOR_LIMITS.gain.step"
+              class="w-24 bg-surface-muted px-2.5 py-1 text-sm text-ink font-bold font-mono"
+            />
             <span class="select-none text-xs text-ink-subtle font-semibold font-mono">at t = 0s</span>
           </div>
 
@@ -74,9 +73,9 @@ const asPercent = (gain: number) => `${Math.round(gain * 100)}%`
             :steps="creator.state.gainSteps"
             id-prefix="gain-step"
             value-label="Gain level"
-            :value-min="0"
+            :value-min="CREATOR_LIMITS.gain.min"
             :value-max="CREATOR_LIMITS.gain.max"
-            :value-step="0.05"
+            :value-step="CREATOR_LIMITS.gain.step"
             :time-max="creator.state.duration"
             add-label="Add gain point"
             @add="creator.addGainStep()"
