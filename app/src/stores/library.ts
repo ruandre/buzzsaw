@@ -143,7 +143,7 @@ export const useLibraryStore = defineStore('library', () => {
       throw new Error('That file is not valid JSON.')
     }
 
-    const source = (parsed as SoundPack)?.sounds ?? parsed
+    const source = isSoundPack(parsed) ? parsed.sounds : parsed
     const entries = safeRecordEntries(source)
     const accepted: [string, SoundDefinition][] = []
 
@@ -237,6 +237,12 @@ function findSaveError(name: string, definition: SoundDefinition): string | unde
     return 'That name is reserved.'
   }
   return validateSoundDefinition(definition).at(0)
+}
+
+// A flat sound map may hold a sound named "sounds"; only a pack carries a numeric version
+function isSoundPack(value: unknown): value is SoundPack {
+  const candidate = value as Partial<SoundPack> | null
+  return typeof candidate?.version === 'number' && typeof candidate.sounds === 'object' && candidate.sounds !== null
 }
 
 /** An incoming sound never replaces a different library sound; an identical one is already there */

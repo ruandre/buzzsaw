@@ -194,6 +194,15 @@ describe('library store', () => {
     expect(Object.keys(library.customSounds)).toEqual(['laser'])
   })
 
+  it('imports a flat sound map that contains a sound named "sounds"', async () => {
+    const library = useLibraryStore()
+
+    const result = await library.importPack(JSON.stringify({ sounds: { frequency: 440 }, laser: { frequency: 880 } }))
+
+    expect(result).toEqual({ imported: 2, skipped: 0 })
+    expect(Object.keys(library.customSounds).sort()).toEqual(['laser', 'sounds'])
+  })
+
   it('makes a sound synced from another tab playable', () => {
     const library = useLibraryStore()
 
