@@ -92,7 +92,8 @@ export const usePlaybackStore = defineStore('playback', () => {
     )
   }
 
-  async function schedule(name: string, definition?: SoundDefinition, key = name): Promise<void> {
+  /** Resolves true once a voice starts; false if none did, already reported to the user when it failed */
+  async function schedule(name: string, definition?: SoundDefinition, key = name): Promise<boolean> {
     try {
       if (definition) {
         soundManager.register(key, definition)
@@ -100,7 +101,7 @@ export const usePlaybackStore = defineStore('playback', () => {
 
       const handle = await soundManager.play(key)
       if (!handle) {
-        return
+        return false
       }
 
       currentSound.value = name
@@ -114,21 +115,23 @@ export const usePlaybackStore = defineStore('playback', () => {
       handle.promise.finally(() => {
         releaseVoice(name)
       })
+      return true
     }
     catch (error) {
       console.error(`Error playing sound "${name}":`, error)
       notifications.reportError(error instanceof SoundValidationError
         ? `Could not play "${name}": ${error.errors[0]}`
         : `Could not play "${name}". Browsers block audio until you interact with the page.`)
+      return false
     }
   }
 
-  /** Registers `definition` first when given; records the name in `recentlyPlayed` */
-  async function play(name: string, definition?: SoundDefinition): Promise<void> {
+  /** Registers `definition` first when given; records the name in `recentlyPlayed`; resolves whether a voice started */
+  async function play(name: string, definition?: SoundDefinition): Promise<boolean> {
     if (name !== PREVIEW_SOUND) {
       recentlyPlayed.value = [name, ...recentlyPlayed.value.filter(n => n !== name)].slice(0, RECENT_LIMIT)
     }
-    await schedule(name, definition)
+    return schedule(name, definition)
   }
 
   /** Plays UI cue sound; ignores call if cue is already sounding */
@@ -145,10 +148,10 @@ export const usePlaybackStore = defineStore('playback', () => {
     await play(PREVIEW_SOUND, definition)
   }
 
-  /** Plays unsaved `definition` reported as `name`, leaving any sound registered as `name` intact; cuts previous audition */
-  async function audition(name: string, definition: SoundDefinition): Promise<void> {
+  /** Plays unsaved `definition` reported as `name`, leaving any sound registered as `name` intact; cuts previous audition; resolves whether a voice started */
+  async function audition(name: string, definition: SoundDefinition): Promise<boolean> {
     auditionName = name
-    await schedule(name, definition, AUDITION_SOUND)
+    return schedule(name, definition, AUDITION_SOUND)
   }
 
   function stop(name?: string): void {

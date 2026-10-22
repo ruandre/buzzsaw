@@ -110,8 +110,9 @@ export function registerWebMcpTools(): (() => void) | null {
           return { success: false, error: `No sound named "${name}".` }
         }
         // Presets and saved sounds are already registered under their names
-        await playback.play(name)
-        return { success: true, message: `Played "${name}".` }
+        return await playback.play(name)
+          ? { success: true, message: `Played "${name}".` }
+          : { success: false, error: `Could not play "${name}"; the browser may block audio until the user interacts with the page.` }
       },
     })
 
@@ -164,8 +165,8 @@ export function registerWebMcpTools(): (() => void) | null {
         }
         const savedAs = input.saveToLibrary === true ? library.saveAsNew(input.name, definition) : null
         const name = savedAs ?? toCustomSoundName(input.name)
-        await (savedAs ? playback.play(savedAs) : playback.audition(name, definition))
-        return { success: true, name, definition, saved: savedAs !== null }
+        const played = await (savedAs ? playback.play(savedAs) : playback.audition(name, definition))
+        return { success: true, name, definition, saved: savedAs !== null, played }
       },
     })
 

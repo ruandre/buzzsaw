@@ -86,6 +86,26 @@ describe('webMCP tools', () => {
     expect(useLibraryStore().customSounds).toEqual({})
   })
 
+  it('reports a preset that did not start playing as a failure', async () => {
+    const play = registerTools().get('play_sound_preset')!
+    vi.spyOn(usePlaybackStore().soundManager, 'play').mockResolvedValue(null)
+
+    await expect(play({ name: 'pop' })).resolves.toMatchObject({ success: false })
+  })
+
+  it('reports a preset that started playing as a success', async () => {
+    const play = registerTools().get('play_sound_preset')!
+
+    await expect(play({ name: 'pop' })).resolves.toMatchObject({ success: true })
+  })
+
+  it('tells the agent when a synthesized sound could not be auditioned', async () => {
+    const synthesize = registerTools().get('synthesize_sound')!
+    vi.spyOn(usePlaybackStore().soundManager, 'play').mockResolvedValue(null)
+
+    await expect(synthesize({ name: 'zap', frequency: 440, duration: 0.2 })).resolves.toMatchObject({ success: true, played: false })
+  })
+
   it('returns a structured error for an edit definition core would reject', async () => {
     const edit = registerTools().get('edit_sound_definition')!
 
