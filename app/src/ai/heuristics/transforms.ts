@@ -1,9 +1,8 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
-import { clamp, isEnvelope, round } from '@rjvr/buzzsaw'
-import { MAX_PITCH_HZ } from '../../audio/pitches'
+import { clamp, DEFAULT_DURATION_S, isEnvelope, round } from '@rjvr/buzzsaw'
+import { MAX_PITCH_HZ, MIN_PITCH_HZ } from '../../audio/pitches'
 
 // Applied in order; at most one transform per group executes
-const MIN_PITCH_HZ = 25
 
 export interface Transform {
   keywords: readonly string[]
@@ -218,5 +217,5 @@ function rootFrequency(def: SoundDefinition, fallback: number): number {
 }
 
 function durationOf(def: SoundDefinition): number {
-  return def.duration ?? 0.3
+  return def.duration ?? DEFAULT_DURATION_S
 }

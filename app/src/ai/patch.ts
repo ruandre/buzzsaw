@@ -1,6 +1,6 @@
 import type { EnvelopeDefinition, SoundDefinition, SoundStep, WaveType } from '@rjvr/buzzsaw'
 import { clamp, cloneSoundDefinition, validateSoundDefinition, WAVE_TYPES } from '@rjvr/buzzsaw'
-import { MAX_PITCH_HZ } from '../audio/pitches'
+import { MAX_PITCH_HZ, MIN_PITCH_HZ } from '../audio/pitches'
 
 export interface SoundPatch {
   name: string
@@ -9,7 +9,7 @@ export interface SoundPatch {
 }
 
 const LIMITS = {
-  frequency: { min: 20, max: MAX_PITCH_HZ },
+  frequency: { min: MIN_PITCH_HZ, max: MAX_PITCH_HZ },
   gain: { min: 0.001, max: 0.8 },
   duration: { min: 0.015, max: 2.5 },
   attack: { min: 0.001, max: 0.4 },

@@ -1,4 +1,6 @@
+import { DEFAULT_ATTACK_S, DEFAULT_DECAY_S, DEFAULT_DURATION_S, DEFAULT_GAIN } from '@rjvr/buzzsaw'
 import { describe, expect, it } from 'vitest'
+import { MAX_PITCH_HZ, MIN_PITCH_HZ } from '../audio/pitches'
 import { normalizeSoundPatch } from './patch'
 import {
   buildDesignPrompt,
@@ -91,6 +93,12 @@ describe('prompts', () => {
       ])
     })
 
+    it('bounds pitch to the range a parsed patch is clamped to', () => {
+      const pitch = SOUND_PATCH_SCHEMA.properties.frequency.properties.start
+
+      expect([pitch.minimum, pitch.maximum]).toEqual([MIN_PITCH_HZ, MAX_PITCH_HZ])
+    })
+
     it('generates the design plan before the patch name', () => {
       const order = Object.keys(SOUND_PATCH_SCHEMA.properties)
 
@@ -117,6 +125,15 @@ describe('prompts', () => {
       expect(prompt).toContain('"frequency":{"start":1200,"steps":[]}')
       expect(prompt).toContain('"gain":{"start":0.5,"steps":[]}')
       expect(prompt).toContain('Instruction: "make it lower"')
+    })
+
+    it('describes omitted fields with the values the library plays them at', () => {
+      const prompt = buildEditPrompt('saw', JSON.stringify({ waveType: 'sawtooth', frequency: 440 }), 'louder')
+
+      expect(prompt).toContain(`"gain":{"start":${DEFAULT_GAIN},"steps":[]}`)
+      expect(prompt).toContain(`"duration":${DEFAULT_DURATION_S}`)
+      expect(prompt).toContain(`"attack":${DEFAULT_ATTACK_S}`)
+      expect(prompt).toContain(`"decay":${DEFAULT_DECAY_S}`)
     })
 
     it('accepts raw object definition directly', () => {

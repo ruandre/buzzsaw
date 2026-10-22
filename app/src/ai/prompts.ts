@@ -1,3 +1,6 @@
+import { DEFAULT_ATTACK_S, DEFAULT_DECAY_S, DEFAULT_DURATION_S, DEFAULT_FREQUENCY_HZ, DEFAULT_GAIN, DEFAULT_WAVE_TYPE } from '@rjvr/buzzsaw'
+import { MAX_PITCH_HZ, MIN_PITCH_HZ } from '../audio/pitches'
+
 const SYNTHESIS_REFERENCE = `## Synthesis Parameters
 
 - waveType + partials (timbre without filters):
@@ -237,7 +240,7 @@ export const SOUND_PATCH_SCHEMA = {
       description: 'Relative harmonic levels, fundamental first. Empty [] unless waveType is custom.',
       items: { type: 'number', minimum: 0, maximum: 1 },
     },
-    frequency: envelopeSchema('Pitch in Hz. Empty steps means a fixed pitch.', 20, 12000),
+    frequency: envelopeSchema('Pitch in Hz. Empty steps means a fixed pitch.', MIN_PITCH_HZ, MAX_PITCH_HZ),
     gain: envelopeSchema('Peak volume level from 0.05 to 0.8. Empty steps means fixed level.', 0.001, 0.8),
     duration: { type: 'number', minimum: 0.015, maximum: 2.5 },
     attack: { type: 'number', minimum: 0.001, maximum: 0.4 },
@@ -306,11 +309,12 @@ function normalizePatchJsonForPrompt(fallbackName: string, jsonString: string): 
   return jsonString
 }
 
+// Omitted fields are spelled out at the library's playback defaults so "keep the rest" preserves the sound
 function formatPatchObjectForPrompt(fallbackName: string, obj: Record<string, unknown>): string {
-  const waveType = typeof obj.waveType === 'string' ? obj.waveType : 'sine'
-  const duration = typeof obj.duration === 'number' ? obj.duration : 0.3
-  const attack = typeof obj.attack === 'number' ? obj.attack : 0.005
-  const decay = typeof obj.decay === 'number' ? obj.decay : 0.1
+  const waveType = typeof obj.waveType === 'string' ? obj.waveType : DEFAULT_WAVE_TYPE
+  const duration = typeof obj.duration === 'number' ? obj.duration : DEFAULT_DURATION_S
+  const attack = typeof obj.attack === 'number' ? obj.attack : DEFAULT_ATTACK_S
+  const decay = typeof obj.decay === 'number' ? obj.decay : DEFAULT_DECAY_S
   const name = typeof obj.name === 'string' && obj.name ? obj.name : fallbackName
   const description = typeof obj.description === 'string' && obj.description
     ? obj.description
@@ -320,11 +324,11 @@ function formatPatchObjectForPrompt(fallbackName: string, obj: Record<string, un
 
   const frequency = typeof obj.frequency === 'number'
     ? { start: obj.frequency, steps: [] }
-    : (obj.frequency ?? { start: 440, steps: [] })
+    : (obj.frequency ?? { start: DEFAULT_FREQUENCY_HZ, steps: [] })
 
   const gain = typeof obj.gain === 'number'
     ? { start: obj.gain, steps: [] }
-    : (obj.gain ?? { start: 0.4, steps: [] })
+    : (obj.gain ?? { start: DEFAULT_GAIN, steps: [] })
 
   return JSON.stringify({
     description,

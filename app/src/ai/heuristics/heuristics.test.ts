@@ -1,7 +1,9 @@
-import { validateSoundDefinition } from '@rjvr/buzzsaw'
+import type { SoundDefinition } from '@rjvr/buzzsaw'
+import { DEFAULT_DURATION_S, round, validateSoundDefinition } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { describe, expect, it } from 'vitest'
 import { designHeuristicPatch, editHeuristicPatch, SOUND_RECIPES, TRANSFORM_GROUPS } from '.'
+import { MIN_PITCH_HZ } from '../../audio/pitches'
 import { QUICK_TRANSFORMS } from '../presets'
 import { findRecipe } from './recipes'
 import { applyTransforms } from './transforms'
@@ -83,6 +85,22 @@ describe('applyTransforms', () => {
 
     expect(applied).toEqual(['square 8-bit timbre', 'pitched up an octave', 'boosted level'])
     expect(definition).toMatchObject({ waveType: 'square', frequency: 880, gain: 0.7 })
+  })
+
+  it('shortens a sound from the duration the library plays it at when none is set', () => {
+    const definition: SoundDefinition = { frequency: 440 }
+
+    applyTransforms(definition, 'shorter')
+
+    expect(definition.duration).toBe(round(DEFAULT_DURATION_S * 0.55, 3))
+  })
+
+  it('floors a lowered pitch at the studio minimum', () => {
+    const definition = { frequency: MIN_PITCH_HZ + 1 }
+
+    applyTransforms(definition, 'octave down')
+
+    expect(definition.frequency).toBe(MIN_PITCH_HZ)
   })
 
   it('scales every step of a frequency envelope', () => {
