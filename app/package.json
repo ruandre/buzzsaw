@@ -36,6 +36,8 @@
     "@unocss/reset": "catalog:",
     "@unocss/vite": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
+    "@vue/test-utils": "catalog:",
+    "happy-dom": "catalog:",
     "typescript": "catalog:",
     "unocss": "catalog:",
     "vite": "catalog:",

@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config'
 
 const resolve = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 
+const COMPONENT_TESTS = 'app/src/components/**/*.test.ts'
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -13,10 +15,20 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'node',
     globals: true,
-    include: ['**/*.test.ts'],
     // Nested worktrees hold full repo copies
     exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'node',
+          include: ['**/*.test.ts'],
+          exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**', COMPONENT_TESTS],
+        },
+      },
+      './app/vitest.config.ts',
+    ],
   },
 })

@@ -36,11 +36,13 @@ catalog:
   '@unocss/reset': ^66.8.1
   '@unocss/vite': ^66.8.1
   '@vitejs/plugin-vue': ^5.2.1
+  '@vue/test-utils': ^2.5.1
   '@vueuse/core': ^12.8.2
   eslint: ^10.9.1
   eslint-plugin-format: ^2.0.1
   eslint-plugin-no-unsanitized: ^4.1.5
   eslint-plugin-security: ^4.2.0
+  happy-dom: ^21.0.0
   microlighter: ^2.1.0
   pinia: ^3.0.1
   reka-ui: ^2.10.3
