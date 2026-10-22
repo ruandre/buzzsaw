@@ -141,7 +141,7 @@ interface SoundDefinition {
 
 There is no noise source. Every voice is a single oscillator, so you approximate noisy textures with harmonics (`waveType: 'custom'` with dense `partials`). Presets like `rustle` and `staticBurst` do exactly that.
 
-Definitions are validated when a `Sound` is constructed or registered. A malformed one throws `SoundValidationError`, whose `errors` array lists every problem found. Validation is strict in both directions: a value outside a documented range is rejected rather than clamped (`gain: 5` and `frequency: 30000` are errors, not quiet clipping and silence), and an unrecognized property is an error rather than being dropped, so `waveform` instead of `waveType` fails loudly. Definitions carry no metadata, so keep your own names and descriptions beside one, not inside it.
+Definitions are validated when a `Sound` is constructed or registered. A malformed one throws `SoundValidationError`, whose `errors` array lists every problem found. Validation is strict in both directions: a value outside a documented range is rejected rather than clamped (`gain: 5` and `frequency: 30000` are errors, not quiet clipping and silence), and an unrecognized property is an error rather than being dropped, so `waveform` instead of `waveType` fails loudly. This holds at every level: an envelope step accepts only `value` and `time`, and `interpolation` belongs on the envelope, not on a step. Definitions carry no metadata, so keep your own names and descriptions beside one, not inside it.
 
 ### How duration, attack, and decay interact
 
@@ -341,7 +341,7 @@ else {
 }
 ```
 
-`validateSoundDefinition` returns an array of messages, empty when valid, checking property names, types, ranges, and step structures.
+`validateSoundDefinition` returns an array of messages, empty when valid, checking property names, types, ranges, and step structures. Each step accepts only `value` and `time`.
 
 ### Inspection
 

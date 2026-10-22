@@ -24,6 +24,43 @@ describe('validateSoundDefinition', () => {
     ])
   })
 
+  it('rejects an unknown key inside a frequency step, naming the key and the step index', () => {
+    const errors = validateSoundDefinition({
+      frequency: { start: 440, steps: [{ value: 220, time: 0.1 }, { value: 110, time: 0.2, curve: 'exp' }] },
+    })
+
+    expect(errors).toEqual([
+      'Unknown frequency step at index 1 property "curve". Expected one of: value, time',
+    ])
+  })
+
+  it('rejects an unknown key inside a gain step, naming the key and the step index', () => {
+    const errors = validateSoundDefinition({ frequency: 440, gain: { start: 0.5, steps: [{ value: 0, time: 0.1, curve: 'exp' }] } })
+
+    expect(errors).toEqual([
+      'Unknown gain step at index 0 property "curve". Expected one of: value, time',
+    ])
+  })
+
+  it('points interpolation set on a step to the envelope', () => {
+    const errors = validateSoundDefinition({
+      frequency: { start: 440, steps: [{ value: 220, time: 0.1, interpolation: 'linear' }] },
+    })
+
+    expect(errors).toEqual([
+      'Unknown frequency step at index 0 property "interpolation". Expected one of: value, time. Set interpolation on the envelope, not on a step',
+    ])
+  })
+
+  it('accepts steps holding only value and time', () => {
+    const errors = validateSoundDefinition({
+      frequency: { start: 440, steps: [{ value: 220, time: 0.1 }], interpolation: 'linear' },
+      gain: { start: 0.5, steps: [{ value: 0, time: 0.2 }] },
+    })
+
+    expect(errors).toEqual([])
+  })
+
   it('rejects an unknown key inside a gain envelope', () => {
     const errors = validateSoundDefinition({ frequency: 440, gain: { start: 0.5, steps: [], curve: 'exp' } })
 

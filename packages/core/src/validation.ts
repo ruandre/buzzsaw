@@ -5,6 +5,7 @@ const INTERPOLATIONS = ['linear', 'step']
 
 const KNOWN_KEYS = ['waveType', 'partials', 'frequency', 'gain', 'duration', 'attack', 'decay']
 const KNOWN_ENVELOPE_KEYS = ['start', 'steps', 'interpolation']
+const KNOWN_STEP_KEYS = ['value', 'time']
 
 /** Returns validation errors, or empty array if valid */
 export function validateSoundDefinition(def: unknown): string[] {
@@ -35,6 +36,13 @@ function validateKeys(def: Record<string, unknown>, known: string[] = KNOWN_KEYS
 
 function validateEnvelopeKeys(envelope: Record<string, unknown>, label: string): string[] {
   return validateKeys(envelope, KNOWN_ENVELOPE_KEYS, `${label.toLowerCase()} envelope `)
+}
+
+function validateStepKeys(step: Record<string, unknown>, label: string, index: number): string[] {
+  const errors = validateKeys(step, KNOWN_STEP_KEYS, `${label.toLowerCase()} step at index ${index} `)
+  return 'interpolation' in step
+    ? errors.map(error => `${error}. Set interpolation on the envelope, not on a step`)
+    : errors
 }
 
 function validateWaveType(waveType: unknown): string[] {
@@ -128,7 +136,7 @@ function validateSteps(
       return [`${label} step at index ${index} is malformed. Expected { value: number, time: number }.`]
     }
     const { value, time } = step as { value: number, time: number }
-    const errors: string[] = []
+    const errors = validateStepKeys(step as Record<string, unknown>, label, index)
     // A negative offset would schedule the step before the sound starts, where it is unreachable
     if (time < 0) {
       errors.push(`Invalid ${label.toLowerCase()} step time at index ${index}: ${time}. Must be an offset of at least 0 seconds from the sound's start.`)
