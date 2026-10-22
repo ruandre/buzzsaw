@@ -4,7 +4,7 @@ import type { MockAudioContext } from '../../../packages/core/src/testing/mockAu
 import { runInNewContext } from 'node:vm'
 import { playSoundFromDefinition } from '@rjvr/buzzsaw'
 import ts from 'typescript'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { buildRegisterAllSnippet, buildSnippets } from '.'
 import { createMockAudioContext } from '../../../packages/core/src/testing/mockAudioContext'
 
@@ -195,5 +195,20 @@ describe('vanilla Web Audio snippet', () => {
     ['custom wave with only silent partials', { waveType: 'custom', partials: [0, 0], frequency: 440 }],
   ])('schedules what the library schedules for %s', async (_, soundDefinition) => {
     expect(await vanillaScheduleOf(soundDefinition)).toEqual(libraryScheduleOf(soundDefinition))
+  })
+})
+
+describe('vanilla Web Audio snippet context', () => {
+  it('creates one AudioContext however many times the sound plays', async () => {
+    const AudioContext = vi.fn(createContext)
+    const { code } = buildSnippets('probe', { frequency: 440 }).find(snippet => snippet.id === 'vanilla')!
+
+    const plays: Promise<void>[] = runInNewContext(`${code}\n[playProbe(), playProbe()]`, { AudioContext })
+    for (const context of AudioContext.mock.results.map(result => result.value as MockAudioContext)) {
+      context.oscillators.forEach(oscillator => oscillator.onended?.())
+    }
+    await Promise.all(plays)
+
+    expect(AudioContext).toHaveBeenCalledOnce()
   })
 })

@@ -115,7 +115,10 @@ const blob = await WavExporter.renderToWavBlob(definition, {
       code: `// The same sound, hand-rolled on the Web Audio API
 const def = ${json}
 
-async function play${identifier.charAt(0).toUpperCase()}${identifier.slice(1)}(ctx = new AudioContext()) {
+// Browsers cap how many AudioContexts a page may open, so every play shares one
+let sharedContext
+
+async function play${identifier.charAt(0).toUpperCase()}${identifier.slice(1)}(ctx = (sharedContext ??= new AudioContext())) {
   // Browsers suspend audio until the user interacts with the page. An
   // OfflineAudioContext is suspended by design and rejects resume(), so pass one
   // in to render this sound to a buffer instead of to the speakers
@@ -208,7 +211,7 @@ async function play${identifier.charAt(0).toUpperCase()}${identifier.slice(1)}(c
   osc.start(start)
   osc.stop(end)
 
-  // Browsers cap concurrent AudioContexts, so release the nodes when done
+  // Release the nodes when done so the shared graph does not grow with every play
   return new Promise(resolve => {
     osc.onended = () => {
       osc.disconnect()
