@@ -7,6 +7,8 @@ describe('wavExporter', () => {
   const originalURL = globalThis.URL
 
   beforeEach(() => {
+    // Download cleanup runs on a timer; a real one could fire after these mocks are restored
+    vi.useFakeTimers()
     globalThis.document = {
       body: {
         appendChild: vi.fn(),
@@ -22,6 +24,7 @@ describe('wavExporter', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     globalThis.document = originalDocument
     globalThis.URL = originalURL
   })
@@ -86,6 +89,22 @@ describe('wavExporter', () => {
     expect(mockAnchor.download).toBe('laser.wav')
     expect(mockClick).toHaveBeenCalled()
     expect(globalThis.document.body.appendChild).toHaveBeenCalledWith(mockAnchor)
+  })
+
+  it('removes the anchor and revokes the URL only after the download starts', async () => {
+    const blob = new Blob([new ArrayBuffer(100)], { type: 'audio/wav' })
+    const mockAnchor = { click: vi.fn(), remove: vi.fn(), download: '', href: '', style: {} }
+    vi.mocked(globalThis.document.createElement).mockReturnValue(mockAnchor as unknown as HTMLElement)
+
+    await WavExporter.downloadWav(blob, 'laser.wav')
+
+    expect(mockAnchor.remove).not.toHaveBeenCalled()
+    expect(globalThis.URL.revokeObjectURL).not.toHaveBeenCalled()
+
+    vi.runAllTimers()
+
+    expect(mockAnchor.remove).toHaveBeenCalled()
+    expect(globalThis.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
   })
 
   it('falls back to the default filename when the given one is blank', async () => {
