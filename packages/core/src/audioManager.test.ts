@@ -90,6 +90,30 @@ describe('audioManager getAudioContextInstance', () => {
     await closeAudioContext()
     expect((ctx as unknown as MockAudioContext).close).toHaveBeenCalled()
   })
+
+  it('keeps a context set while the previous one is still closing', async () => {
+    globalThis.AudioContext = MockAudioContext as unknown as typeof AudioContext
+    getAudioContextInstance()
+    const replacement = new MockAudioContext() as unknown as AudioContext
+
+    const closing = closeAudioContext()
+    setAudioContextInstance(replacement)
+    await closing
+
+    expect(getAudioContextInstance()).toBe(replacement)
+  })
+
+  it('stops handing out a context once it starts closing', async () => {
+    globalThis.AudioContext = MockAudioContext as unknown as typeof AudioContext
+    const original = getAudioContextInstance()
+
+    const closing = closeAudioContext()
+    const during = getAudioContextInstance()
+    await closing
+
+    expect(during).not.toBe(original)
+    expect(getAudioContextInstance()).toBe(during)
+  })
 })
 
 describe('audioManager ensureAudioContextReady', () => {

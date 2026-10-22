@@ -57,16 +57,18 @@ export function setAudioContextInstance(ctx: AudioContextLike | null): void {
 
 /** Closes and clears the shared singleton; the next play call creates a fresh one */
 export async function closeAudioContext(): Promise<void> {
-  if (sharedAudioContext && sharedAudioContext.state !== 'closed') {
+  // Detached before awaiting: plays meanwhile get a fresh context, and one set meanwhile survives
+  const closing = sharedAudioContext
+  sharedAudioContext = null
+  hasLoggedSuspendedWarning = false
+  if (closing && closing.state !== 'closed') {
     try {
-      await sharedAudioContext.close()
+      await closing.close()
     }
     catch (e) {
       console.error('Error closing AudioContext:', e)
     }
   }
-  sharedAudioContext = null
-  hasLoggedSuspendedWarning = false
 }
 
 /** Resumes suspended AudioContext; concurrent calls share pending attempt */
