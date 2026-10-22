@@ -2,7 +2,7 @@ import type { SoundDefinition, SoundPack } from '@rjvr/buzzsaw'
 import { cloneSoundDefinition, isValidSoundDefinition, validateSoundDefinition } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { defineStore } from 'pinia'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { isValidSoundName, SOUND_NAME_RULE, toCustomSoundName } from '../audio/soundName'
 import { downloadJson } from '../utils/download'
 import { forEachYielding } from '../utils/scheduler'
@@ -40,8 +40,8 @@ export const useLibraryStore = defineStore('library', () => {
   const customSoundCount = computed(() => Object.keys(customSounds.value).length)
   const hasCustomSounds = computed(() => customSoundCount.value > 0)
 
-  // Persisted sounds must be registered before any playback call
-  registerAll(customSounds.value)
+  // Sync flush: persisted sounds must be playable before any playback call; storage events from other tabs replace the map
+  watch(customSounds, (next, previous) => syncRegistrations(previous ?? {}, next), { flush: 'sync', immediate: true })
 
   function isFavorite(name: string): boolean {
     return favorites.value.includes(name)
@@ -96,15 +96,11 @@ export const useLibraryStore = defineStore('library', () => {
       return
     }
     customSounds.value = rest
-    playback.soundManager.unregister(name)
     playback.cue('discard')
     notifications.announce(`Deleted "${name}"`, 'info', 'polite')
   }
 
   function clear(): void {
-    for (const name of Object.keys(customSounds.value)) {
-      playback.soundManager.unregister(name)
-    }
     customSounds.value = {}
     playback.cue('undo')
     notifications.announce('Cleared your saved sounds', 'info', 'polite')
@@ -171,6 +167,25 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
+  // Re-registering an unchanged sound would stop its playing voices
+  function syncRegistrations(previous: Record<string, SoundDefinition>, next: Record<string, SoundDefinition>): void {
+    for (const name of Object.keys(previous)) {
+      if (!Object.hasOwn(next, name)) {
+        playback.soundManager.unregister(name)
+      }
+    }
+    for (const [name, definition] of Object.entries(next)) {
+      if (!isRegisteredAs(name, definition)) {
+        playback.soundManager.register(name, definition)
+      }
+    }
+  }
+
+  function isRegisteredAs(name: string, definition: SoundDefinition): boolean {
+    const registered = playback.soundManager.get(name)?.definition
+    return registered !== undefined && isSameDefinition(registered, definition)
+  }
+
   return {
     presets: DEFAULT_SOUNDS as Record<string, SoundDefinition>,
     customSounds,
@@ -187,6 +202,11 @@ export const useLibraryStore = defineStore('library', () => {
     importPack,
   }
 })
+
+// Clones share one key order, so their JSON compares structurally
+function isSameDefinition(a: Readonly<SoundDefinition>, b: SoundDefinition): boolean {
+  return JSON.stringify(cloneSoundDefinition(a)) === JSON.stringify(cloneSoundDefinition(b))
+}
 
 function nextCopyName(name: string, taken: readonly string[]): string {
   let candidate = `${name}_copy`

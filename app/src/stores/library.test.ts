@@ -156,6 +156,33 @@ describe('library store', () => {
     expect(library.customSounds).toEqual({})
   })
 
+  it('makes a sound synced from another tab playable', () => {
+    const library = useLibraryStore()
+
+    library.customSounds = { remote: { frequency: 300 } }
+
+    expect(usePlaybackStore().soundManager.get('remote')?.definition).toEqual({ frequency: 300 })
+  })
+
+  it('stops offering a sound deleted in another tab', () => {
+    const library = useLibraryStore()
+    library.save('mine', { frequency: 440 })
+
+    library.customSounds = {}
+
+    expect(usePlaybackStore().soundManager.has('mine')).toBe(false)
+  })
+
+  it('keeps an unchanged sound registered when another tab syncs the library', () => {
+    const library = useLibraryStore()
+    library.save('mine', { frequency: 440 })
+    const registered = usePlaybackStore().soundManager.get('mine')
+
+    library.customSounds = { mine: { frequency: 440 }, other: { frequency: 220 } }
+
+    expect(usePlaybackStore().soundManager.get('mine')).toBe(registered)
+  })
+
   it('stops offering a deleted sound for playback', () => {
     const library = useLibraryStore()
     library.save('mine', { frequency: 440 })
