@@ -17,6 +17,7 @@ export interface Notice {
 
 const DEFAULT_DURATION_MS = 4000
 const BRIEF_DURATION_MS = 1800
+const PERSISTENT = 0
 const MAX_VISIBLE = 4
 
 export const useNotificationsStore = defineStore('notifications', () => {
@@ -43,9 +44,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
     return announce(message, 'success', 'polite', BRIEF_DURATION_MS)
   }
 
-  /** Urgent assertive error notice */
+  /** Urgent assertive error notice; stays until dismissed, since reading time cannot be predicted (WCAG 2.2.1) */
   function reportError(message: string): string {
-    return announce(message, 'error', 'assertive')
+    return announce(message, 'error', 'assertive', PERSISTENT)
   }
 
   function dismiss(id: string): void {
