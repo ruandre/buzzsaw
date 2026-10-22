@@ -39,12 +39,14 @@ export function playSoundFromDefinition(
 
   const oscillator = audioContext.createOscillator()
   const gainNode = audioContext.createGain()
-  gainNode.connect(options.destination ?? audioContext.destination)
-  oscillator.connect(gainNode)
   applyWaveShape(audioContext, oscillator, soundDefinition)
 
   scheduleFrequency(oscillator.frequency, soundDefinition.frequency, pitchScale, schedule)
   scheduleGain(gainNode.gain, soundDefinition.gain ?? DEFAULT_GAIN, volume, schedule)
+
+  // Connected only once scheduling succeeds: a rejected value (e.g. pitch scaled past float range) leaks nothing
+  gainNode.connect(options.destination ?? audioContext.destination)
+  oscillator.connect(gainNode)
 
   return startPlayback(audioContext, oscillator, gainNode, schedule)
 }
@@ -325,6 +327,9 @@ function isClockPaused(audioContext: BaseAudioContextLike): boolean {
   return state === 'suspended' || state === 'interrupted'
 }
 
+// setTimeout fires at once for delays past a signed 32-bit millisecond count
+const MAX_TIMEOUT_MS = 2 ** 31 - 1
+
 function toFallbackDelayMs(remainingSec: number): number {
-  return Math.max(100, Math.ceil((Math.max(0, remainingSec) + 0.1) * 1000))
+  return Math.min(MAX_TIMEOUT_MS, Math.max(100, Math.ceil((Math.max(0, remainingSec) + 0.1) * 1000)))
 }

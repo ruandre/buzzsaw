@@ -714,6 +714,37 @@ describe('voice lifecycle', () => {
     }
   })
 
+  it('keeps a sound longer than setTimeout can count playing instead of ending it at once', () => {
+    vi.useFakeTimers()
+    try {
+      const context = createMockAudioContext()
+      const handle = playSoundFromDefinition(context, { frequency: 440, duration: 3e6 })
+
+      vi.advanceTimersByTime(60_000)
+
+      expect(handle.isPlaying).toBe(true)
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('leaves nothing connected when the engine rejects the schedule', () => {
+    const context = createMockAudioContext()
+    const createOscillator = context.createOscillator.getMockImplementation()!
+    context.createOscillator.mockImplementationOnce(() => {
+      const oscillator = createOscillator()
+      oscillator.frequency.setValueAtTime.mockImplementation(() => {
+        throw new TypeError('The provided float value is non-finite.')
+      })
+      return oscillator
+    })
+
+    expect(() => playSoundFromDefinition(context, { frequency: 20000 }, { pitchScale: 1e305 })).toThrow(TypeError)
+    expect(context.gainNodes[0].connect).not.toHaveBeenCalled()
+    expect(context.oscillators[0].connect).not.toHaveBeenCalled()
+  })
+
   it('reports a failed start and settles the handle', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     try {
