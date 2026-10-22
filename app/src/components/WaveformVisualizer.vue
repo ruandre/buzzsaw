@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 import { calculateEffectiveDuration, evaluateWaveShape, sampleFrequencyAtTime, sampleGainAtTime } from '@rjvr/buzzsaw'
-import { useElementSize, useElementVisibility, usePreferredReducedMotion } from '@vueuse/core'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { useElementVisibility, usePreferredReducedMotion, useResizeObserver } from '@vueuse/core'
+import { computed, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useUiStore } from '../stores'
 import { getScopeTheme } from '../theme/waveform'
 
@@ -35,7 +35,12 @@ const reducedMotion = usePreferredReducedMotion()
 
 const container = ref<HTMLElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
-const { width } = useElementSize(container)
+const width = shallowRef(0)
+
+// Not useElementSize: its offsetWidth read on mount forces a style recalc per card in a grid
+useResizeObserver(container, (entries) => {
+  width.value = entries[0]?.contentRect.width ?? 0
+})
 
 // Renders canvas only when near viewport for performance across large grids
 const isVisible = useElementVisibility(container, { rootMargin: '300px' })
@@ -122,12 +127,13 @@ function traceWaveform(canvasWidth: number, canvasHeight: number): TraceColumn[]
 function draw(): void {
   const element = canvas.value
   const context = element?.getContext('2d')
-  if (!element || !context || !isVisible.value) {
+  // Unmeasured until first resize observation, which redraws
+  if (!element || !context || !isVisible.value || width.value === 0) {
     return
   }
 
   const dpr = window.devicePixelRatio || 1
-  const canvasWidth = Math.max(1, Math.round(width.value) || element.clientWidth)
+  const canvasWidth = Math.max(1, Math.round(width.value))
   const canvasHeight = props.height
 
   resizeCanvas(element, Math.round(canvasWidth * dpr), Math.round(canvasHeight * dpr))
