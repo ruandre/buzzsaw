@@ -1,5 +1,83 @@
 # @rjvr/buzzsaw-wav
 
+## 4.0.0
+
+### Patch Changes
+
+- f3c0304: Fix the `SoundManager.audioContext` getter creating the shared `AudioContext` when read. Reading a property built a context before any user gesture, which browsers start suspended and warn about, and which costs an audio thread. The getter now returns the context given in the options, otherwise the shared one if it already exists, otherwise `null`. Call `getAudioContextInstance()` or `ensureAudioContextReady()` to create it on purpose.
+- 84a8ee4: Fix `SoundManager.play` starting a voice after it was stopped. A `play` still waiting for a suspended context to resume ignored a `stopAll`, `clear`, `dispose`, `unregister`, or re-`register` that ran meanwhile, then started a voice nothing could reach to stop. Such a `play` now resolves to `null` without starting, and without calling `onMissing`.
+- 5401cbc: `playSoundFromDefinition` no longer throws on a `NaN` or infinite `frequency`, `gain`, or envelope `start`. It handed those values straight to the oscillator and gain node, and Web Audio rejects non-finite values with a `TypeError`, after the voice was already connected. They now fall back to the same defaults `sampleFrequencyAtTime` and `sampleGainAtTime` report, as the README promises for this unvalidated entry point.
+- 61dccd1: Fix `WavEncoder.encode` and `encodeToBlob` labelling every audio buffer as 44100 Hz when no `sampleRate` was given. A 48 kHz buffer, the usual rate of a browser `AudioContext`, came out about 8% slow and flat. The header now carries the buffer's own rate unless `sampleRate` overrides it. Raw `Float32Array[]` input still defaults to 44100 Hz.
+  
+  The `sampleRate` docs now state that encoding writes the rate into the header without resampling.
+- 73dc8e6: Fix gain envelopes with `interpolation: 'linear'` jumping at the end of their attack. Playback ramped in only to the envelope's `start` value, then jumped or bent toward the first step, so an attack that outlasted the first step clicked. `sampleGainAtTime` reported a different curve again. The attack now ramps onto the envelope's own line, and `sampleGainAtTime` reports exactly what plays. Envelopes with `'step'` interpolation and scalar gains are unchanged.
+- 18f8020: Fix `playSoundFromDefinition` leaving a wall-clock fallback timer running on an `OfflineAudioContext`. The render finished in milliseconds while the timer waited out the sound's full duration, holding a Node process or test worker open. Offline contexts now get no fallback timer.
+- 8c264f0: Fix `OfflineSoundRenderer.render`, and the `WavExporter` methods built on it, rendering definitions that core rejects. A `gain` above 1 rendered clipped, and an unknown property was silently ignored, so an exported file could sound different from anything `Sound` or `SoundManager` would accept. Rendering now validates first and rejects with core's `SoundValidationError`, whose `errors` array lists every problem.
+- cd742a1: Fix rendering with `numChannels` above 2 leaving channels silent. Web Audio's speaker up-mix put the mono voice only in the centre channel of a 6-channel render, only in front left and right of a 4-channel one, and only in the first channel of other counts. Every channel now holds the voice, as the `numChannels` documentation promises.
+- 8a3e865: Fix `require('@rjvr/buzzsaw')` and `require('@rjvr/buzzsaw-wav')` failing with `ERR_PACKAGE_PATH_NOT_EXPORTED` on Node versions that load ES modules through `require`. The export maps offered only an `import` condition; they now use `default`, and expose `package.json` for tools that read it.
+- 406ec7c: Fix `SoundManager.play` skipping the resume step for a context passed as `audioContext`. Only the shared singleton was resumed, so a context created before any user gesture stayed suspended and every sound played silently. `play` now resumes the given context too, and rejects if that context is closed, as it already did for the shared one.
+- 2d81d74: Fix `Sound.stop` missing a `play` still waiting for the shared context to resume. That `play` started its voice after the `stop`, with nothing left to stop it. It now resolves to a handle that never played, matching how `SoundManager.stopAll` cancels pending plays.
+- bdd710f: Fix a gain envelope with no steps ignoring `decay`. It held its `start` level to the end and then dropped straight to silence, which clicked. It now ramps down over the decay window like a scalar gain.
+  
+  `sampleGainAtTime` follows playback more closely as well. Its decay now starts at the later of the last envelope step and the decay window, as playback schedules it. Before, a last step landing after the decay window opened made the sampled tail fall well ahead of the audio.
+- a8591d7: Fix `PlaybackHandle.stop()` clicking instead of fading out. It scheduled the 5 ms fade, then disconnected the voice at once, so the fade never reached the output. The voice now stays connected until its oscillator ends, with a timer as a fallback.
+- da1e73d: Fix `SoundManager.register` stranding voices of the sound it replaces. Registering a new definition under a name that was playing left the old voices running where `stop`, `stopAll`, and `unregister` could no longer reach them. `register` (and `registerAll`) now stop the replaced sound first, as `unregister` already did. Registering the same `Sound` instance again leaves it playing.
+- a0f9793: Fix two `WavEncoder` details that strict readers notice.
+  
+  - 8-bit silence now encodes as 128, the unsigned midpoint, rather than 127, which added a small DC offset to every 8-bit file.
+  - An odd-sized data chunk, such as 8-bit or 24-bit mono with an odd sample count, is now followed by the zero pad byte RIFF requires, and the RIFF size counts it. The `data` chunk size, and `decodeHeader().dataSize`, still report the unpadded byte count.
+- 3465c98: Fix 8-bit WAV export splitting near-silent samples unevenly around the midpoint. Zero sat on a rounding boundary, so any tiny negative sample dropped to 127 while positive ones stayed at 128. 8-bit samples now quantize like 16- and 24-bit, with zero at the centre of its step.
+- 63544b4: Fix `downloadWav` naming the file `.wav` when given a blank filename. A whitespace-only name now falls back to `sound.wav` like an empty one.
+- 52c1d8b: Fix `WavEncoder.encode` writing an audio buffer's own sample rate to the header unchecked. A fractional rate such as 22050.5 Hz was truncated, and a `NaN` from a hand-made buffer-like object wrote 0 Hz, an unplayable file. The buffer's rate is now rounded to whole Hz, and a rate that is not finite or rounds below 1 Hz throws a `RangeError`. The 8000 Hz floor still applies to the `sampleRate` option only, so low-rate browser buffers keep encoding.
+- d5a865e: Fix 32-bit float WAV files omitting header fields the format requires, and make `decodeHeader` read real-world files.
+  
+  - A 32-bit IEEE float file now carries the 18-byte `fmt ` chunk with its `cbSize` field and the `fact` chunk with the frame count that non-PCM WAVE formats require. Its header is 58 bytes rather than 44, so code that skipped a fixed 44 bytes to reach float samples must read the `data` chunk offset instead. 8, 16, and 24-bit PCM output is unchanged.
+  - `decodeHeader` now walks the RIFF chunks rather than reading fixed offsets. It decodes files with `fact`, `LIST`, or other chunks before `data`, which it previously misread.
+- 4c86322: Fix 32-bit float WAV export clipping samples to [-1, 1]. Float WAV exists to carry headroom past full scale; samples above it are now written as rendered. 8-, 16- and 24-bit PCM still clip to their integer range.
+- 03c2b57: Fix `downloadWav` mistaking a Blob made in another realm (an iframe or worker) for a sound definition and failing to render it. Blobs are now recognised by shape rather than `instanceof Blob`.
+- caaf86a: Fix `WavEncoder.encode` writing corrupt headers for option values the WAV format cannot hold, and `decodeHeader` accepting truncated files.
+  
+  - A fractional `sampleRate` such as 22050.5 wrote a sample rate and byte rate that disagreed. A `sampleRate` or `numChannels` too large for its header field, alone or once multiplied out at the chosen `bitDepth`, silently wrapped. Each now throws a `RangeError` naming the value. `OfflineSoundRenderer.render` rejects a fractional `sampleRate` too, so a render can no longer succeed only for its encode to fail.
+  - `decodeHeader` returns `null`, as documented, when the `data` chunk claims more bytes than the buffer holds, rather than reporting the claimed size and duration.
+- 820199d: `WavEncoder.encode` now throws a `RangeError` for audio past the 4 GiB RIFF limit instead of writing a header whose sizes wrapped around and that players misread.
+- 70305ea: Fix 16- and 24-bit WAV export biasing every sample half a step low. `Math.floor` rounded each scaled sample toward negative infinity, a constant DC offset. Samples now round to the nearest step, as 8-bit export already did.
+- 26ae495: Fix `downloadWav` appending `.wav` to a filename that already ends in `.WAV`, which produced `Take1.WAV.wav`.
+- 8a1ba19: Fix `evaluateWaveShape` drawing shapes that differ from what the oscillator plays.
+  
+  - Sawtooth and triangle were half a cycle out of phase with Web Audio's. They started at -1 rather than rising through zero, as the spec defines every built-in shape.
+  - Custom partials were divided by the sum of their amplitudes rather than by the series' own peak, the normalization `PeriodicWave` applies. A `[1, 1]` series peaked at 0.88 rather than 1.
+- Updated dependencies [f3c0304]
+- Updated dependencies [84a8ee4]
+- Updated dependencies [de92aa3]
+- Updated dependencies [b59c990]
+- Updated dependencies [5401cbc]
+- Updated dependencies [5fbc6e6]
+- Updated dependencies [61dccd1]
+- Updated dependencies [73dc8e6]
+- Updated dependencies [5c7d389]
+- Updated dependencies [18f8020]
+- Updated dependencies [8c264f0]
+- Updated dependencies [f08794c]
+- Updated dependencies [94b8c82]
+- Updated dependencies [58b5036]
+- Updated dependencies [540fe18]
+- Updated dependencies [8a3e865]
+- Updated dependencies [406ec7c]
+- Updated dependencies [eff0eaf]
+- Updated dependencies [6e86fdd]
+- Updated dependencies [2d81d74]
+- Updated dependencies [bdd710f]
+- Updated dependencies [a8591d7]
+- Updated dependencies [a76afa9]
+- Updated dependencies [da1e73d]
+- Updated dependencies [5b79c75]
+- Updated dependencies [e5e0b45]
+- Updated dependencies [a0f9793]
+- Updated dependencies [d5a865e]
+- Updated dependencies [caaf86a]
+- Updated dependencies [8a1ba19]
+  - @rjvr/buzzsaw@4.0.0
+
 ## 3.1.0
 
 ### Minor Changes
