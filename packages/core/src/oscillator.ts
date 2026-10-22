@@ -8,9 +8,10 @@ export function resolvePartials(def: SoundDefinition): number[] | null {
     return null
   }
 
+  // Silenced, not dropped: each entry's index is its harmonic
   const partials = def.partials
     .slice(0, MAX_PARTIALS)
-    .filter(value => typeof value === 'number' && Number.isFinite(value))
+    .map(value => (typeof value === 'number' && Number.isFinite(value) ? value : 0))
 
   return partials.some(value => value !== 0) ? partials : null
 }

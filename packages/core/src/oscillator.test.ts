@@ -13,13 +13,13 @@ describe('resolvePartials', () => {
     expect(resolvePartials({ frequency: 440, waveType: 'custom', partials: [0, 0] })).toBeNull()
   })
 
-  it('drops non-finite amplitudes that would make createPeriodicWave throw', () => {
+  it('silences non-finite amplitudes that would make createPeriodicWave throw, keeping later harmonics in place', () => {
     const partials = resolvePartials({
       frequency: 440,
       waveType: 'custom',
       partials: [1, Number.NaN, 0.5, Number.POSITIVE_INFINITY],
     })
-    expect(partials).toEqual([1, 0.5])
+    expect(partials).toEqual([1, 0, 0.5, 0])
   })
 
   it('caps the series so a huge import cannot stall the audio thread', () => {
