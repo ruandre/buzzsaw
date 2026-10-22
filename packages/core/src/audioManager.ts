@@ -24,7 +24,8 @@ export function isAudioContextSupported(): boolean {
  * where Web Audio is absent, so probe with `isAudioContextSupported()`
  */
 export function getAudioContextInstance(): AudioContextLike | null {
-  if (sharedAudioContext) {
+  // A context closed behind our back can never play again
+  if (sharedAudioContext && sharedAudioContext.state !== 'closed') {
     return sharedAudioContext
   }
 

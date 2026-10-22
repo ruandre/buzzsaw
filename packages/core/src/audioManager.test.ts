@@ -91,6 +91,17 @@ describe('audioManager getAudioContextInstance', () => {
     expect((ctx as unknown as MockAudioContext).close).toHaveBeenCalled()
   })
 
+  it('replaces a shared context that was closed directly', async () => {
+    globalThis.AudioContext = MockAudioContext as unknown as typeof AudioContext
+    const original = getAudioContextInstance()
+
+    await original?.close()
+
+    const replacement = getAudioContextInstance()
+    expect(replacement).not.toBeNull()
+    expect(replacement).not.toBe(original)
+  })
+
   it('keeps a context set while the previous one is still closing', async () => {
     globalThis.AudioContext = MockAudioContext as unknown as typeof AudioContext
     getAudioContextInstance()
@@ -127,14 +138,10 @@ describe('audioManager ensureAudioContextReady', () => {
     await expect(ensureAudioContextReady()).resolves.toBe(ctx)
   })
 
-  it('rejects if context is closed', async () => {
-    globalThis.AudioContext = MockAudioContext as unknown as typeof AudioContext
-    const ctx = getAudioContextInstance()
-    if (ctx) {
-      (ctx as unknown as MockAudioContext).state = 'closed'
-    }
+  it('rejects a closed context it was given', async () => {
+    const ctx = new MockAudioContext('closed') as unknown as AudioContext
 
-    await expect(ensureAudioContextReady()).rejects.toThrow('AudioContext is closed and cannot be resumed.')
+    await expect(ensureAudioContextReady(ctx)).rejects.toThrow('AudioContext is closed and cannot be resumed.')
   })
 
   it('calls resume and logs warning if context is suspended', async () => {
