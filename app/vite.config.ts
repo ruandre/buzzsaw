@@ -29,7 +29,7 @@ export default defineConfig({
         compilerOptions: { isCustomElement: tag => tag === 'search' },
       },
     }),
-    UnoCSS(),
+    UnoCSS(resolve('./uno.config.ts')),
     documentSecurityPolicies(),
     spaFallbackDocument(),
     microlighterGrammars(),
