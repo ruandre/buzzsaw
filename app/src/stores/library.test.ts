@@ -156,6 +156,44 @@ describe('library store', () => {
     expect(library.customSounds).toEqual({})
   })
 
+  it('saves a new sound under a copy name rather than replacing a different saved sound', () => {
+    const library = useLibraryStore()
+    library.save('blip', { frequency: 440 })
+
+    expect(library.saveAsNew('blip', { frequency: 880 })).toBe('blip_copy')
+    expect(library.customSounds).toEqual({ blip: { frequency: 440 }, blip_copy: { frequency: 880 } })
+  })
+
+  it('keeps one entry when saving a new sound identical to a saved one', () => {
+    const library = useLibraryStore()
+    library.save('blip', { frequency: 440 })
+
+    expect(library.saveAsNew('blip', { frequency: 440 })).toBe('blip')
+    expect(Object.keys(library.customSounds)).toEqual(['blip'])
+  })
+
+  it('imports a sound under a copy name rather than replacing a different saved sound', async () => {
+    const library = useLibraryStore()
+    library.save('laser', { frequency: 440 })
+
+    await library.importPack(JSON.stringify({ laser: { frequency: 880 }, laser_copy: { frequency: 220 } }))
+
+    expect(library.customSounds).toEqual({
+      laser: { frequency: 440 },
+      laser_copy: { frequency: 220 },
+      laser_copy2: { frequency: 880 },
+    })
+  })
+
+  it('adds no copy when re-importing sounds the library already holds', async () => {
+    const library = useLibraryStore()
+    library.save('laser', { frequency: 440 })
+
+    await library.importPack(JSON.stringify({ version: 1, sounds: { laser: { frequency: 440 } } }))
+
+    expect(Object.keys(library.customSounds)).toEqual(['laser'])
+  })
+
   it('makes a sound synced from another tab playable', () => {
     const library = useLibraryStore()
 

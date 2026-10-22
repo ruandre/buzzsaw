@@ -101,7 +101,7 @@ const refineError = computed(() => (hasOwnRunFailed.value ? ai.lastError : null)
         </button>
       </Tooltip>
       <Tooltip content="Save to library">
-        <button type="button" class="btn-icon" :aria-label="`Save ${sound.name}`" @click="library.save(sound.name, sound.definition)">
+        <button type="button" class="btn-icon" :aria-label="`Save ${sound.name}`" @click="library.saveAsNew(sound.name, sound.definition)">
           <span class="i-ph-floppy-disk-bold shrink-0 text-sm leading-none" aria-hidden="true" />
         </button>
       </Tooltip>

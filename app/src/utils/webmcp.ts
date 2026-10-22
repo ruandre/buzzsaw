@@ -128,7 +128,7 @@ export function registerWebMcpTools(): (() => void) | null {
           attack: { type: 'number', description: 'Rise time in seconds.' },
           decay: { type: 'number', description: 'Release tail in seconds.' },
           gain: { type: 'number', description: 'Level from 0.01 to 1.' },
-          saveToLibrary: { type: 'boolean', description: 'Keep it in the saved library.' },
+          saveToLibrary: { type: 'boolean', description: 'Keep it in the saved library; a taken name gets a _copy suffix.' },
         },
         required: ['name', 'frequency', 'duration'],
       },
@@ -162,7 +162,7 @@ export function registerWebMcpTools(): (() => void) | null {
         if (errors.length > 0) {
           return { success: false, error: errors.join(' ') }
         }
-        const savedAs = input.saveToLibrary ? library.save(input.name, definition) : null
+        const savedAs = input.saveToLibrary === true ? library.saveAsNew(input.name, definition) : null
         const name = savedAs ?? toCustomSoundName(input.name)
         await (savedAs ? playback.play(savedAs) : playback.audition(name, definition))
         return { success: true, name, definition, saved: savedAs !== null }
@@ -179,7 +179,7 @@ export function registerWebMcpTools(): (() => void) | null {
             type: 'string',
             description: 'What the sound should be, e.g. "crystal bell chime".',
           },
-          saveToLibrary: { type: 'boolean', description: 'Keep it in the saved library.' },
+          saveToLibrary: { type: 'boolean', description: 'Keep it in the saved library; a taken name gets a _copy suffix.' },
         },
         required: ['prompt'],
       },
@@ -202,7 +202,7 @@ export function registerWebMcpTools(): (() => void) | null {
           name: { type: 'string', description: 'Sound to edit, looked up if no definition is given.' },
           definition: { type: 'object', description: 'Definition to edit instead of looking one up.' },
           instruction: { type: 'string', description: 'The change to make.' },
-          saveToLibrary: { type: 'boolean', description: 'Keep the result in the saved library.' },
+          saveToLibrary: { type: 'boolean', description: 'Keep the result in the saved library; a taken name gets a _copy suffix.' },
         },
         required: ['name', 'instruction'],
       },

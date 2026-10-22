@@ -82,12 +82,24 @@ export const useLibraryStore = defineStore('library', () => {
     return soundName
   }
 
+  /** Saves without replacing a different library sound: a taken name gets a `_copy` suffix, an identical sound stays as is */
+  function saveAsNew(name: string, definition: SoundDefinition): string | null {
+    const soundName = toCustomSoundName(name.trim() || 'unnamed_sound')
+    const existing = ownEntry(customSounds.value, soundName)
+    if (existing === undefined) {
+      return save(name, definition)
+    }
+    if (isSameDefinition(existing, definition)) {
+      notifications.confirm(`"${soundName}" is already in your library`)
+      return soundName
+    }
+    return save(nextCopyName(soundName, Object.keys(customSounds.value)), definition)
+  }
+
   /** Saves a copy of a library sound under the first free `_copy` name; returns it, or null if `name` is not in the library */
   function duplicate(name: string): string | null {
-    if (!Object.hasOwn(customSounds.value, name)) {
-      return null
-    }
-    return save(nextCopyName(name, Object.keys(customSounds.value)), customSounds.value[name])
+    const sound = ownEntry(customSounds.value, name)
+    return sound === undefined ? null : save(nextCopyName(name, Object.keys(customSounds.value)), sound)
   }
 
   function remove(name: string): void {
@@ -147,7 +159,7 @@ export const useLibraryStore = defineStore('library', () => {
       throw new Error('No valid sound definitions found in that file.')
     }
 
-    const imported = toCustomSoundMap(accepted)
+    const imported = renameCollisions(toCustomSoundMap(accepted), customSounds.value)
     registerAll(imported)
     customSounds.value = { ...customSounds.value, ...imported }
 
@@ -195,6 +207,7 @@ export const useLibraryStore = defineStore('library', () => {
     isFavorite,
     toggleFavorite,
     save,
+    saveAsNew,
     duplicate,
     remove,
     clear,
@@ -224,6 +237,27 @@ function findSaveError(name: string, definition: SoundDefinition): string | unde
     return 'That name is reserved.'
   }
   return validateSoundDefinition(definition).at(0)
+}
+
+/** An incoming sound never replaces a different library sound; an identical one is already there */
+function renameCollisions(
+  incoming: Record<string, SoundDefinition>,
+  library: Record<string, SoundDefinition>,
+): Record<string, SoundDefinition> {
+  const taken = [...Object.keys(library), ...Object.keys(incoming)]
+  return Object.fromEntries(Object.entries(incoming).map(([name, definition]) => {
+    const existing = ownEntry(library, name)
+    if (existing === undefined || isSameDefinition(existing, definition)) {
+      return [name, definition]
+    }
+    const copyName = nextCopyName(name, taken)
+    taken.push(copyName)
+    return [copyName, definition]
+  }))
+}
+
+function ownEntry(sounds: Record<string, SoundDefinition>, name: string): SoundDefinition | undefined {
+  return Object.hasOwn(sounds, name) ? sounds[name] : undefined
 }
 
 /** Reserves preset names; a renamed sound never collides with another sound of the same batch */

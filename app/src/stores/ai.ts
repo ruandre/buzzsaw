@@ -136,7 +136,7 @@ export const useAiStore = defineStore('ai', () => {
       latest.value = entry
       history.value = [entry, ...history.value].slice(0, HISTORY_LIMIT)
 
-      const savedAs = options.saveToLibrary ? library.save(entry.name, entry.definition) : null
+      const savedAs = options.saveToLibrary ? library.saveAsNew(entry.name, entry.definition) : null
       await (savedAs ? playback.play(savedAs) : playback.audition(entry.name, entry.definition))
 
       notifications.confirm(
