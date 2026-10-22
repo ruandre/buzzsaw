@@ -103,6 +103,16 @@ describe('soundResultPanel', () => {
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
+  it('moves focus from a disabled one-click edit to the refine input while a run starts', async () => {
+    const wrapper = mountPanel()
+    wrapper.get<HTMLButtonElement>('[aria-label="One-click edits"] button').element.focus()
+
+    useAiStore().isGenerating = true
+    await flushPromises()
+
+    expect(document.activeElement).toBe(wrapper.get('#refinement').element)
+  })
+
   it('ignores the outcome of a run started elsewhere', async () => {
     const wrapper = mountPanel()
     await wrapper.get('#refinement').setValue('punchier')

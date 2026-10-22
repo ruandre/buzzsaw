@@ -132,7 +132,7 @@ export default defineConfig({
       'module-meta': 'select-none text-[10px] font-mono font-bold uppercase tracking-wider text-ink-subtle',
       'module-body': 'p-4 sm:p-5',
 
-      'input-base': 'w-full min-w-0 bg-control border border-line-control rounded-lg px-3.5 py-2 text-sm font-mono text-ink placeholder-ink-subtle shadow-inset transition-colors duration-fast focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent',
+      'input-base': 'w-full min-w-0 bg-control border border-line-control rounded-lg px-3.5 py-2 text-sm font-mono text-ink placeholder-ink-subtle shadow-inset transition-colors duration-fast focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent read-only:text-ink-muted',
 
       // Sized to match icon buttons for alignment
       'icon-tile': 'h-8 w-8 inline-flex shrink-0 items-center justify-center rounded-lg',

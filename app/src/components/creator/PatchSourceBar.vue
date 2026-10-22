@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref, useTemplateRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import { QUICK_TRANSFORMS } from '../../ai/presets'
 import { ARCHETYPES } from '../../audio/archetypes'
+import { useRetainedFocus } from '../../composables/useRetainedFocus'
 import { useStudioActions } from '../../composables/useStudioActions'
 import { useAiStore, useCreatorStore } from '../../stores'
 import ModulePanel from '../ui/ModulePanel.vue'
@@ -34,6 +35,9 @@ const PROMPT_COPY: Record<'describe' | 'refine', { placeholder: string, action: 
 const source = ref<Source>('describe')
 const prompt = ref('')
 const promptInput = ref<HTMLInputElement | null>(null)
+const sourceControls = useTemplateRef<HTMLElement>('sourceControls')
+
+useRetainedFocus(() => ai.isGenerating, sourceControls, promptInput)
 // The store's error is shared with the AI view; only a failure of this bar's own run is shown here
 const hasOwnRunFailed = ref(false)
 
@@ -103,7 +107,7 @@ onUnmounted(() => inFlight?.abort())
       </RouterLink>
     </template>
 
-    <div class="space-y-3">
+    <div ref="sourceControls" class="space-y-3">
       <div class="flex">
         <ToggleGroup
           :model-value="source"
@@ -141,7 +145,7 @@ onUnmounted(() => inFlight?.abort())
             autocomplete="off"
             spellcheck="false"
             :placeholder="copy.placeholder"
-            :disabled="ai.isGenerating"
+            :readonly="ai.isGenerating"
             :aria-invalid="promptError ? 'true' : undefined"
             :aria-errormessage="promptError ? 'creator-ai-error' : undefined"
             class="input-base flex-1 bg-surface-muted font-sans"

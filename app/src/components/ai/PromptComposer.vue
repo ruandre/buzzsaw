@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useTemplateRef } from 'vue'
 import { INSPIRATION_PROMPTS } from '../../ai/presets'
+import { useRetainedFocus } from '../../composables/useRetainedFocus'
 import { useAiStore, usePlaybackStore } from '../../stores'
 import ModulePanel from '../ui/ModulePanel.vue'
 import EngineNotice from './EngineNotice.vue'
@@ -14,6 +15,10 @@ const ai = useAiStore()
 const playback = usePlaybackStore()
 
 const description = ref('')
+const composer = useTemplateRef<HTMLElement>('composer')
+const descriptionInput = useTemplateRef<HTMLTextAreaElement>('descriptionInput')
+
+useRetainedFocus(() => ai.isGenerating, composer, descriptionInput)
 
 function submit(text = description.value): void {
   const prompt = text.trim()
@@ -32,17 +37,18 @@ function surpriseMe(): void {
 
 <template>
   <ModulePanel title="Describe a sound" icon="i-ph-magic-wand-bold" tone="bay">
-    <div class="space-y-4">
+    <div ref="composer" class="space-y-4">
       <form class="space-y-2.5" @submit.prevent="submit()">
         <label for="sound-description" class="sr-only">Describe the sound you want</label>
         <textarea
           id="sound-description"
+          ref="descriptionInput"
           v-model="description"
           rows="3"
           autocomplete="off"
           spellcheck="false"
           placeholder="A crystal bell chime with a long resonant tail..."
-          :disabled="ai.isGenerating"
+          :readonly="ai.isGenerating"
           class="input-base resize-y bg-surface-muted leading-relaxed font-sans"
           @keydown.enter.exact.prevent="submit()"
         />

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { GeneratedSound } from '../../stores'
 import { isEnvelope } from '@rjvr/buzzsaw'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import { QUICK_TRANSFORMS } from '../../ai/presets'
+import { useRetainedFocus } from '../../composables/useRetainedFocus'
 import { useStudioActions } from '../../composables/useStudioActions'
 import { buildSnippets } from '../../snippets'
 import { useAiStore, useLibraryStore, usePlaybackStore } from '../../stores'
@@ -31,6 +32,9 @@ const isAwaitingOwnRun = ref(false)
 const hasOwnRunFailed = ref(false)
 let latestIdAtRunStart: string | undefined
 const refinementInput = ref<HTMLInputElement | null>(null)
+const refineControls = useTemplateRef<HTMLElement>('refineControls')
+
+useRetainedFocus(() => ai.isGenerating, refineControls, refinementInput)
 const isSnippetOpen = ref(false)
 
 const snippets = computed(() =>
@@ -160,7 +164,7 @@ const refineError = computed(() => (hasOwnRunFailed.value ? ai.lastError : null)
         </div>
       </dl>
 
-      <div class="border-t border-line-subtle pt-4 space-y-2.5">
+      <div ref="refineControls" class="border-t border-line-subtle pt-4 space-y-2.5">
         <form class="min-w-0 flex flex-col gap-2 sm:flex-row sm:items-center" @submit.prevent="refine()">
           <label for="refinement" class="sr-only">Describe a change to this sound</label>
           <input
@@ -171,7 +175,7 @@ const refineError = computed(() => (hasOwnRunFailed.value ? ai.lastError : null)
             autocomplete="off"
             spellcheck="false"
             placeholder="Make it punchier with a pitch dive..."
-            :disabled="ai.isGenerating"
+            :readonly="ai.isGenerating"
             :aria-invalid="refineError ? 'true' : undefined"
             :aria-errormessage="refineError ? 'refinement-error' : undefined"
             class="input-base flex-1 bg-surface-muted font-sans"
