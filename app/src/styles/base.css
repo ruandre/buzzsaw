@@ -70,6 +70,8 @@ code,
   border: 1px solid rgb(var(--bs-line));
   color: rgb(var(--bs-ink));
   font-weight: 500;
+  /* Keeps short tokens such as `n + 1` whole; long spans would overflow narrow columns */
+  white-space: nowrap;
 }
 
 pre code {
@@ -80,6 +82,7 @@ pre code {
   border: 0;
   color: inherit;
   font-weight: inherit;
+  white-space: inherit;
 }
 
 .rail-ribbed {
