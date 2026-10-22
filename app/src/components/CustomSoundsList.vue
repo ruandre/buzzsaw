@@ -173,7 +173,7 @@ function clearAll(): void {
           type="button"
           class="btn-secondary"
           :disabled="!library.hasCustomSounds"
-          :aria-label="`Show the code that registers all ${library.customSoundCount} saved sounds`"
+          :aria-label="`Register code for all ${library.customSoundCount} saved sounds`"
           @click="showRegisterCode()"
         >
           <span class="i-ph-code-bold shrink-0 text-sm leading-none" aria-hidden="true" />
@@ -185,8 +185,8 @@ function clearAll(): void {
           type="button"
           :class="isConfirmingClear ? 'btn-danger' : 'btn-danger-secondary'"
           :aria-label="isConfirmingClear
-            ? `Confirm deleting all ${library.customSoundCount} saved sounds`
-            : 'Delete all saved sounds'"
+            ? `Delete everything? Confirm deleting all ${library.customSoundCount} saved sounds`
+            : 'Clear all saved sounds'"
           @click="clearAll"
         >
           <span class="i-ph-trash-bold shrink-0 text-sm leading-none" aria-hidden="true" />
