@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useMediaQuery } from '@vueuse/core'
 import {
   DialogClose,
   DialogContent,
@@ -22,9 +23,13 @@ import VuMeter from './VuMeter.vue'
 const ui = useUiStore()
 const playback = usePlaybackStore()
 
-const isDrawerOpen = ref(false)
+// UnoCSS `lg` breakpoint, where the drawer is hidden; an open modal there would trap focus out of sight
+const DESKTOP_QUERY = '(min-width: 1024px)'
 
-watch(() => ui.activeView, () => {
+const isDrawerOpen = ref(false)
+const isDesktop = useMediaQuery(DESKTOP_QUERY)
+
+watch([() => ui.activeView, isDesktop], () => {
   isDrawerOpen.value = false
 })
 
