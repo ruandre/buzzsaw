@@ -61,8 +61,11 @@ description = "Auto-fix lint and formatting issues"
 run = "hk fix --all"
 
 [tasks.typecheck]
-description = "Type-check every workspace package"
-run = "aube -r run typecheck"
+description = "Type-check every workspace package, plus root configs and scripts"
+run = [
+  "aube -r run typecheck",
+  "aube exec tsc -p tsconfig.tooling.json"
+]
 
 [tasks.test]
 description = "Run the tests, optionally filtered (`mise run test wav`)"

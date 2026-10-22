@@ -18,6 +18,7 @@ local linters = new Mapping<String, Step> {
 // Manifests, lockfile and tsconfig included: dependency bumps can break types and tests without touching source
 local verifyGlob = List(
   "**/*.{ts,vue}",
+  "scripts/**/*.mjs",
   "**/package.json",
   "aube-lock.yaml",
   "pnpm-workspace.yaml",
