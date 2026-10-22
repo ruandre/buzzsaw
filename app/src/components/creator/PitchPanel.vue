@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PitchName } from '../../audio/pitches'
+import { clamp } from '@rjvr/buzzsaw'
 import { computed } from 'vue'
 import { KEYBOARD_PITCHES, MAX_PITCH_HZ, MIN_PITCH_HZ, MUSICAL_PITCHES } from '../../audio/pitches'
 import { CREATOR_LIMITS, useCreatorStore } from '../../stores'
@@ -10,8 +11,15 @@ import ParameterModeSwitch from './ParameterModeSwitch.vue'
 
 const creator = useCreatorStore()
 
-// Usable slider drag range for base pitch
-const PITCH_SLIDER = { min: 50, max: 3000, step: 5 } as const
+// Pitch is heard per octave, so the slider moves in octaves (log2 Hz) over the whole studio range
+const PITCH_SLIDER = { min: Math.log2(MIN_PITCH_HZ), max: Math.log2(MAX_PITCH_HZ), step: 1 / 48 } as const
+
+const pitchOctaves = computed({
+  get: () => Math.log2(clamp(creator.state.fixedFrequency, MIN_PITCH_HZ, MAX_PITCH_HZ)),
+  set: (octaves) => {
+    creator.state.fixedFrequency = Math.round(2 ** octaves)
+  },
+})
 
 /** Note button matching the fixed pitch, if any */
 const activeNote = computed<PitchName | undefined>(() => {
@@ -74,12 +82,12 @@ const activeNote = computed<PitchName | undefined>(() => {
 
       <Slider
         v-if="creator.state.frequencyMode === 'fixed'"
-        v-model="creator.state.fixedFrequency"
+        v-model="pitchOctaves"
         :min="PITCH_SLIDER.min"
         :max="PITCH_SLIDER.max"
         :step="PITCH_SLIDER.step"
         label="Base pitch"
-        :format-value="value => `${Math.round(value)} Hz`"
+        :format-value="octaves => `${Math.round(2 ** octaves)} Hz`"
       />
 
       <div v-else class="space-y-3">
