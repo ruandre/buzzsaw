@@ -39,7 +39,7 @@ function trackFirstOpen(isOpen: boolean): void {
       <TooltipContent
         :side="side"
         :side-offset="sideOffset"
-        class="tooltip z-50 flex select-none items-center gap-2 border border-line-strong rounded-md bg-inverse px-2.5 py-1 text-xs text-inverse-ink leading-none font-mono shadow-popover"
+        class="tooltip z-50 flex select-none items-center gap-2 rounded-md bg-inverse px-2.5 py-1 text-xs text-inverse-ink leading-none font-mono shadow-popover"
       >
         <span>{{ content }}</span>
         <kbd v-if="shortcut" class="rounded bg-inverse-ink/20 px-1.5 py-0.5 text-xs font-bold font-mono">
@@ -77,6 +77,13 @@ function trackFirstOpen(isOpen: boolean): void {
 @media (prefers-reduced-motion: reduce) {
   .tooltip {
     animation: none !important;
+  }
+}
+
+/* Forced colors strips background and shadow; edge keeps tooltip distinct from page */
+@media (forced-colors: active) {
+  .tooltip {
+    border: 1px solid CanvasText;
   }
 }
 </style>
