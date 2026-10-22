@@ -117,12 +117,12 @@ function randomizePatch(): void {
             <button
               type="button"
               class="btn-primary w-full py-2.5 font-bold tracking-wide"
-              aria-label="Audition the current patch"
+              aria-keyshortcuts="Space"
               @click="playback.preview(creator.definition)"
             >
               <span class="i-ph-play-bold shrink-0 text-sm leading-none" aria-hidden="true" />
-              <span>Audition</span>
-              <kbd class="hidden select-none rounded bg-black/25 px-1.5 py-0.5 text-xs font-mono opacity-90 sm:inline">Space</kbd>
+              <span>Audition<span class="sr-only"> the current patch</span></span>
+              <kbd class="hidden select-none rounded bg-black/25 px-1.5 py-0.5 text-xs font-mono opacity-90 sm:inline" aria-hidden="true">Space</kbd>
             </button>
           </div>
         </ModulePanel>
