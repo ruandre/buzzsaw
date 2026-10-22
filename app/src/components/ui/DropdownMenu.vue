@@ -39,7 +39,8 @@ function announceOpen(open: boolean): void {
 </script>
 
 <template>
-  <DropdownMenuRoot @update:open="announceOpen">
+  <!-- Modal menus lock body scroll, hiding page scrollbar on every open -->
+  <DropdownMenuRoot :modal="false" @update:open="announceOpen">
     <DropdownMenuTrigger as-child>
       <slot />
     </DropdownMenuTrigger>
