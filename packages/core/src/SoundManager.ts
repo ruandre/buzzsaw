@@ -72,30 +72,27 @@ export class SoundManager<Name extends string = never> {
 
   /** Adds or replaces one sound, stopping a replaced one, and widens this manager to accept `name`; throws SoundValidationError if malformed */
   register<N extends string>(name: N, definitionOrSound: SoundDefinition | Sound): SoundManager<Name | N> {
-    if (!name || typeof name !== 'string') {
-      throw new TypeError('Invalid sound name provided.')
+    this.#store(name, toSound(name, definitionOrSound))
+    return this as SoundManager<Name | N>
+  }
+
+  /** Adds or replaces a map of sounds, returning this manager widened to accept their names; a malformed entry registers none */
+  registerAll<T extends SoundRegistrations>(sounds: T): SoundManager<Name | NamesOf<T>> {
+    const prepared = Object.entries(sounds).map(([name, def]) => [name, toSound(name, def)] as const)
+    for (const [name, sound] of prepared) {
+      this.#store(name, sound)
     }
+    return this as SoundManager<Name | NamesOf<T>>
+  }
 
-    const sound = definitionOrSound instanceof Sound
-      ? (definitionOrSound.name === name ? definitionOrSound : definitionOrSound.clone(name))
-      : new Sound(name, definitionOrSound)
-
-    const registry = this.#sounds as Map<Name | N, Sound>
+  #store(name: string, sound: Sound): void {
+    const registry = this.#sounds as Map<string, Sound>
     const replaced = registry.get(name)
     // A replaced sound would leave its voices beyond the reach of stop and stopAll
     if (replaced && replaced !== sound) {
       replaced.stop()
     }
     registry.set(name, sound)
-    return this as SoundManager<Name | N>
-  }
-
-  /** Adds or replaces a map of sounds, returning this manager widened to accept their names */
-  registerAll<T extends SoundRegistrations>(sounds: T): SoundManager<Name | NamesOf<T>> {
-    for (const [name, def] of Object.entries(sounds)) {
-      this.register(name, def)
-    }
-    return this as SoundManager<Name | NamesOf<T>>
   }
 
   /** Stops the sound before unregistering it */
@@ -240,6 +237,17 @@ function requireMasterVolume(value: number | undefined): number {
     )
   }
   return value
+}
+
+/** Throws TypeError for an empty name, SoundValidationError for a malformed definition */
+function toSound(name: string, definitionOrSound: SoundDefinition | Sound): Sound {
+  if (!name || typeof name !== 'string') {
+    throw new TypeError('Invalid sound name provided.')
+  }
+  if (!(definitionOrSound instanceof Sound)) {
+    return new Sound(name, definitionOrSound)
+  }
+  return definitionOrSound.name === name ? definitionOrSound : definitionOrSound.clone(name)
 }
 
 function logMissingSound(name: string): void {

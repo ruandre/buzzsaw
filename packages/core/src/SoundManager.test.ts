@@ -52,6 +52,22 @@ describe('soundManager', () => {
     expect(manager.has('two')).toBe(true)
   })
 
+  it('registers nothing from a batch with a malformed entry', () => {
+    const manager = new SoundManager().register('one', { frequency: 440 })
+    const original = manager.get('one')
+    const stop = vi.spyOn(original!, 'stop')
+
+    expect(() => manager.registerAll({
+      one: { frequency: 220 },
+      two: { frequency: 880 },
+      bad: { frequency: -1 },
+    })).toThrow()
+
+    expect(manager.get('one')).toBe(original)
+    expect(manager.has('two')).toBe(false)
+    expect(stop).not.toHaveBeenCalled()
+  })
+
   it('unregisters sounds', () => {
     const manager = new SoundManager()
     manager.register('test', { frequency: 440, waveType: 'sine' })
