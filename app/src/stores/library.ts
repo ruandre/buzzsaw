@@ -4,6 +4,7 @@ import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { defineStore } from 'pinia'
 import { computed, watch } from 'vue'
 import { isValidSoundName, SOUND_NAME_RULE, toCustomSoundName } from '../audio/soundName'
+import { restoreSoundDefinition } from '../audio/storedSound'
 import { downloadJson } from '../utils/download'
 import { forEachYielding } from '../utils/scheduler'
 import { isSafeKey, safeRecordEntries, STORAGE_KEYS, usePersistedState } from '../utils/storage'
@@ -281,8 +282,9 @@ export function sanitizeSoundMap(raw: unknown): Record<string, SoundDefinition> 
   const kept: [string, SoundDefinition][] = []
   for (const [name, definition] of safeRecordEntries(raw)) {
     // Drops only names SoundManager rejects: older saves skipped SOUND_NAME_PATTERN
-    if (name !== '' && isValidSoundDefinition(definition)) {
-      kept.push([name, definition])
+    const restored = restoreSoundDefinition(definition)
+    if (name !== '' && restored) {
+      kept.push([name, restored])
     }
   }
   // Migrates sounds saved before preset names were reserved

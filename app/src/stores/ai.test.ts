@@ -2,7 +2,7 @@ import type { DesignedSound, PromptApiStatus } from '../ai'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkPromptApiAvailability, designSound } from '../ai'
-import { useAiStore } from './ai'
+import { sanitizeHistory, useAiStore } from './ai'
 
 vi.mock('../ai', () => ({
   checkPromptApiAvailability: vi.fn(),
@@ -115,5 +115,22 @@ describe('ai store runs', () => {
     finishDesign(designed)
     await expect(first).resolves.toMatchObject({ name: 'zap' })
     expect(ai.isGenerating).toBe(false)
+  })
+})
+
+describe('sanitizeHistory', () => {
+  it('keeps a stored entry whose steps carry extra keys, without those keys', () => {
+    const stored = { id: 'a', name: 'zap', definition: { frequency: { start: 440, steps: [{ value: 220, time: 0.1, interpolation: 'linear' }] } } }
+
+    const [entry] = sanitizeHistory([stored])
+
+    expect(entry?.definition.frequency).toEqual({ start: 440, steps: [{ value: 220, time: 0.1 }] })
+  })
+
+  it('drops a stored entry whose steps cannot be read, keeping the rest', () => {
+    const broken = { id: 'a', name: 'broken', definition: { frequency: { start: 440, steps: [null] } } }
+    const kept = { id: 'b', name: 'zap', definition: { frequency: 440 } }
+
+    expect(sanitizeHistory([broken, kept]).map(entry => entry.id)).toEqual(['b'])
   })
 })

@@ -259,6 +259,20 @@ describe('sanitizeSoundMap', () => {
     expect(sounds).toEqual({ pop_custom: { frequency: 440 }, pop_custom_custom: { frequency: 220 } })
   })
 
+  it('keeps a stored sound whose steps carry extra keys, without those keys', () => {
+    const stored = { frequency: { start: 440, steps: [{ value: 220, time: 0.1, interpolation: 'linear' }] } }
+
+    const sounds = sanitizeSoundMap({ mine: stored })
+
+    expect(sounds.mine?.frequency).toEqual({ start: 440, steps: [{ value: 220, time: 0.1 }] })
+  })
+
+  it('drops a stored sound whose steps cannot be read, keeping the rest', () => {
+    const sounds = sanitizeSoundMap({ broken: { frequency: { start: 440, steps: [null] } }, mine: { frequency: 440 } })
+
+    expect(Object.keys(sounds)).toEqual(['mine'])
+  })
+
   it('keeps a stored sound whose name the save form would reject', () => {
     const sounds = sanitizeSoundMap({ 'kick.v2': { frequency: 440 } })
 

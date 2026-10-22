@@ -1,10 +1,10 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 import type { DesignedSound, PromptApiStatus } from '../ai'
-import { isValidSoundDefinition } from '@rjvr/buzzsaw'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { checkPromptApiAvailability, designSound, redesignSound } from '../ai'
 import { toCustomSoundName } from '../audio/soundName'
+import { restoreSoundDefinition } from '../audio/storedSound'
 import { STORAGE_KEYS, usePersistedState } from '../utils/storage'
 import { useLibraryStore } from './library'
 import { useNotificationsStore } from './notifications'
@@ -194,18 +194,16 @@ export const useAiStore = defineStore('ai', () => {
   }
 })
 
-function sanitizeHistory(raw: unknown): GeneratedSound[] {
+export function sanitizeHistory(raw: unknown): GeneratedSound[] {
   if (!Array.isArray(raw)) {
     return []
   }
-  return raw
-    .filter((entry): entry is GeneratedSound =>
-      Boolean(entry)
-      && typeof entry.id === 'string'
-      && typeof entry.name === 'string'
-      && isValidSoundDefinition(entry.definition),
-    )
+  return raw.flatMap((entry) => {
+    const definition = restoreSoundDefinition(entry?.definition)
+    if (!definition || typeof entry.id !== 'string' || typeof entry.name !== 'string') {
+      return []
+    }
     // Migrates entries generated before preset names were reserved
-    .map(entry => ({ ...entry, name: toCustomSoundName(entry.name) }))
-    .slice(0, HISTORY_LIMIT)
+    return [{ ...entry, definition, name: toCustomSoundName(entry.name) }]
+  }).slice(0, HISTORY_LIMIT)
 }
