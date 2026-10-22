@@ -2,7 +2,7 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 import { calculateEffectiveDuration, evaluateWaveShape, sampleFrequencyAtTime, sampleGainAtTime } from '@rjvr/buzzsaw'
 import { useElementVisibility, usePreferredReducedMotion, useResizeObserver } from '@vueuse/core'
-import { computed, onUnmounted, ref, shallowRef, watch } from 'vue'
+import { computed, onUnmounted, ref, shallowRef, toRaw, watch } from 'vue'
 import { useUiStore } from '../stores'
 import { getScopeTheme } from '../theme/waveform'
 
@@ -74,7 +74,8 @@ function evaluateOscillator(definition: SoundDefinition, phase: number): number 
 
 // Samples waveform into min/max pixel columns with phase integration
 function traceWaveform(canvasWidth: number, canvasHeight: number): TraceColumn[] {
-  const definition = props.definition
+  // Raw: thousands of samples each walk envelope steps; reactive proxies multiply that cost
+  const definition = toRaw(props.definition)
   const duration = calculateEffectiveDuration(definition)
   const columnCount = Math.max(1, Math.round(canvasWidth))
   const samplesPerColumn = Math.max(
