@@ -14,9 +14,11 @@ packages:
   - 'packages/*'
   - app
 
-# Patched brace-expansion (GHSA-q2hr-2g5m-vwhr and related DoS); drop once minimatch resolves it
 overrides:
+  # Patched brace-expansion (GHSA-q2hr-2g5m-vwhr and related DoS); drop once minimatch resolves it
   brace-expansion@>=4.0.0 <5.0.12: ^5.0.12
+  # Patched tinypool (GHSA-85c8-ppgw-ccpr, GHSA-5gmw-xhrv-c9v3); drop once eslint-plugin-format moves past oxfmt 0.35
+  tinypool@<2.1.2: ^2.1.2
 
 allowBuilds:
   esbuild: true
