@@ -83,14 +83,15 @@ export const DOC_EXAMPLES: readonly DocExample[] = [
   },
 ]
 
-export const PACKAGE_MANAGERS = ['pnpm', 'npm', 'yarn', 'bun', 'nub'] as const
+export const PACKAGE_MANAGERS = ['npm', 'yarn', 'pnpm', 'bun', 'aube', 'nub'] as const
 export type PackageManager = (typeof PACKAGE_MANAGERS)[number]
 
 const INSTALL_VERBS: Record<PackageManager, string> = {
-  pnpm: 'pnpm add',
   npm: 'npm install',
   yarn: 'yarn add',
+  pnpm: 'pnpm add',
   bun: 'bun add',
+  aube: 'aube add',
   nub: 'nub add',
 }
 

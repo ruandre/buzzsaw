@@ -17,7 +17,7 @@ const playback = usePlaybackStore()
 const { openInCreator } = useStudioActions()
 
 const selectedTopic = ref<DocTopicId | 'all'>('all')
-const packageManager = ref<PackageManager>('pnpm')
+const packageManager = ref<PackageManager>('npm')
 
 const visibleTopics = computed(() =>
   selectedTopic.value === 'all'
@@ -125,14 +125,14 @@ function selectPackageManager(manager: PackageManager): void {
             </dl>
 
             <div v-else-if="block.kind === 'install'" class="space-y-2.5">
-              <div class="flex items-center justify-between gap-3">
+              <div class="flex flex-wrap items-center justify-between gap-3">
                 <span class="heading-section">Install</span>
                 <div class="flex border border-line rounded-lg bg-surface-sunken p-1 text-xs font-semibold font-mono shadow-inset" role="group" aria-label="Package manager">
                   <button
                     v-for="manager in PACKAGE_MANAGERS"
                     :key="manager"
                     type="button"
-                    class="cursor-pointer border-0 rounded-md px-2.5 py-1 uppercase transition-[background-color,color,box-shadow] duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                    class="cursor-pointer border-0 rounded-md px-2 py-1 uppercase transition-[background-color,color,box-shadow] duration-fast sm:px-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                     :class="packageManager === manager ? 'bg-control text-accent-ink shadow-raised' : 'text-ink-muted hover:text-ink'"
                     :aria-pressed="packageManager === manager"
                     @click="selectPackageManager(manager)"
