@@ -20,8 +20,8 @@ export const INSPIRATION_PROMPTS: readonly PromptSuggestion[] = [
 
 export const QUICK_TRANSFORMS: readonly PromptSuggestion[] = [
   { label: 'Snappier', prompt: 'sharpen the attack to 1ms and shorten the decay into a crisp percussive click' },
-  { label: 'Octave down', prompt: 'lower the pitch by one octave for a deeper bass weight' },
-  { label: 'Octave up', prompt: 'raise the pitch by one octave into a bright melodic register' },
+  { label: 'Octave down', prompt: 'shift the pitch down an octave for a deeper bass weight' },
+  { label: 'Octave up', prompt: 'shift the pitch up an octave into a bright melodic register' },
   { label: 'Arpeggio', prompt: 'turn the frequency into an ascending harmonic arpeggio' },
   { label: '8-bit', prompt: 'convert it to an 8-bit retro square wave with arcade character' },
   { label: 'Long tail', prompt: 'extend the decay and duration for a long resonant echo' },

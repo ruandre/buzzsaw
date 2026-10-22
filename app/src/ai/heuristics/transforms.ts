@@ -51,7 +51,7 @@ const pitchShift: readonly Transform[] = [
     apply: def => scalePitch(def, 1.5),
   },
   {
-    keywords: ['lower', 'low pitch', 'bassier', 'deep', 'sub', 'darker', 'drop pitch'],
+    keywords: ['lower', 'low pitch', 'bassier', 'deep', 'deeper', 'sub', 'darker', 'drop pitch'],
     summary: 'lowered pitch',
     apply: def => scalePitch(def, 0.65),
   },
@@ -85,7 +85,7 @@ const pitchMotion: readonly Transform[] = [
     },
   },
   {
-    keywords: ['wobble', 'vibrato', 'siren', 'trill'],
+    keywords: ['wobble', 'wobbly', 'vibrato', 'siren', 'trill'],
     summary: 'vibrato oscillation',
     apply: (def) => {
       const root = rootFrequency(def, 600)
@@ -103,7 +103,7 @@ const pitchMotion: readonly Transform[] = [
 
 const envelope: readonly Transform[] = [
   {
-    keywords: ['punchier', 'snappy', 'shorter', 'faster', 'staccato', 'micro'],
+    keywords: ['punchier', 'snappy', 'snappier', 'shorter', 'shorten', 'faster', 'staccato', 'crisp', 'percussive', 'micro'],
     summary: 'snappier transient',
     apply: (def) => {
       def.duration = Math.max(0.02, round(durationOf(def) * 0.55, 3))
@@ -123,7 +123,7 @@ const envelope: readonly Transform[] = [
 
 const level: readonly Transform[] = [
   {
-    keywords: ['pulse', 'alarm', 'stutter', 'tremolo', 'double beep'],
+    keywords: ['pulse', 'pulsing', 'alarm', 'stutter', 'tremolo', 'double beep'],
     summary: 'pulsing gain envelope',
     apply: (def) => {
       const duration = durationOf(def)
@@ -171,7 +171,7 @@ export function applyTransforms(def: SoundDefinition, instruction: string): stri
   const applied: string[] = []
 
   for (const group of TRANSFORM_GROUPS) {
-    const match = group.find(({ keywords }) => keywords.some(word => instruction.includes(word)))
+    const match = group.find(({ keywords }) => keywords.some(word => mentions(instruction, word)))
     if (match) {
       match.apply(def)
       applied.push(match.summary)
@@ -179,6 +179,20 @@ export function applyTransforms(def: SoundDefinition, instruction: string): stri
   }
 
   return applied
+}
+
+const WORD_CHARACTER = /[a-z0-9]/
+
+// Whole words only: "slower" must not trigger "lower", nor "subtle" trigger "sub"
+function mentions(instruction: string, keyword: string): boolean {
+  for (let at = instruction.indexOf(keyword); at !== -1; at = instruction.indexOf(keyword, at + 1)) {
+    const before = instruction[at - 1] ?? ' '
+    const after = instruction[at + keyword.length] ?? ' '
+    if (!WORD_CHARACTER.test(before) && !WORD_CHARACTER.test(after)) {
+      return true
+    }
+  }
+  return false
 }
 
 function scalePitch(def: SoundDefinition, factor: number): void {

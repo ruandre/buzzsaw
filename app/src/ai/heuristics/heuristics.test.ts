@@ -2,6 +2,7 @@ import { validateSoundDefinition } from '@rjvr/buzzsaw'
 import { DEFAULT_SOUNDS } from '@rjvr/buzzsaw/sounds'
 import { describe, expect, it } from 'vitest'
 import { designHeuristicPatch, editHeuristicPatch, SOUND_RECIPES, TRANSFORM_GROUPS } from '.'
+import { QUICK_TRANSFORMS } from '../presets'
 import { findRecipe } from './recipes'
 import { applyTransforms } from './transforms'
 
@@ -98,6 +99,54 @@ describe('applyTransforms', () => {
 
     expect(applyTransforms(definition, 'louder')).toEqual(['boosted level'])
     expect(definition.gain).toBe(gain)
+  })
+
+  it.each([
+    ['Snappier', ['snappier transient']],
+    ['Octave down', ['pitched down an octave']],
+    ['Octave up', ['pitched up an octave']],
+    ['Arpeggio', ['ascending arpeggio']],
+    ['8-bit', ['square 8-bit timbre']],
+    ['Long tail', ['extended resonant tail']],
+    ['Pulsing', ['pulsing gain envelope']],
+    ['Pitch dive', ['pitch dive']],
+  ])('applies exactly what the "%s" quick transform promises', (label, expected) => {
+    const transform = QUICK_TRANSFORMS.find(candidate => candidate.label === label)
+
+    expect(applyTransforms({ frequency: 440 }, transform?.prompt.toLowerCase() ?? '')).toEqual(expected)
+  })
+
+  it('offers no quick transform without a test of what it applies', () => {
+    expect(QUICK_TRANSFORMS.map(transform => transform.label)).toEqual([
+      'Snappier',
+      'Octave down',
+      'Octave up',
+      'Arpeggio',
+      '8-bit',
+      'Long tail',
+      'Pulsing',
+      'Pitch dive',
+    ])
+  })
+
+  it.each([
+    ['make it slower', 'lowered pitch'],
+    ['more subtle', 'lowered pitch'],
+    ['a sawing motion', 'sawtooth harmonics'],
+  ])('does not let "%s" trigger %s through a keyword inside a longer word', (instruction, summary) => {
+    expect(applyTransforms({ frequency: 440 }, instruction)).not.toContain(summary)
+  })
+
+  it.each([
+    ['make it deeper', 'lowered pitch'],
+    ['a wobbly tone', 'vibrato oscillation'],
+    ['pulsing please', 'pulsing gain envelope'],
+  ])('still reads the inflection in "%s" as %s', (instruction, summary) => {
+    expect(applyTransforms({ frequency: 440 }, instruction)).toContain(summary)
+  })
+
+  it('matches a keyword at a hyphen or punctuation boundary', () => {
+    expect(applyTransforms({ frequency: 440 }, 'sub-bass, please')).toEqual(['lowered pitch'])
   })
 
   it('keeps every preset valid under every transform keyword', () => {
