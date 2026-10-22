@@ -255,8 +255,15 @@ function startPlayback(
     resolvePromise()
   }
 
-  // Safety timeout in case browser delays oscillator.onended
-  safetyTimeout = armFallback(finish, Math.max(100, Math.ceil((durationSec + 0.1) * 1000)))
+  // Safety timeout in case browser delays oscillator.onended; a suspended clock has not reached the end yet
+  const finishUnlessSuspended = () => {
+    if (isClockPaused(audioContext)) {
+      safetyTimeout = armFallback(finishUnlessSuspended, toFallbackDelayMs(schedule.end - audioContext.currentTime))
+      return
+    }
+    finish()
+  }
+  safetyTimeout = armFallback(finishUnlessSuspended, toFallbackDelayMs(durationSec))
 
   oscillator.onended = finish
 
@@ -310,4 +317,14 @@ function holdAt(param: AudioParamLike, time: number): void {
   const level = param.value ?? SILENT_GAIN
   param.cancelScheduledValues?.(time)
   param.setValueAtTime(level, time)
+}
+
+// 'interrupted' is Safari's state for a context paused by the system, such as a phone call
+function isClockPaused(audioContext: BaseAudioContextLike): boolean {
+  const state = (audioContext as { state?: string }).state
+  return state === 'suspended' || state === 'interrupted'
+}
+
+function toFallbackDelayMs(remainingSec: number): number {
+  return Math.max(100, Math.ceil((Math.max(0, remainingSec) + 0.1) * 1000))
 }

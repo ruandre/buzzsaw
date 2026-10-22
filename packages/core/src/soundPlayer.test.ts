@@ -692,6 +692,28 @@ describe('voice lifecycle', () => {
     }
   })
 
+  it('keeps a voice whose context suspends mid-play until the context resumes and plays it out', () => {
+    vi.useFakeTimers()
+    try {
+      const context = createMockAudioContext()
+      const handle = playSoundFromDefinition(context, { frequency: 440, duration: 0.2 })
+      context.state = 'suspended'
+
+      vi.advanceTimersByTime(5000)
+      expect(handle.isPlaying).toBe(true)
+      expect(context.gainNodes[0].disconnect).not.toHaveBeenCalled()
+
+      context.state = 'running'
+      context.currentTime = 1
+      vi.advanceTimersByTime(5000)
+      expect(handle.isPlaying).toBe(false)
+      expect(context.gainNodes[0].disconnect).toHaveBeenCalledOnce()
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('reports a failed start and settles the handle', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     try {
