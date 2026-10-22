@@ -596,6 +596,38 @@ describe('stop fade', () => {
     expect(oscillator.stop).toHaveBeenLastCalledWith(2.006)
   })
 
+  it('fades from the level the engine reported before the cancel truncated the envelope', () => {
+    const context = createMockAudioContext({ currentTime: 2 })
+    const handle = playSoundFromDefinition(context, { frequency: 440, duration: 1 })
+    const { gain } = context.gainNodes[0]
+    gain.value = 0.3
+    // Engines may report the intrinsic value once the running ramp is cancelled
+    gain.cancelScheduledValues.mockImplementation(() => {
+      gain.value = 1
+    })
+    gain.setValueAtTime.mockClear()
+
+    handle.stop()
+
+    expect(gain.setValueAtTime).toHaveBeenCalledWith(0.3, 2)
+  })
+
+  it('holds the envelope where it is when the engine can cancel and hold', () => {
+    const context = createMockAudioContext({ currentTime: 2 })
+    const handle = playSoundFromDefinition(context, { frequency: 440, duration: 1 })
+    const { gain } = context.gainNodes[0]
+    const cancelAndHoldAtTime = vi.fn()
+    Object.assign(gain, { cancelAndHoldAtTime })
+    gain.setValueAtTime.mockClear()
+
+    handle.stop()
+
+    expect(cancelAndHoldAtTime).toHaveBeenCalledWith(2)
+    expect(gain.cancelScheduledValues).not.toHaveBeenCalled()
+    expect(gain.setValueAtTime).not.toHaveBeenCalled()
+    expect(gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(0.0001, 2.005)
+  })
+
   it('settles the playback promise on stop', async () => {
     const context = createMockAudioContext()
     const handle = playSoundFromDefinition(context, { frequency: 440, duration: 1 })

@@ -277,8 +277,7 @@ function startPlayback(
     isPlaying = false
     try {
       const now = audioContext.currentTime
-      gainNode.gain.cancelScheduledValues?.(now)
-      gainNode.gain.setValueAtTime(gainNode.gain.value ?? SILENT_GAIN, now)
+      holdAt(gainNode.gain, now)
       gainNode.gain.linearRampToValueAtTime(SILENT_GAIN, now + STOP_FADE_S)
       oscillator.stop(now + STOP_FADE_S + 0.001)
       // Disconnecting now would cut the fade short and click
@@ -299,4 +298,16 @@ function startPlayback(
     },
     promise,
   }
+}
+
+// Freezes the envelope at the level sounding at `time`, so the stop fade starts there instead of jumping
+function holdAt(param: AudioParamLike, time: number): void {
+  if (param.cancelAndHoldAtTime) {
+    param.cancelAndHoldAtTime(time)
+    return
+  }
+  // Read before cancelling: afterwards some engines report a truncated or intrinsic value
+  const level = param.value ?? SILENT_GAIN
+  param.cancelScheduledValues?.(time)
+  param.setValueAtTime(level, time)
 }

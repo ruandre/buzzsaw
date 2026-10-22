@@ -18,6 +18,7 @@ export interface AudioParamLike {
   exponentialRampToValueAtTime(value: number, endTime: number): unknown
   setTargetAtTime?(target: number, startTime: number, timeConstant: number): unknown
   cancelScheduledValues?(cancelTime: number): unknown
+  cancelAndHoldAtTime?(cancelTime: number): unknown
 }
 
 export interface AudioNodeLike {
