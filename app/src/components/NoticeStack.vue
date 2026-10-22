@@ -47,7 +47,7 @@ const assertiveNotices = computed(() => notifications.notices.filter(notice => n
 
         <button
           type="button"
-          class="flex-shrink-0 cursor-pointer border-0 bg-transparent p-1 text-ink-subtle transition-colors duration-fast active:scale-90 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          class="flex-shrink-0 cursor-pointer border-0 bg-transparent p-1.5 text-ink-subtle transition-colors duration-fast active:scale-90 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           aria-label="Dismiss notification"
           @click="notifications.dismiss(notice.id)"
         >

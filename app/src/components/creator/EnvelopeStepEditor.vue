@@ -64,7 +64,7 @@ function keyOf(step: SoundStep): number {
           :min="valueMin"
           :max="valueMax"
           :step="valueStep"
-          class="w-16 border border-line-control rounded-md bg-control px-2 py-1 text-xs text-ink font-bold shadow-inset transition-colors duration-fast sm:w-20 focus:border-accent focus:outline-none"
+          class="w-16 border border-line-control rounded-md bg-control px-2 py-1 text-xs text-ink font-bold shadow-inset transition-colors duration-fast sm:w-20 focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           @input="emitField(index, 'value', $event)"
         >
         <span v-if="valueUnit" class="select-none text-xs text-ink-subtle font-semibold">{{ valueUnit }}</span>
@@ -82,7 +82,7 @@ function keyOf(step: SoundStep): number {
           min="0"
           :max="timeMax"
           step="0.01"
-          class="w-16 border border-line-control rounded-md bg-control px-2 py-1 text-xs text-ink font-bold shadow-inset transition-colors duration-fast sm:w-18 focus:border-accent focus:outline-none"
+          class="w-16 border border-line-control rounded-md bg-control px-2 py-1 text-xs text-ink font-bold shadow-inset transition-colors duration-fast sm:w-18 focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           @input="emitField(index, 'time', $event)"
           @change="emit('sort')"
         >

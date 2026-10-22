@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import { usePreferredReducedMotion } from '@vueuse/core'
 import { usePlaybackStore, useUiStore } from '../stores'
 
 const ui = useUiStore()
 const playback = usePlaybackStore()
+// CSS scroll-behavior overrides do not reach an explicit smooth scroll
+const reducedMotion = usePreferredReducedMotion()
 
 function scrollToTop(): void {
   playback.cue('scrollTop')
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  window.scrollTo({ top: 0, behavior: reducedMotion.value === 'reduce' ? 'auto' : 'smooth' })
 }
 </script>
 

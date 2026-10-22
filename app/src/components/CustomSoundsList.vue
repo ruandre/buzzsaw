@@ -145,13 +145,12 @@ function clearAll(): void {
       </div>
 
       <div class="flex flex-wrap items-center justify-end gap-2.5" role="group" aria-label="Library actions">
-        <label for="sound-pack-file" class="sr-only">Import a sound pack</label>
+        <!-- Opened by the Import buttons; hidden so keyboard and screen reader users meet one control, not two -->
         <input
-          id="sound-pack-file"
           ref="fileInput"
           type="file"
           accept=".json,application/json"
-          class="sr-only"
+          hidden
           @change="handleFileInput"
         >
 

@@ -84,7 +84,7 @@ const pitchLabel = computed(() =>
       <button
         type="button"
         class="mt-3 block w-full cursor-pointer overflow-hidden border-0 rounded-lg bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-        :aria-label="`Audition ${name}`"
+        :aria-label="isPlaying ? `Stop ${name}` : `Audition ${name}`"
         @click="isPlaying ? emit('stop', name) : emit('play', name, definition)"
       >
         <WaveformVisualizer :definition="definition" :is-playing="isPlaying" :height="70" :show-readout="false" />

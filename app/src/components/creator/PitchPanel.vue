@@ -101,7 +101,7 @@ const activeNote = computed<PitchName | undefined>(() => {
             :min="MIN_PITCH_HZ"
             :max="MAX_PITCH_HZ"
             :step="CREATOR_LIMITS.frequency.step"
-            class="w-28 border border-line-control rounded-md bg-surface-muted px-2.5 py-1 text-sm text-ink font-bold font-mono shadow-inset transition-colors duration-fast focus:border-accent focus:outline-none"
+            class="w-28 border border-line-control rounded-md bg-surface-muted px-2.5 py-1 text-sm text-ink font-bold font-mono shadow-inset transition-colors duration-fast focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
           <span class="select-none text-xs text-ink-subtle font-semibold font-mono">Hz at t = 0s</span>
         </div>

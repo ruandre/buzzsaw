@@ -65,7 +65,7 @@ const asPercent = (gain: number) => `${Math.round(gain * 100)}%`
               min="0"
               :max="CREATOR_LIMITS.gain.max"
               step="0.05"
-              class="w-24 border border-line-control rounded-md bg-surface-muted px-2.5 py-1 text-sm text-ink font-bold font-mono shadow-inset transition-colors duration-fast focus:border-accent focus:outline-none"
+              class="w-24 border border-line-control rounded-md bg-surface-muted px-2.5 py-1 text-sm text-ink font-bold font-mono shadow-inset transition-colors duration-fast focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
             <span class="select-none text-xs text-ink-subtle font-semibold font-mono">at t = 0s</span>
           </div>
