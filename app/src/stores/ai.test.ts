@@ -1,4 +1,4 @@
-import type { PromptApiStatus } from '../ai'
+import type { DesignedSound, PromptApiStatus } from '../ai'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkPromptApiAvailability, designSound } from '../ai'
@@ -89,5 +89,31 @@ describe('ai store availability', () => {
 
     await vi.advanceTimersByTimeAsync(10_000)
     expect(checkAvailability).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('ai store runs', () => {
+  const designed: DesignedSound = { name: 'zap', description: '', definition: { frequency: 440 }, source: 'model', designedAt: 1 }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    checkAvailability.mockResolvedValue(status('available'))
+  })
+
+  it('refuses a second run while one is in flight, leaving the first in charge', async () => {
+    let finishDesign: (sound: DesignedSound) => void = () => {}
+    vi.mocked(designSound).mockReturnValueOnce(new Promise((resolve) => {
+      finishDesign = resolve
+    }))
+    const ai = useAiStore()
+    const first = ai.generate('zap')
+
+    await expect(ai.generate('boom')).rejects.toThrow(/already designing/)
+    expect(ai.isGenerating).toBe(true)
+    expect(ai.lastError).toBeNull()
+
+    finishDesign(designed)
+    await expect(first).resolves.toMatchObject({ name: 'zap' })
+    expect(ai.isGenerating).toBe(false)
   })
 })

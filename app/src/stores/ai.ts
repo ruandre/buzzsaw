@@ -67,6 +67,7 @@ export const useAiStore = defineStore('ai', () => {
     return promptApi.value
   }
 
+  /** Rejects, changing nothing, while another generate or edit runs */
   async function generate(description: string, options: GenerateOptions = {}): Promise<GeneratedSound> {
     return run(
       () => designSound(description, { signal: options.signal, onProgress: reportProgress }),
@@ -75,6 +76,7 @@ export const useAiStore = defineStore('ai', () => {
     )
   }
 
+  /** Rejects, changing nothing, while another generate or edit runs */
   async function edit(
     original: SoundDefinition,
     originalName: string,
@@ -110,6 +112,10 @@ export const useAiStore = defineStore('ai', () => {
     prompt: string,
     options: GenerateOptions,
   ): Promise<GeneratedSound> {
+    // Runs share status, error and cancel state; WebMCP tools bypass the UI's own guard
+    if (isGenerating.value) {
+      throw new Error('Buzzsaw is already designing a sound; try again when it finishes.')
+    }
     isGenerating.value = true
     statusText.value = 'Preparing...'
     downloadPercent.value = null
