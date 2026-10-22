@@ -1,6 +1,7 @@
 import type { LanguageModelApi } from './availability'
 import { getLanguageModel } from './availability'
 
+/** Percent only for measurable steps; omitted while a step reports no progress */
 export type ProgressReporter = (message: string, percent?: number) => void
 
 export interface PromptRunOptions {
@@ -34,7 +35,7 @@ export async function runStructuredPrompt(
     return null
   }
 
-  options.onProgress?.('Connecting to the on-device model...')
+  options.onProgress?.('Starting the on-device model...')
   const session = await api.create({
     signal: options.signal,
     initialPrompts: [{ role: 'system', content: request.systemPrompt }],
@@ -43,8 +44,7 @@ export async function runStructuredPrompt(
     ...await resolveSampling(api, request.sampling),
     monitor(monitor: EventTarget) {
       monitor.addEventListener?.('downloadprogress', (event: Event) => {
-        const percent = Math.round(((event as ProgressEvent).loaded ?? 0) * 100)
-        options.onProgress?.(`Downloading the on-device model... ${percent}%`, percent)
+        reportModelProgress((event as ProgressEvent).loaded ?? 0, options.onProgress)
       })
     },
   })
@@ -59,6 +59,19 @@ export async function runStructuredPrompt(
   finally {
     session.destroy?.()
   }
+}
+
+// Spec fires 0 and 1 even when model is already on disk; loading into memory after 1 fires nothing
+function reportModelProgress(loaded: number, onProgress?: ProgressReporter): void {
+  if (loaded <= 0) {
+    return
+  }
+  if (loaded >= 1) {
+    onProgress?.('Loading the on-device model into memory...')
+    return
+  }
+  const percent = Math.round(loaded * 100)
+  onProgress?.(`Downloading the on-device model... ${percent}%`, percent)
 }
 
 type SamplingOptions

@@ -93,4 +93,71 @@ describe('promptComposer', () => {
 
     expect(document.activeElement).toBe(outside)
   })
+
+  it('shows an indeterminate bar while a step reports no percent', async () => {
+    const wrapper = mount(PromptComposer, { attachTo: document.body, global: { stubs } })
+    useAiStore().statusText = 'Loading the on-device model into memory...'
+
+    await setGenerating(true)
+
+    const bar = wrapper.get('[role="progressbar"]')
+    expect(bar.attributes('aria-valuenow')).toBeUndefined()
+    expect(bar.attributes('aria-valuetext')).toBe('Loading the on-device model into memory...')
+  })
+
+  it('shows download percent on the bar', async () => {
+    const wrapper = mount(PromptComposer, { attachTo: document.body, global: { stubs } })
+    useAiStore().downloadPercent = 40
+
+    await setGenerating(true)
+
+    expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('40')
+  })
+
+  describe('step timer', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    async function elapse(milliseconds: number) {
+      await vi.advanceTimersByTimeAsync(milliseconds)
+      await nextTick()
+    }
+
+    it('counts seconds spent on the current step', async () => {
+      const wrapper = mount(PromptComposer, { attachTo: document.body, global: { stubs } })
+      useAiStore().statusText = 'Loading the on-device model into memory...'
+      await setGenerating(true)
+
+      await elapse(5000)
+
+      expect(wrapper.get('time').text()).toBe('5s')
+    })
+
+    it('restarts when the step changes', async () => {
+      const wrapper = mount(PromptComposer, { attachTo: document.body, global: { stubs } })
+      const ai = useAiStore()
+      ai.statusText = 'Loading the on-device model into memory...'
+      await setGenerating(true)
+      await elapse(5000)
+
+      ai.statusText = 'Designing the patch on-device...'
+      await elapse(3000)
+
+      expect(wrapper.get('time').text()).toBe('3s')
+    })
+
+    it('stays hidden for quick steps', async () => {
+      const wrapper = mount(PromptComposer, { attachTo: document.body, global: { stubs } })
+      await setGenerating(true)
+
+      await elapse(1000)
+
+      expect(wrapper.find('time').exists()).toBe(false)
+    })
+  })
 })

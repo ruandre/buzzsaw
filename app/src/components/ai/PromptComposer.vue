@@ -5,6 +5,7 @@ import { useRetainedFocus } from '../../composables/useRetainedFocus'
 import { useAiStore, usePlaybackStore } from '../../stores'
 import ModulePanel from '../ui/ModulePanel.vue'
 import EngineNotice from './EngineNotice.vue'
+import StepTimer from './StepTimer.vue'
 
 const emit = defineEmits<{
   (e: 'submit', prompt: string): void
@@ -97,19 +98,25 @@ function surpriseMe(): void {
       </form>
 
       <div v-if="ai.isGenerating" class="space-y-1.5" role="status" aria-live="polite">
-        <p class="text-xs text-ink-muted font-mono">
-          {{ ai.statusText }}
-        </p>
+        <div class="flex items-baseline justify-between gap-3 text-xs text-ink-muted font-mono">
+          <p>{{ ai.statusText }}</p>
+          <StepTimer :key="ai.statusText" />
+        </div>
         <div
-          v-if="ai.downloadPercent !== null"
           class="h-1.5 overflow-hidden border border-line rounded-full bg-surface shadow-inset"
           role="progressbar"
-          :aria-valuenow="ai.downloadPercent"
+          :aria-valuenow="ai.downloadPercent ?? undefined"
+          :aria-valuetext="ai.statusText"
           aria-valuemin="0"
           aria-valuemax="100"
-          aria-label="Model download progress"
+          aria-label="Generation progress"
         >
-          <div class="h-full rounded-full bg-accent transition-[width] duration-base" :style="{ width: `${ai.downloadPercent}%` }" />
+          <div
+            v-if="ai.downloadPercent !== null"
+            class="h-full rounded-full bg-accent transition-[width] duration-base"
+            :style="{ width: `${ai.downloadPercent}%` }"
+          />
+          <div v-else class="progress-sweep h-full w-2/5 rounded-full bg-accent" />
         </div>
       </div>
 
@@ -133,3 +140,27 @@ function surpriseMe(): void {
     </div>
   </ModulePanel>
 </template>
+
+<style scoped>
+.progress-sweep {
+  animation: progress-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes progress-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-sweep {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}
+</style>
