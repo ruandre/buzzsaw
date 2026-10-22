@@ -31,7 +31,7 @@ const asMilliseconds = (seconds: number) => `${Math.round(seconds * 1000)} ms`
       <Slider
         v-model="creator.state.duration"
         :min="0.02"
-        :max="CREATOR_LIMITS.duration.max"
+        :max="creator.durationMax"
         :step="CREATOR_LIMITS.duration.step"
         label="Duration"
         :format-value="asMilliseconds"

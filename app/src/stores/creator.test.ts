@@ -1,6 +1,6 @@
 import type { SoundDefinition } from '@rjvr/buzzsaw'
 import { DEFAULT_ATTACK_S, DEFAULT_DECAY_S, DEFAULT_DURATION_S, isValidSoundDefinition } from '@rjvr/buzzsaw'
-import { airRaidSiren } from '@rjvr/buzzsaw/sounds'
+import { airRaidSiren, DEFAULT_SOUNDS, spaceAmbience } from '@rjvr/buzzsaw/sounds'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
@@ -132,6 +132,26 @@ describe('creator store envelope timing', () => {
 
     expect(creator.attackMax).toBe(CREATOR_LIMITS.attack.max)
     expect(creator.decayMax).toBe(CREATOR_LIMITS.decay.max)
+  })
+
+  it.each(Object.entries(DEFAULT_SOUNDS))('leaves room to lengthen the loaded %s preset', (name, sound) => {
+    const creator = useCreatorStore()
+
+    creator.load(name, sound)
+
+    expect(creator.durationMax).toBeGreaterThanOrEqual(creator.state.duration * 1.25)
+    expect(creator.attackMax).toBeGreaterThanOrEqual(Math.min(creator.state.attack * 1.25, creator.state.duration))
+    expect(creator.decayMax).toBeGreaterThanOrEqual(Math.min(creator.state.decay * 1.25, creator.state.duration - creator.state.attack))
+  })
+
+  it('restores the default timing ranges on reset after a long preset', () => {
+    const creator = useCreatorStore()
+    creator.load('spaceAmbience', spaceAmbience)
+
+    creator.reset()
+
+    expect(creator.durationMax).toBe(CREATOR_LIMITS.duration.max)
+    expect(creator.attackMax).toBe(Math.min(CREATOR_LIMITS.attack.max, creator.state.duration))
   })
 })
 

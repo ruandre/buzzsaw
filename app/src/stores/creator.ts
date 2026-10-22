@@ -10,7 +10,7 @@ import {
   round,
 } from '@rjvr/buzzsaw'
 import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { findArchetype } from '../audio/archetypes'
 import { MAX_PITCH_HZ, MIN_PITCH_HZ, RANDOMISER_PITCHES } from '../audio/pitches'
 import { useNotificationsStore } from './notifications'
@@ -80,10 +80,14 @@ function resolveTimbre(state: CreatorState): Pick<SoundDefinition, 'waveType' | 
 
 const MIN_GAIN = 0.001
 const STEP_SPACING_S = 0.05
+// Slider range above a loaded sound's timing, so it can grow as well as shrink
+const LOADED_TIMING_HEADROOM = 1.25
 
 export const useCreatorStore = defineStore('creator', () => {
   const notifications = useNotificationsStore()
   const state = ref<CreatorState>(structuredClone(DEFAULT_CREATOR_STATE))
+  // Captured per load, not read live: a max tracking state.duration would shrink mid-drag
+  const timingCeiling = shallowRef(timingCeilingFor(DEFAULT_CREATOR_STATE))
 
   const timing = computed(() => {
     const s = state.value
@@ -93,8 +97,9 @@ export const useCreatorStore = defineStore('creator', () => {
     return { duration, attack, decay }
   })
 
-  const attackMax = computed(() => Math.min(CREATOR_LIMITS.attack.max, timing.value.duration))
-  const decayMax = computed(() => Math.min(CREATOR_LIMITS.decay.max, timing.value.duration - timing.value.attack))
+  const durationMax = computed(() => timingCeiling.value.duration)
+  const attackMax = computed(() => Math.min(timingCeiling.value.attack, timing.value.duration))
+  const decayMax = computed(() => Math.min(timingCeiling.value.decay, timing.value.duration - timing.value.attack))
 
   // Sliders read state; keeping it at compiled timing makes readouts match playback
   watch(timing, ({ attack, decay }) => {
@@ -133,7 +138,7 @@ export const useCreatorStore = defineStore('creator', () => {
       ? gain
       : isEnvelope(gain) ? gain.start : DEFAULT_CREATOR_STATE.fixedGain
 
-    state.value = {
+    replaceState({
       name,
       waveType: source.waveType ?? 'sine',
       partials: source.partials ? [...source.partials] : undefined,
@@ -154,7 +159,7 @@ export const useCreatorStore = defineStore('creator', () => {
       duration: source.duration ?? DEFAULT_DURATION_S,
       attack: source.attack ?? DEFAULT_ATTACK_S,
       decay: source.decay ?? DEFAULT_DECAY_S,
-    }
+    })
     notifications.announce(`Loaded "${name}" into the synthesizer`, 'info', 'polite')
   }
 
@@ -172,7 +177,7 @@ export const useCreatorStore = defineStore('creator', () => {
   }
 
   function reset(): void {
-    state.value = structuredClone(DEFAULT_CREATOR_STATE)
+    replaceState(structuredClone(DEFAULT_CREATOR_STATE))
     notifications.announce('Reset the synthesizer to defaults', 'info', 'polite')
   }
 
@@ -184,7 +189,7 @@ export const useCreatorStore = defineStore('creator', () => {
     const startPitch = pickRandom(RANDOMISER_PITCHES)
     const endPitch = pickRandom(RANDOMISER_PITCHES)
 
-    state.value = {
+    replaceState({
       name: `synth_${waveType}_${Math.floor(Math.random() * 1000)}`,
       waveType,
       frequencyMode: useContour ? 'steps' : 'fixed',
@@ -198,7 +203,7 @@ export const useCreatorStore = defineStore('creator', () => {
       duration,
       attack: round(0.002 + Math.random() * 0.03, 3),
       decay: round(duration * 0.45, 3),
-    }
+    })
     notifications.announce(`Generated a random ${waveType} patch`, 'info', 'polite')
   }
 
@@ -271,6 +276,11 @@ export const useCreatorStore = defineStore('creator', () => {
     notifications.announce(`Shifted ${direction === 1 ? 'up' : 'down'} one octave`, 'info', 'polite', 1200)
   }
 
+  function replaceState(next: CreatorState): void {
+    state.value = next
+    timingCeiling.value = timingCeilingFor(next)
+  }
+
   function nextStepTime(previousTime?: number): number {
     return round(Math.min(state.value.duration, (previousTime ?? 0) + STEP_SPACING_S), 3)
   }
@@ -278,6 +288,7 @@ export const useCreatorStore = defineStore('creator', () => {
   return {
     state,
     definition,
+    durationMax,
     attackMax,
     decayMax,
     load,
@@ -296,6 +307,15 @@ export const useCreatorStore = defineStore('creator', () => {
     shiftOctave,
   }
 })
+
+// Sliders clamp every move to max; a long loaded sound widens its range instead of being cut
+function timingCeilingFor({ duration, attack, decay }: Pick<CreatorState, 'duration' | 'attack' | 'decay'>) {
+  return {
+    duration: Math.max(CREATOR_LIMITS.duration.max, duration * LOADED_TIMING_HEADROOM),
+    attack: Math.max(CREATOR_LIMITS.attack.max, attack * LOADED_TIMING_HEADROOM),
+    decay: Math.max(CREATOR_LIMITS.decay.max, decay * LOADED_TIMING_HEADROOM),
+  }
+}
 
 function clampPitch(hz: number): number {
   return clamp(hz || DEFAULT_CREATOR_STATE.fixedFrequency, MIN_PITCH_HZ, MAX_PITCH_HZ)
