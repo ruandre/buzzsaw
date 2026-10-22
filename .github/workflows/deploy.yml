@@ -5,9 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Queued runs collapse to the latest, but a deploy already running finishes rather than being cut off mid-publish
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read

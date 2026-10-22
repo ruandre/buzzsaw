@@ -27,6 +27,9 @@ jobs:
           persist-credentials: false
 
       - uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
+        with:
+          # No cache: published tarballs must not be built with restored tools
+          cache: false
 
       - run: aube install --frozen-lockfile --ignore-scripts
 
